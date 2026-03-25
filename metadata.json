@@ -1,5 +1,5 @@
 {
-  "name": "Remix: جذاذات الاجتماعيات بالذكاء الاصطناعي ",
-  "description": "منصة ذكية لتوليد جذاذات مادة الاجتماعيات للأساتذة المغاربة (السلك الإعدادي والتأهيلي) باستخدام الذكاء الاصطناعي وفق المنهاج المغربي الرسمي.",
+  "name": "GeneratePromptAI Clone",
+  "description": "An Arabic AI prompt generator landing page and tool.",
   "requestFramePermissions": []
 }

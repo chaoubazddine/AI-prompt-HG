@@ -1,24 +1,20 @@
-# جذاذات الاجتماعيات بالذكاء الاصطناعي (Jadha AI)
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-منصة ذكية لتوليد جذاذات مادة الاجتماعيات للأساتذة المغاربة (السلك الإعدادي والتأهيلي) باستخدام الذكاء الاصطناعي وفق المنهاج المغربي الرسمي.
+# Run and deploy your AI Studio app
 
-## المميزات
-- توليد جذاذات دقيقة وشاملة في ثوانٍ.
-- دعم جميع المستويات (الإعدادي والتأهيلي).
-- تصدير الجذاذات بصيغة PDF و Word.
-- واجهة مستخدم عصرية وسهلة الاستخدام باللغة العربية.
-- إمكانية الربط مع GitHub لحفظ الجذاذات.
+This contains everything you need to run your app locally.
 
-## التقنيات المستخدمة
-- React 19
-- Tailwind CSS 4
-- Google Gemini AI API
-- Express.js (Backend)
-- jsPDF & docx (Exporting)
+View your app in AI Studio: https://ai.studio/apps/3d0ec610-a066-4b78-b953-16d2240ad1fe
 
-## كيفية الاستخدام
-1. اختر السلك التعليمي والمستوى.
-2. اختر المادة (تاريخ، جغرافيا، تربية على المواطنة).
-3. اختر الدرس أو أدخل عنواناً مخصصاً.
-4. اضغط على "توليد الجذاذة".
-5. قم بتحميل النتيجة بالصيغة التي تفضلها.
+## Run Locally
+
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
