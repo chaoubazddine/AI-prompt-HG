@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and subscription status",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "subscriptionTier": { "type": "string", "enum": ["free", "basic", "advanced", "unlimited"] },
+        "downloadCount": { "type": "number" },
+        "profInfo": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "subscriptionTier", "downloadCount"]
+    },
+    "Jadha": {
+      "title": "Jadha",
+      "description": "A generated lesson plan",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "data": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "data", "createdAt"]
+    },
+    "ActivationCode": {
+      "title": "ActivationCode",
+      "description": "A code to activate premium access",
+      "type": "object",
+      "properties": {
+        "isValid": { "type": "boolean" },
+        "tier": { "type": "string", "enum": ["basic", "advanced", "unlimited"] },
+        "description": { "type": "string" }
+      },
+      "required": ["isValid", "tier"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/jadhas/{jadhaId}": {
+      "schema": "Jadha",
+      "description": "Generated jadhas"
+    },
+    "/activationCodes/{code}": {
+      "schema": "ActivationCode",
+      "description": "Valid activation codes"
+    }
+  }
+}

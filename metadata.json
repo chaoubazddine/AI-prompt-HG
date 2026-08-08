@@ -1,5 +1,5 @@
 {
-  "name": "GeneratePromptAI Clone",
-  "description": "An Arabic AI prompt generator landing page and tool.",
+  "name": "جذاذات الاجتماعيات بالذكاء الاصطناعي (Jadha AI)",
+  "description": "منصة ذكية لتوليد جذاذات مادة الاجتماعيات للأساتذة المغاربة باستخدام الذكاء الاصطناعي وفق المنهاج الرسمي.",
   "requestFramePermissions": []
 }

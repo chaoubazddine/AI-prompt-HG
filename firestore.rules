@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (Firebase Auth UID)
+    // Fields:
+    //   - displayName: string (optional)
+    //   - email: string (required, email format)
+    //   - subscriptionTier: string (required, enum: free, basic, advanced, unlimited)
+    //   - downloadCount: number (required, >= 0)
+    //   - profInfo: map (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: jadhas
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required, matches owner UID)
+    //   - title: string (required, min 1, max 200)
+    //   - data: map (required, the jadha content)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: activationCodes
+    // Document ID: the code string
+    // Fields:
+    //   - isValid: boolean (required)
+    //   - tier: string (required, enum: basic, advanced, unlimited)
+    //   - description: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "chaoub7@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+             data.keys().hasOnly(['email', 'subscriptionTier', 'downloadCount', 'createdAt', 'displayName', 'role', 'profInfo', 'isPremium']) &&
+             isValidEmail(data.email) &&
+             (!('subscriptionTier' in data) || data.subscriptionTier in ['free', 'basic', 'advanced', 'unlimited']) &&
+             (!('downloadCount' in data) || (data.downloadCount is number && data.downloadCount >= 0)) &&
+             data.createdAt is timestamp &&
+             (!('profInfo' in data) || data.profInfo is map);
+    }
+
+    function isValidJadha(data) {
+      return data.keys().hasAll(['userId', 'title', 'data', 'createdAt']) &&
+             data.keys().hasOnly(['userId', 'title', 'data', 'createdAt']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.data is map &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      request.resource.data.keys().hasAll(['subscriptionTier', 'downloadCount']) &&
+                      (!('role' in request.resource.data) || request.resource.data.role == 'user' || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      (request.resource.data.email == resource.data.email) &&
+                      (request.resource.data.createdAt == resource.data.createdAt) &&
+                      (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /jadhas/{jadhaId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidJadha(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidJadha(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /activationCodes/{code} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
