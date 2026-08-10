@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 import html2canvas from 'html2canvas';
@@ -11,14 +11,13 @@ import jsPDF from 'jspdf';
 import { 
   BookOpen, 
   Sparkles, 
-  Download, 
   Save, 
   Search, 
   GraduationCap,
   ChevronRight,
+  ChevronLeft,
   FileText,
   LogOut,
-  Share2,
   User,
   Layout,
   Clock,
@@ -33,11 +32,17 @@ import {
   Info,
   X,
   History,
-  Map,
-  Globe,
-  Compass,
   ShieldCheck,
-  Star
+  Printer,
+  Plus,
+  Trash2,
+  Check,
+  Layers,
+  Award,
+  Sliders,
+  Compass,
+  MapPin,
+  Zap
 } from 'lucide-react';
 import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha } from './services/geminiService';
@@ -49,8 +54,7 @@ import {
   googleProvider, 
   OperationType, 
   handleFirestoreError, 
-  FirebaseUser,
-  Timestamp
+  FirebaseUser
 } from './firebase';
 import { 
   signInWithPopup, 
@@ -112,7 +116,7 @@ class ErrorBoundary extends (React.Component as any) {
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans text-right" dir="rtl">
-          <div className="bg-white p-8 rounded-[32px] shadow-xl max-w-md w-full text-center">
+          <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center">
             <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center text-red-600 mx-auto mb-6">
               <AlertCircle size={32} />
             </div>
@@ -142,10 +146,12 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'form' | 'generate' | 'view'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view'>('landing');
+  const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingTipIndex, setLoadingTipIndex] = useState(0);
   const [jadhaData, setJadhaData] = useState<JadhaData | null>(null);
   const [hasKey, setHasKey] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,7 +167,15 @@ function JadhaApp() {
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminTab, setAdminTab] = useState<'codes' | 'users'>('codes');
   const [adminSelectedTier, setAdminSelectedTier] = useState<'basic' | 'advanced' | 'unlimited'>('basic');
+  const [dashboardTab, setDashboardTab] = useState<'overview' | 'history' | 'profile'>('overview');
 
+  const LOADING_TIPS = [
+    'جاري تحضير الوثائق والدعامات الديداكتيكية المعتمدة...',
+    'جاري مطابقة التوجيهات التربوية الخاصة بمادة الاجتماعيات...',
+    'جاري توزيع المهام بين الأستاذ والمتعلم بدقة وصيغ موصى بها...',
+    'جاري صياغة الأسئلة والأنشطة والتركيب البيداغوجي...',
+    'جاري تنسيق الجذاذة لتكون جاهزة للطباعة والتصدير...'
+  ];
 
   const TIER_LIMITS = {
     free: 5,
@@ -180,6 +194,18 @@ function JadhaApp() {
   const DOWNLOAD_LIMIT = TIER_LIMITS[subscriptionTier];
   const isAdmin = user?.email === 'chaoub7@gmail.com';
 
+  // Rotating loading tip timer
+  useEffect(() => {
+    let interval: any;
+    if (isGenerating) {
+      interval = setInterval(() => {
+        setLoadingTipIndex(prev => (prev + 1) % LOADING_TIPS.length);
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
+  // Admin sync
   useEffect(() => {
     if (!isAdmin) {
       setAdminCodes([]);
@@ -237,7 +263,7 @@ function JadhaApp() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('تم نسخ الكود بنجاح');
+    toast.success('تم النسخ إلى الحافظة بنجاح');
   };
 
   const deleteCode = async (codeId: string) => {
@@ -249,12 +275,25 @@ function JadhaApp() {
     }
   };
 
+  const deleteJadhaFromHistory = async (jadhaId: string) => {
+    try {
+      await deleteDoc(doc(db, 'jadhas', jadhaId));
+      toast.success('تم حذف الجذاذة من أرشيفك بنجاح');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'jadhas');
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       setIsAuthReady(true);
 
       if (firebaseUser) {
+        if (step === 'landing') {
+          setStep('dashboard');
+        }
+
         // Sync user data with Firestore
         const userRef = doc(db, 'users', firebaseUser.uid);
         try {
@@ -270,7 +309,6 @@ function JadhaApp() {
           } else {
             const data = userDoc.data();
             if (!data.subscriptionTier) {
-              // Migrate old user schema
               await updateDoc(userRef, {
                 subscriptionTier: data.isPremium ? 'unlimited' : 'free',
                 downloadCount: data.downloadCount || 0
@@ -280,6 +318,8 @@ function JadhaApp() {
         } catch (err) {
           handleFirestoreError(err, OperationType.GET, 'users');
         }
+      } else {
+        setStep('landing');
       }
     });
 
@@ -317,7 +357,7 @@ function JadhaApp() {
       collection(db, 'jadhas'),
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
-      limit(10)
+      limit(20)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -336,9 +376,10 @@ function JadhaApp() {
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-      toast.success('تم تسجيل الدخول بنجاح');
+      toast.success('تم تسجيل الدخول بنجاح! مرحباً بك في فضاء الأستاذ');
+      setStep('dashboard');
     } catch (err) {
-      toast.error('فشل تسجيل الدخول');
+      toast.error('فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
       console.error(err);
     }
   };
@@ -347,7 +388,7 @@ function JadhaApp() {
     try {
       await signOut(auth);
       setStep('landing');
-      toast.success('تم تسجيل الخروج');
+      toast.success('تم تسجيل الخروج بنجاح');
     } catch (err) {
       toast.error('فشل تسجيل الخروج');
     }
@@ -355,29 +396,41 @@ function JadhaApp() {
 
   const handleVerifyCode = async () => {
     if (!user) {
-      toast.error('يرجى تسجيل الدخول أولاً');
+      toast.error('يرجى تسجيل الدخول أولاً لتفعيل كود الوصول.');
       return;
     }
 
     const code = activationCode.trim().toUpperCase();
-    if (!code) return;
+    if (!code) {
+      toast.warning('يرجى إدخال الكود أولاً.');
+      return;
+    }
 
     try {
       const codeRef = doc(db, 'activationCodes', code);
       const codeDoc = await getDoc(codeRef);
 
-      if (codeDoc.exists() && codeDoc.data().isValid) {
-        const tier = codeDoc.data().tier || 'unlimited';
-        const userRef = doc(db, 'users', user.uid);
-        await updateDoc(userRef, { subscriptionTier: tier });
-        setShowPremiumModal(false);
-        toast.success(`تم تفعيل ${TIER_NAMES[tier as keyof typeof TIER_NAMES]} بنجاح!`, {
-          description: tier === 'unlimited' ? 'استمتع بجميع ميزات المنصة دون قيود.' : `لديك الآن ${TIER_LIMITS[tier as keyof typeof TIER_LIMITS]} تحميلاً متاحاً.`,
-          duration: 5000,
-        });
+      if (codeDoc.exists()) {
+        const codeData = codeDoc.data();
+        if (codeData.isValid) {
+          const tier = codeData.tier || 'unlimited';
+          const userRef = doc(db, 'users', user.uid);
+          await updateDoc(userRef, { subscriptionTier: tier });
+          // Mark code as used if needed, or keep valid
+          setShowPremiumModal(false);
+          setActivationCode('');
+          toast.success(`تم تفعيل حسابك بنجاح! (${TIER_NAMES[tier as keyof typeof TIER_NAMES]})`, {
+            description: tier === 'unlimited' ? 'استمتع بالوصول اللامحدود لكافة مزايا الجذاذات.' : `تم زيادة رصيدك إلى ${TIER_LIMITS[tier as keyof typeof TIER_LIMITS]} تحميلاً.`,
+            duration: 6000,
+          });
+        } else {
+          toast.error('الكود منتهي الصلاحية أو تم استخدامه سابقاً.', {
+            description: 'يرجى التواصل مع الإدارة للحصول على كود جديد.',
+          });
+        }
       } else {
-        toast.error('كود التفعيل غير صحيح', {
-          description: 'يرجى التأكد من الكود أو التواصل مع الإدارة.',
+        toast.error('كود التفعيل غير صحيح!', {
+          description: 'تأكد من إدخال الحروف والأرقام بشكل صحيح.',
         });
       }
     } catch (err) {
@@ -408,6 +461,7 @@ function JadhaApp() {
         data: data,
         createdAt: serverTimestamp()
       });
+      toast.success('تم حفظ الجذاذة تلقائياً في أرشيفك الشخصي.');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'jadhas');
     }
@@ -421,12 +475,6 @@ function JadhaApp() {
     return true;
   };
 
-  const incrementDownload = () => {
-    if (subscriptionTier !== 'unlimited') {
-      setDownloadCount(prev => prev + 1);
-    }
-  };
-
   useEffect(() => {
     const checkKey = async () => {
       if (window.aistudio) {
@@ -437,7 +485,6 @@ function JadhaApp() {
           console.error("Error checking API key:", e);
         }
       } else {
-        // If external, check if we have a manual key
         setHasKey(!!manualKey || !!process.env.GEMINI_API_KEY); 
       }
     };
@@ -450,8 +497,8 @@ function JadhaApp() {
       setHasKey(true);
       setShowKeyHelp(false);
       setError(null);
-      toast.success('تم حفظ مفتاحك الشخصي بنجاح!', {
-        description: 'سيتم استخدامه الآن بدلاً من المفتاح الافتراضي.',
+      toast.success('تم حفظ المفتاح الشخصي بنجاح!', {
+        description: 'سيتم استخدامه الآن لتوليد الجذاذات.',
       });
     } else {
       toast.error('خطأ في المفتاح', {
@@ -463,7 +510,7 @@ function JadhaApp() {
   const handleClearKey = () => {
     localStorage.removeItem('user_gemini_key');
     setManualKey('');
-    setHasKey(true); // Fallback to admin key
+    setHasKey(true);
     toast.info('تم الرجوع للمفتاح الافتراضي للمنصة.');
   };
 
@@ -482,7 +529,7 @@ function JadhaApp() {
     }
   };
 
-  // Form State
+  // Form States
   const [docType, setDocType] = useState('jadha');
   const [profInfo, setProfInfo] = useState(() => {
     const saved = localStorage.getItem('profInfo');
@@ -495,7 +542,6 @@ function JadhaApp() {
     };
   });
 
-  // Update profInfo when user data changes
   useEffect(() => {
     if (user) {
       const userRef = doc(db, 'users', user.uid);
@@ -511,7 +557,6 @@ function JadhaApp() {
     }
   }, [user]);
 
-  // Save profInfo to Firestore whenever it changes
   useEffect(() => {
     const saveProfInfo = async () => {
       if (user) {
@@ -524,7 +569,7 @@ function JadhaApp() {
       }
     };
     
-    const timeoutId = setTimeout(saveProfInfo, 2000); // Debounce
+    const timeoutId = setTimeout(saveProfInfo, 2000);
     return () => clearTimeout(timeoutId);
   }, [profInfo, user]);
 
@@ -534,16 +579,26 @@ function JadhaApp() {
   const [semester, setSemester] = useState('الدورة الأولى');
   const [reference, setReference] = useState('');
   const [lessonTitle, setLessonTitle] = useState('');
+  const [duration, setDuration] = useState('ساعة واحدة (1س)');
 
-  // Update level when cycle changes
+  const getDurationOptions = (cId: string) => {
+    if (cId === 'secondary') {
+      return ['ساعتان (2س)', '3 ساعات (3س)', '4 ساعات (4س)', '5 ساعات (5س)'];
+    }
+    return ['ساعة واحدة (1س)', 'ساعتان (2س)', '3 ساعات (3س)'];
+  };
+
   useEffect(() => {
     const levels = CYCLE_LEVELS[cycle] || [];
     if (levels.length > 0) {
       setLevel(levels[0]);
     }
+    const options = getDurationOptions(cycle);
+    if (!options.includes(duration)) {
+      setDuration(options[0]);
+    }
   }, [cycle]);
 
-  // Helper to safely extract lessons list based on level, component, and semester
   const getLessonsList = (lvl: string, comp: string, sem: string): string[] => {
     const levelData = (LESSONS_DATA as any)[lvl];
     if (!levelData) return [];
@@ -553,7 +608,6 @@ function JadhaApp() {
     return compData[sem] || Object.values(compData).flat() || [];
   };
 
-  // Update reference and lesson title when level, component, or semester changes
   useEffect(() => {
     const lessons = getLessonsList(level, component, semester);
     if (lessons.length > 0) {
@@ -572,13 +626,13 @@ function JadhaApp() {
 
   const handleGenerate = async () => {
     if (!user) {
-      toast.error('يرجى تسجيل الدخول أولاً');
+      toast.error('يرجى تسجيل الدخول أولاً لتوليد الجذاذة.');
       return;
     }
 
     if (!lessonTitle) {
       toast.warning('تنبيه', {
-        description: 'يرجى اختيار عنوان الدرس أولاً.',
+        description: 'يرجى اختيار عنوان الدرس قبل متابعة التوليد.',
       });
       return;
     }
@@ -587,17 +641,16 @@ function JadhaApp() {
     setStep('generate');
     
     try {
-      console.log("Starting generation for:", lessonTitle, level, reference);
       const data = await generateJadha(lessonTitle, level, reference);
       
-      if (!data) throw new Error("لم يتم استلام بيانات من الخدمة");
+      if (!data) throw new Error("لم يتم استلام بيانات من خدمة التوليد");
 
-      // Merge professional info into the generated data
       const finalData: JadhaData = {
         ...data,
         level: level,
         year: profInfo.year,
         unit: component,
+        duration: duration,
         academy: profInfo.academy,
         directorate: profInfo.directorate,
         school: profInfo.school,
@@ -630,12 +683,12 @@ function JadhaApp() {
     
     const promise = downloadWord(jadhaData);
     toast.promise(promise, {
-      loading: 'جاري تحضير ملف Word...',
+      loading: 'جاري تحضير ملف Word وفق المظهر الرسمي...',
       success: () => {
         incrementDownloadCount();
         return 'تم تحميل ملف Word بنجاح!';
       },
-      error: 'عذراً، فشل تحميل الملف.',
+      error: 'عذراً، فشل تحميل ملف Word.',
     });
   };
 
@@ -644,9 +697,8 @@ function JadhaApp() {
     if (!element) return;
     if (!checkDownloadLimit()) return;
 
-    toast.loading('جاري تحضير ملف PDF...', { id: 'pdf-toast' });
+    toast.loading('جاري تحضير ملف PDF عالي الجودة...', { id: 'pdf-toast' });
 
-    // Temporary style to fix html2canvas oklch issue globally during capture
     const styleOverride = document.createElement('style');
     styleOverride.id = 'html2canvas-fix';
     styleOverride.innerHTML = `
@@ -667,7 +719,6 @@ function JadhaApp() {
         backgroundColor: '#ffffff',
         logging: false,
         onclone: (clonedDoc) => {
-          // Additional cleaning in the clone
           const styleTags = clonedDoc.getElementsByTagName('style');
           for (let i = 0; i < styleTags.length; i++) {
             let css = styleTags[i].innerHTML;
@@ -680,7 +731,6 @@ function JadhaApp() {
         }
       });
       
-      // Cleanup the temporary style
       document.head.removeChild(styleOverride);
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -695,7 +745,7 @@ function JadhaApp() {
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Jadha_${(jadhaData?.title || "Lesson").replace(/\s+/g, '_')}.pdf`);
+      pdf.save(`جذاذة_${(jadhaData?.title || "الدرس").replace(/\s+/g, '_')}.pdf`);
 
       toast.success('تم تحميل ملف PDF بنجاح!', { id: 'pdf-toast' });
       await incrementDownloadCount();
@@ -705,127 +755,1122 @@ function JadhaApp() {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 flex flex-col justify-between" dir="rtl">
       <Toaster position="top-center" richColors closeButton />
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50 px-4 py-4 transition-all duration-300">
+      
+      {/* Top Header Navigation */}
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-4 py-3 shadow-xs">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#4F46E5] p-2 rounded-xl text-white shadow-lg shadow-indigo-200">
-              <BookOpen size={24} />
+          <div 
+            onClick={() => setStep(user ? 'dashboard' : 'landing')}
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-2.5 rounded-2xl text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+              <BookOpen size={22} />
             </div>
             <div>
-              <h1 className="text-xl font-bold leading-none">منصة الاجتماعيات الذكية</h1>
-              <p className="text-[10px] text-slate-400 mt-1">توليد الجذاذات التربوية</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black tracking-tight text-slate-900">الاجتماعيات الذكية</h1>
+                <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+                  المغرب 🇲🇦
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">منصة الجذاذات التربوية بالذكاء الاصطناعي</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
-              <div className="flex items-center gap-4">
-                  <div className="hidden md:flex flex-col items-end">
-                    <span className="text-xs font-bold text-slate-900">{user.displayName}</span>
-                    <div className="flex items-center gap-1">
-                      <span className={`text-[10px] font-black flex items-center gap-1 ${subscriptionTier === 'free' ? 'text-slate-400' : 'text-emerald-600'}`}>
-                        <ShieldCheck size={10} />
-                        {TIER_NAMES[subscriptionTier]}
-                      </span>
-                      {subscriptionTier !== 'unlimited' && (
-                        <span className="text-[10px] text-slate-400 font-bold">
-                          • {downloadCount}/{DOWNLOAD_LIMIT}
-                        </span>
-                      )}
-                    </div>
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-2xl">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                    {user.displayName ? user.displayName.charAt(0) : 'أ'}
                   </div>
-                <div className="flex items-center gap-2">
-                  {isAdmin && (
-                    <button 
-                      onClick={() => setShowAdminPanel(true)}
-                      className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
-                      title="لوحة التحكم"
-                    >
-                      <ShieldCheck size={20} />
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => setShowKeyHelp(true)}
-                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                    title="الإعدادات"
-                  >
-                    <Settings size={20} />
-                  </button>
-                  <button 
-                    onClick={handleLogout}
-                    className="p-2 rounded-xl border border-red-100 text-red-500 hover:bg-red-50 transition-all"
-                    title="تسجيل الخروج"
-                  >
-                    <LogOut size={20} />
-                  </button>
+                  <div className="flex flex-col text-right">
+                    <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">{user.displayName || 'الأستاذ'}</span>
+                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                      <ShieldCheck size={12} />
+                      {TIER_NAMES[subscriptionTier]}
+                      {subscriptionTier !== 'unlimited' && ` (${downloadCount}/${DOWNLOAD_LIMIT})`}
+                    </span>
+                  </div>
                 </div>
+
+                <button 
+                  onClick={() => setStep('dashboard')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <Layout size={16} />
+                  <span className="hidden md:inline">فضاء الأستاذ</span>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setStep('form');
+                    setFormStep(1);
+                  }}
+                  className="bg-[#4F46E5] text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <Plus size={16} />
+                  <span>جذاذة جديدة</span>
+                </button>
+
+                {isAdmin && (
+                  <button 
+                    onClick={() => setShowAdminPanel(true)}
+                    className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-all border border-amber-200/60"
+                    title="لوحة الإدارة"
+                  >
+                    <ShieldCheck size={18} />
+                  </button>
+                )}
+
+                <button 
+                  onClick={() => setShowKeyHelp(true)}
+                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                  title="الإعدادات والمفتاح"
+                >
+                  <Settings size={18} />
+                </button>
+
+                <button 
+                  onClick={handleLogout}
+                  className="p-2 rounded-xl text-red-500 hover:bg-red-50 transition-all"
+                  title="تسجيل الخروج"
+                >
+                  <LogOut size={18} />
+                </button>
               </div>
             ) : (
-              <button 
-                onClick={handleLogin}
-                className="bg-[#4F46E5] text-white px-6 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
-              >
-                <LogIn size={18} />
-                تسجيل الدخول
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowPremiumModal(true)}
+                  className="text-slate-600 hover:text-indigo-600 px-3 py-2 text-xs font-bold transition-colors hidden sm:block"
+                >
+                  تفعيل كود
+                </button>
+                <button 
+                  onClick={handleLogin}
+                  className="bg-[#4F46E5] text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center gap-2"
+                >
+                  <LogIn size={16} />
+                  دخول الأستاذ
+                </button>
+              </div>
             )}
           </div>
         </div>
       </header>
-      
-      {/* Admin Panel Modal */}
-      <AnimatePresence>
-        {showAdminPanel && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+
+      {/* Main Container */}
+      <main className="max-w-6xl mx-auto px-4 py-6 w-full flex-1">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0 text-red-500" />
+              <p className="text-xs sm:text-sm font-bold">{error}</p>
+            </div>
+            {!hasKey && (
+              <button 
+                onClick={handleSelectKey}
+                className="px-4 py-1.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-colors shrink-0"
+              >
+                تفعيل المفتاح
+              </button>
+            )}
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {/* LANDING PAGE STEP */}
+          {step === 'landing' && (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden text-right"
-              dir="rtl"
+              key="landing"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-10 py-4"
             >
-              <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
-                    <ShieldCheck size={24} />
-                  </div>
-                  <h3 className="text-2xl font-black">لوحة التحكم</h3>
+              {/* Clean Hero Section */}
+              <div className="bg-gradient-to-b from-white to-slate-50/50 p-8 sm:p-12 rounded-3xl border border-slate-200/80 shadow-xs text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-xs font-bold mb-6">
+                  <Sparkles size={14} className="text-indigo-600 animate-pulse" />
+                  مصممة خصيصاً لأطر وهيئة تدريس مادة الاجتماعيات بالمغرب
                 </div>
-                <div className="flex bg-slate-100 p-1 rounded-xl">
+
+                <h1 className="text-3xl sm:text-5xl font-black mb-6 leading-tight text-slate-900 max-w-4xl mx-auto">
+                  إعداد الجذاذات التربوية <br className="hidden sm:inline" />
+                  <span className="text-[#4F46E5] bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+                    بسرعة ودقة بالذكاء الاصطناعي
+                  </span>
+                </h1>
+
+                <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto mb-8 leading-relaxed font-normal">
+                  منصة ذكية تساعد الأستاذ المغربي على إعداد الجذاذات التربوية بسرعة ودقة وفق السياق التربوي والتوجيهات الرسمية لمادة الاجتماعيات (التاريخ، الجغرافيا، والتربية على المواطنة).
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
+                  <button 
+                    onClick={user ? () => setStep('dashboard') : handleLogin}
+                    className="w-full sm:w-auto bg-[#4F46E5] text-white px-8 py-4 rounded-2xl text-base font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-98 transition-all flex items-center justify-center gap-3"
+                  >
+                    <LogIn size={20} />
+                    {user ? 'الانتقال إلى فضاء الأستاذ' : 'دخول الأستاذ والتجربة'}
+                  </button>
+
+                  <button 
+                    onClick={() => setShowPremiumModal(true)}
+                    className="w-full sm:w-auto bg-white border border-slate-200/90 text-slate-700 px-6 py-4 rounded-2xl text-base font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    <ShieldCheck size={18} className="text-amber-500" />
+                    تفعيل كود الوصول
+                  </button>
+                </div>
+              </div>
+
+              {/* Core Benefits Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col items-start text-right hover:border-indigo-200 transition-all group">
+                  <div className="bg-indigo-50 p-3.5 rounded-2xl text-indigo-600 mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <Clock size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">توفير الوقت والجهد</h3>
+                  <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                    توليد جذاذة بيداغوجية كاملة ومصوغة بأسلوب تربوي رصين في أقل من 60 ثانية لجميع مقاطع ودروس المادة.
+                  </p>
+                </div>
+
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col items-start text-right hover:border-emerald-200 transition-all group">
+                  <div className="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600 mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <CheckCircle size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">مطابقة التوجيهات الرسمية</h3>
+                  <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                    احترام تام لمبادئ النهج التاريخي والنهج الجغرافي وقواعد التربية على المواطنة المعتمدة بالمنظومة المغربية.
+                  </p>
+                </div>
+
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col items-start text-right hover:border-purple-200 transition-all group">
+                  <div className="bg-purple-50 p-3.5 rounded-2xl text-purple-600 mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <FileDown size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">جاهزة للطباعة والتعديل</h3>
+                  <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                    تصدير مباشر بصيغتي Word و PDF بجداول منسقة بعناية وقابلة للطباعة والتخصيص الفوري.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3-Step Interactive Workflow */}
+              <div className="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+                <div className="text-center max-w-xl mx-auto space-y-2">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900">طريقة إنشاء الجذاذة في 3 خطوات بسيطة</h3>
+                  <p className="text-xs sm:text-sm text-slate-500">مسار إعداد مرن وسريع يراعي الخصوصيات الديداكتيكية لكل مرحلة</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                  <div className="p-6 bg-slate-50/70 border border-slate-200/60 rounded-2xl space-y-3 relative overflow-hidden">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                      1
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-sm">إدخال البيانات الرسمية</h4>
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      تأكيد اسم الأستاذ، الأكاديمية الجهوية، المديرية الإقليمية، والمؤسسة لتضمينها تلقائياً في الترويسة.
+                    </p>
+                  </div>
+
+                  <div className="p-6 bg-slate-50/70 border border-slate-200/60 rounded-2xl space-y-3 relative overflow-hidden">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                      2
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-sm">اختيار المادة والدرس والزمن</h4>
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      تحديد السلك (إعدادي أو تأهيلي)، المستوى، المقرر المعتمد والغلاف الزمني المناسب لمستواك.
+                    </p>
+                  </div>
+
+                  <div className="p-6 bg-slate-50/70 border border-slate-200/60 rounded-2xl space-y-3 relative overflow-hidden">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                      3
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-sm">التوليد والتصدير الفوري</h4>
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      الحصول على الجذاذة كاملة مع القدرة على طباعتها أو تحميلها كملف Word أو PDF قابل للتعديل.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code Activation Highlight */}
+              <div className="bg-slate-900 text-white p-8 sm:p-10 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="text-right space-y-2 max-w-xl">
+                  <div className="inline-flex items-center gap-2 text-amber-400 font-bold text-xs bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/20">
+                    <Zap size={14} />
+                    نظام تفعيل فوري للأستاذ
+                  </div>
+                  <h3 className="text-2xl font-black">هل لديك كود تفعيل خاص؟</h3>
+                  <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                    أدخل كود التفعيل لتوسيع رصيد التحميلات أو الاستفادة من الوصول الكامل للمحتوى البيداغوجي.
+                  </p>
+                </div>
+
+                <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+                  <input 
+                    type="text" 
+                    placeholder="أدخل الكود (مثال: SOCIAL-PRO)"
+                    className="bg-white/10 border border-white/20 text-white placeholder-slate-400 px-4 py-3.5 rounded-2xl text-sm font-bold outline-none focus:border-indigo-400 text-center uppercase"
+                    value={activationCode}
+                    onChange={(e) => setActivationCode(e.target.value)}
+                  />
+                  <button 
+                    onClick={handleVerifyCode}
+                    className="bg-[#4F46E5] text-white px-6 py-3.5 rounded-2xl text-sm font-bold hover:bg-indigo-600 transition-all whitespace-nowrap shadow-md shadow-indigo-900/50"
+                  >
+                    تفعيل الحساب
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* DASHBOARD STEP */}
+          {step === 'dashboard' && user && (
+            <motion.div 
+              key="dashboard"
+              initial={{ opacity: 0, scale: 0.99 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.99 }}
+              className="space-y-6"
+            >
+              {/* Teacher Welcome Banner */}
+              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-indigo-100 shrink-0">
+                    {user.displayName ? user.displayName.charAt(0) : 'أ'}
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                      مرحباً بك، {profInfo.name || user.displayName || 'الأستاذ(ة)'}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-500">
+                      {profInfo.school ? `${profInfo.school} • ` : ''}{profInfo.academy || 'مادة الاجتماعيات'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button 
+                    onClick={() => {
+                      setStep('form');
+                      setFormStep(1);
+                    }}
+                    className="flex-1 sm:flex-none bg-[#4F46E5] text-white px-6 py-3.5 rounded-2xl text-sm font-bold shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus size={18} />
+                    إنشاء جذاذة جديدة
+                  </button>
+                </div>
+              </div>
+
+              {/* Statistics Quick Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 mb-1">الجذاذات المنشأة</p>
+                    <p className="text-2xl font-black text-slate-900">{history.length}</p>
+                  </div>
+                  <div className="bg-indigo-50 p-3.5 rounded-2xl text-indigo-600">
+                    <FileText size={22} />
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 mb-1">مستوى الاشتراك</p>
+                    <p className="text-base font-black text-emerald-600">{TIER_NAMES[subscriptionTier]}</p>
+                  </div>
+                  <div className="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600">
+                    <ShieldCheck size={22} />
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 mb-1">الرصيد المتاحة</p>
+                    <p className="text-2xl font-black text-slate-900">
+                      {subscriptionTier === 'unlimited' ? 'غير محدود' : `${DOWNLOAD_LIMIT - downloadCount} / ${DOWNLOAD_LIMIT}`}
+                    </p>
+                  </div>
+                  <div className="bg-purple-50 p-3.5 rounded-2xl text-purple-600">
+                    <Award size={22} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashboard Navigation Tabs */}
+              <div className="flex border-b border-slate-200 gap-6 text-sm font-bold text-slate-500">
+                <button 
+                  onClick={() => setDashboardTab('overview')}
+                  className={`pb-3 transition-colors border-b-2 ${dashboardTab === 'overview' ? 'border-[#4F46E5] text-[#4F46E5]' : 'border-transparent hover:text-slate-800'}`}
+                >
+                  الجذاذات الأخيرة ({history.length})
+                </button>
+                <button 
+                  onClick={() => setDashboardTab('profile')}
+                  className={`pb-3 transition-colors border-b-2 ${dashboardTab === 'profile' ? 'border-[#4F46E5] text-[#4F46E5]' : 'border-transparent hover:text-slate-800'}`}
+                >
+                  المعلومات المهنية والحساب
+                </button>
+              </div>
+
+              {/* Tab 1: Recent History */}
+              {dashboardTab === 'overview' && (
+                <div className="space-y-4">
+                  {history.length === 0 ? (
+                    <div className="bg-white p-12 rounded-3xl border border-slate-200/80 text-center space-y-4">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mx-auto">
+                        <FileText size={28} />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-800">لا توجد جذاذات محفوطة في أرشيفك حتى الآن</h3>
+                      <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto">
+                        ابدأ بتوليد جذاذتك الأولى لمادة الاجتماعيات وفق الدرجات والمستويات التعليمية الرسمية.
+                      </p>
+                      <button 
+                        onClick={() => {
+                          setStep('form');
+                          setFormStep(1);
+                        }}
+                        className="bg-[#4F46E5] text-white px-6 py-3 rounded-2xl text-xs font-bold hover:bg-indigo-700 transition-all inline-flex items-center gap-2"
+                      >
+                        <Plus size={16} />
+                        إنشاء أول جذاذة الآن
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {history.map((item) => (
+                        <div 
+                          key={item.id}
+                          className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:border-indigo-200 transition-all flex flex-col justify-between gap-4 group"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="bg-indigo-50 p-2.5 rounded-2xl text-indigo-600 shrink-0 mt-0.5">
+                                <FileText size={20} />
+                              </div>
+                              <div className="text-right">
+                                <h4 className="font-bold text-slate-900 text-sm sm:text-base leading-snug group-hover:text-indigo-600 transition-colors">
+                                  {item.title}
+                                </h4>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  {item.data?.level || 'الاجتماعيات'} • {item.data?.unit || 'التاريخ'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button 
+                              onClick={() => deleteJadhaFromHistory(item.id)}
+                              className="text-slate-300 hover:text-red-500 p-1.5 rounded-xl transition-colors shrink-0"
+                              title="حذف الجذاذة"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+                            <span className="text-slate-400 text-[11px]">
+                              {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('ar-MA') : 'محفوظة'}
+                            </span>
+
+                            <button 
+                              onClick={() => {
+                                setJadhaData(item.data);
+                                setStep('view');
+                              }}
+                              className="text-indigo-600 font-bold hover:underline inline-flex items-center gap-1"
+                            >
+                              استعراض الجذاذة
+                              <ChevronLeft size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Profile Settings */}
+              {dashboardTab === 'profile' && (
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+                  <h3 className="font-bold text-lg text-slate-900 border-b border-slate-100 pb-3">المعلومات المهنية للأستاذ</h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">اسم الأستاذ(ة) الكامل</label>
+                      <input 
+                        type="text" 
+                        value={profInfo.name}
+                        onChange={(e) => setProfInfo({...profInfo, name: e.target.value})}
+                        placeholder="الاسم والنسب"
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">الأكاديمية الجهوية</label>
+                      <input 
+                        type="text" 
+                        value={profInfo.academy}
+                        onChange={(e) => setProfInfo({...profInfo, academy: e.target.value})}
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">المديرية الإقليمية</label>
+                      <input 
+                        type="text" 
+                        value={profInfo.directorate}
+                        onChange={(e) => setProfInfo({...profInfo, directorate: e.target.value})}
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5">المؤسسة التعليمية</label>
+                      <input 
+                        type="text" 
+                        value={profInfo.school}
+                        onChange={(e) => setProfInfo({...profInfo, school: e.target.value})}
+                        placeholder="اسم الثانوية الإعدادية أو التأهيلية"
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 flex justify-end">
+                    <button 
+                      onClick={() => toast.success('تم حفظ البيانات المهنية بنجاح!')}
+                      className="bg-[#4F46E5] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all"
+                    >
+                      حفظ المعلومات
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* STEPPER GENERATION FORM (4 STEP WIZARD) */}
+          {step === 'form' && (
+            <motion.div 
+              key="form"
+              initial={{ opacity: 0, scale: 0.99 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.99 }}
+              className="space-y-6"
+            >
+              {/* Stepper Header Bar */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                      الخطوة {formStep} من 4
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 hidden sm:inline">
+                      {formStep === 1 && 'المعلومات الشخصية والمهنية للأستاذ'}
+                      {formStep === 2 && 'تحديد السلك والمستوى والمكون'}
+                      {formStep === 3 && 'اختيار الدرس والكتاب والغلاف الزمني'}
+                      {formStep === 4 && 'مراجعة الخيارات وتوليد الجذاذة'}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => setStep(user ? 'dashboard' : 'landing')}
+                    className="text-xs text-slate-400 hover:text-slate-600 font-bold transition-colors"
+                  >
+                    إلغاء والعودة
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { step: 1, title: '1. بيانات الأستاذ' },
+                    { step: 2, title: '2. السلك والمستوى' },
+                    { step: 3, title: '3. الدرس والغلاف' },
+                    { step: 4, title: '4. مراجعة وتوليد' }
+                  ].map((s) => (
+                    <button 
+                      key={s.step}
+                      type="button"
+                      onClick={() => setFormStep(s.step as any)}
+                      className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between gap-1.5 ${
+                        s.step === formStep 
+                          ? 'bg-[#4F46E5] border-indigo-600 text-white font-bold shadow-sm shadow-indigo-100' 
+                          : s.step < formStep 
+                          ? 'bg-indigo-50/70 border-indigo-200 text-indigo-800 font-semibold' 
+                          : 'bg-slate-50 border-slate-200/80 text-slate-400 font-medium hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-xs font-bold truncate">{s.title}</span>
+                      <div className={`h-1 w-full rounded-full ${
+                        s.step === formStep ? 'bg-white/80' : s.step < formStep ? 'bg-indigo-400' : 'bg-slate-200'
+                      }`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Wizard Form Container */}
+              <div className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200/80 shadow-xs space-y-8">
+                {/* STEP 1: Teacher & School Personal Info */}
+                {formStep === 1 && (
+                  <div className="space-y-6">
+                    <div className="border-b border-slate-100 pb-4">
+                      <h3 className="text-lg font-black text-slate-900">الخطوة 1: المعلومات الشخصية والمهنية للأستاذ</h3>
+                      <p className="text-xs text-slate-500 mt-1">إدخال وتأكيد بيانات الأستاذ والمؤسسة لتضمينها في ترويسة الجذاذة الرسمية</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">اسم الأستاذ(ة) الكامل</label>
+                        <input 
+                          type="text" 
+                          value={profInfo.name}
+                          onChange={(e) => setProfInfo({...profInfo, name: e.target.value})}
+                          placeholder="الاسم والنسب"
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">المؤسسة التعليمية</label>
+                        <input 
+                          type="text" 
+                          value={profInfo.school}
+                          onChange={(e) => setProfInfo({...profInfo, school: e.target.value})}
+                          placeholder="اسم الثانوية الإعدادية أو التأهيلية"
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">الأكاديمية الجهوية</label>
+                        <input 
+                          type="text" 
+                          value={profInfo.academy}
+                          onChange={(e) => setProfInfo({...profInfo, academy: e.target.value})}
+                          placeholder="جهة الدار البيضاء سطات"
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">المديرية الإقليمية</label>
+                        <input 
+                          type="text" 
+                          value={profInfo.directorate}
+                          onChange={(e) => setProfInfo({...profInfo, directorate: e.target.value})}
+                          placeholder="المديرية الإقليمية"
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">الموسم الدراسي</label>
+                        <input 
+                          type="text" 
+                          value={profInfo.year}
+                          onChange={(e) => setProfInfo({...profInfo, year: e.target.value})}
+                          placeholder="2025/2026"
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: Cycle, Level & Subject Component */}
+                {formStep === 2 && (
+                  <div className="space-y-6">
+                    <div className="border-b border-slate-100 pb-4">
+                      <h3 className="text-lg font-black text-slate-900">الخطوة 2: تحديد السلك، المستوى والمكون الدراسي</h3>
+                      <p className="text-xs text-slate-500 mt-1">اختر السلك التعليمي والمستوى والمكون المطلوب لإعداد الجذاذة</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="block text-xs font-bold text-slate-700">السلك التعليمي</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {CYCLES.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setCycle(c.id)}
+                            className={`p-4 rounded-2xl border-2 text-right transition-all flex items-center gap-3 ${
+                              cycle === c.id 
+                              ? 'border-[#4F46E5] bg-indigo-50/50 text-indigo-900' 
+                              : 'border-slate-100 hover:border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            <c.icon size={22} className={cycle === c.id ? 'text-[#4F46E5]' : 'text-slate-400'} />
+                            <div>
+                              <p className="font-bold text-sm">{c.name}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{c.description}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">المستوى الدراسي</label>
+                        <select 
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                          value={level}
+                          onChange={e => setLevel(e.target.value)}
+                        >
+                          {(CYCLE_LEVELS[cycle] || []).map(lvl => (
+                            <option key={lvl} value={lvl}>{lvl}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">المكون الدراسي</label>
+                        <select 
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                          value={component}
+                          onChange={e => setComponent(e.target.value)}
+                        >
+                          <option value="التاريخ">التاريخ</option>
+                          <option value="الجغرافيا">الجغرافيا</option>
+                          <option value="التربية على المواطنة">التربية على المواطنة</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: Lesson Title & Textbooks */}
+                {formStep === 3 && (
+                  <div className="space-y-6">
+                    <div className="border-b border-slate-100 pb-4">
+                      <h3 className="text-lg font-black text-slate-900">الخطوة 3: تحديد الدرس والمرجع والغلاف الزمني</h3>
+                      <p className="text-xs text-slate-500 mt-1">حدد عنوان الدرس من المقرر الدراسي المعتمد رسمياً</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">الدورة الدراسية</label>
+                        <select 
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                          value={semester}
+                          onChange={e => setSemester(e.target.value)}
+                        >
+                          <option value="الدورة الأولى">الدورة الأولى</option>
+                          <option value="الدورة الثانية">الدورة الثانية</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">الكتاب المدرسي / المرجع المعتمد</label>
+                        <select 
+                          className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                          value={reference}
+                          onChange={e => setReference(e.target.value)}
+                        >
+                          {(TEXTBOOKS[level] || []).map(book => (
+                            <option key={book} value={book}>{book}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">عنوان الدرس الرسمـي</label>
+                      <select 
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                        value={lessonTitle}
+                        onChange={e => setLessonTitle(e.target.value)}
+                      >
+                        {getLessonsList(level, component, semester).length > 0 ? (
+                          getLessonsList(level, component, semester).map(lesson => (
+                            <option key={lesson} value={lesson}>{lesson}</option>
+                          ))
+                        ) : (
+                          <option value="">لا توجد دروس متوفرة لهذه الدورة والمكون حالياً</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-bold text-slate-700">الغلاف الزمني المخصص للحصة / الدرس</label>
+                        <span className="text-[10px] text-indigo-700 bg-indigo-50 font-bold px-2.5 py-1 rounded-lg border border-indigo-100">
+                          {cycle === 'secondary' ? 'مخصص للثانوي التأهيلي (2س - 5س)' : 'مخصص للتعليم الإعدادي (1س - 3س)'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {getDurationOptions(cycle).map(d => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setDuration(d)}
+                            className={`p-3.5 rounded-2xl border text-xs font-bold transition-all text-center ${
+                              duration === d 
+                                ? 'bg-[#4F46E5] border-indigo-600 text-white shadow-sm shadow-indigo-100' 
+                                : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 4: Review & Confirmation */}
+                {formStep === 4 && (
+                  <div className="space-y-6">
+                    <div className="border-b border-slate-100 pb-4">
+                      <h3 className="text-lg font-black text-slate-900">الخطوة 4: تأكيد الخيارات وتوليد الجذاذة</h3>
+                      <p className="text-xs text-slate-500 mt-1">مراجعة معلومات الجذاذة قبل البدء في التوليد التربوي الذكي</p>
+                    </div>
+
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80 text-xs sm:text-sm space-y-3">
+                      <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                        <span className="text-slate-500">اسم الأستاذ(ة):</span>
+                        <span className="font-bold text-slate-900">{profInfo.name || 'غير محدد'}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                        <span className="text-slate-500">المؤسسة / الأكاديمية:</span>
+                        <span className="font-bold text-slate-900">{profInfo.school || 'غير محددة'} - {profInfo.academy}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                        <span className="text-slate-500">المستوى والمكون:</span>
+                        <span className="font-bold text-slate-900">{level} - {component}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                        <span className="text-slate-500">عنوان الدرس:</span>
+                        <span className="font-bold text-indigo-700">{lessonTitle}</span>
+                      </div>
+                      <div className="flex justify-between py-1.5">
+                        <span className="text-slate-500">المرجع والغلاف الزمني:</span>
+                        <span className="font-bold text-slate-900">{reference} • {duration}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step Navigation Controls */}
+                <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-4">
+                  {formStep > 1 ? (
+                    <button 
+                      type="button"
+                      onClick={() => setFormStep((prev) => (prev - 1) as any)}
+                      className="px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2"
+                    >
+                      <ChevronRight size={16} />
+                      الخطوة السابقة
+                    </button>
+                  ) : <div />}
+
+                  {formStep < 4 ? (
+                    <button 
+                      type="button"
+                      onClick={() => setFormStep((prev) => (prev + 1) as any)}
+                      className="px-8 py-3 bg-[#4F46E5] text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-sm"
+                    >
+                      متابعة للخطوة التالية
+                      <ChevronLeft size={16} />
+                    </button>
+                  ) : (
+                    <button 
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={!lessonTitle}
+                      className="px-8 py-4 bg-[#4F46E5] text-white rounded-2xl text-sm font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200 disabled:opacity-50"
+                    >
+                      <Sparkles size={18} />
+                      توليد الجذاذة بالذكاء الاصطناعي
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* GENERATION LOADING STEP */}
+          {step === 'generate' && (
+            <motion.div 
+              key="generate"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="py-16 text-center space-y-6 max-w-lg mx-auto"
+            >
+              <div className="relative w-20 h-20 mx-auto">
+                <div className="w-20 h-20 border-4 border-indigo-100 border-t-[#4F46E5] rounded-full animate-spin"></div>
+                <Sparkles size={28} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#4F46E5] animate-pulse" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-900">جاري صياغة جذاذة تربوية متكاملة...</h3>
+                <p className="text-xs text-indigo-600 font-bold bg-indigo-50 px-4 py-2 rounded-2xl inline-block border border-indigo-100">
+                  {LOADING_TIPS[loadingTipIndex]}
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                يتم الآن توظيف نماذج ذكاء اصطناعي متخصصة في منهاج مادة الاجتماعيات المغربي لبناء سيناريو بيداغوجي دقيق.
+              </p>
+            </motion.div>
+          )}
+
+          {/* VIEW RESULT STEP */}
+          {step === 'view' && jadhaData && (
+            <motion.div 
+              key="view"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              {/* Actions Header Bar */}
+              <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-4 no-print">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setStep('dashboard')}
+                    className="p-2.5 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                    title="العودة لفضاء الأستاذ"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900">{jadhaData.title}</h2>
+                    <p className="text-xs text-slate-500">{jadhaData.level} • {jadhaData.unit}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button 
+                    onClick={() => copyToClipboard(`جذاذة درس: ${jadhaData.title}\nالمستوى: ${jadhaData.level}\nالمكون: ${jadhaData.unit}`)}
+                    className="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-1.5"
+                  >
+                    <Copy size={16} />
+                    نسخ النص
+                  </button>
+
+                  <button 
+                    onClick={handlePrint}
+                    className="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-1.5"
+                  >
+                    <Printer size={16} />
+                    طباعة
+                  </button>
+
+                  <button 
+                    onClick={handleDownloadWord}
+                    className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <FileDown size={16} />
+                    تصدير Word
+                  </button>
+
+                  <button 
+                    onClick={handleDownloadPDF}
+                    className="px-5 py-2.5 bg-[#4F46E5] text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <FileText size={16} />
+                    تصدير PDF
+                  </button>
+                </div>
+              </div>
+
+              {/* Rendered Printable TableJadha */}
+              <div id="jadha-content" className="bg-white rounded-3xl border border-slate-200/80 p-2 sm:p-6 shadow-xs overflow-hidden">
+                <TableJadha data={jadhaData} />
+              </div>
+
+              <div className="flex justify-center pt-4 no-print">
+                <button 
+                  onClick={() => {
+                    setStep('form');
+                    setFormStep(1);
+                  }}
+                  className="bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 transition-all flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  إنشاء جذاذة جديدة
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-slate-200/80 py-8 text-center text-xs text-slate-400 no-print mt-12">
+        <div className="max-w-6xl mx-auto px-4 space-y-2">
+          <p className="font-bold text-slate-600">منصة الاجتماعيات الذكية • السياق التربوي والتوجيهات الرسمية بالمغرب</p>
+          <p className="text-[11px]">Chaoub.az.etu@gmail.com © 2026 جميع الحقوق محفوظة</p>
+        </div>
+      </footer>
+
+      {/* Premium Activation Modal */}
+      <AnimatePresence>
+        {showPremiumModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setShowPremiumModal(false)}
+                className="absolute top-4 left-4 text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center text-amber-600 mx-auto mb-4">
+                <ShieldCheck size={32} />
+              </div>
+
+              <h3 className="text-xl font-black mb-2 text-slate-900">تفعيل كود الوصول للمنصة</h3>
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                أدخل كود التفعيل لتوسيع رصيد التحميلات أو الحصول على دخول غير محدود لكافة الميزات.
+              </p>
+
+              <div className="space-y-3 mb-6">
+                <input 
+                  type="text" 
+                  placeholder="أدخل كود التفعيل هنا"
+                  className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-center font-bold text-sm outline-none focus:border-indigo-500 uppercase"
+                  value={activationCode}
+                  onChange={(e) => setActivationCode(e.target.value)}
+                />
+                
+                <button 
+                  onClick={handleVerifyCode}
+                  className="w-full bg-[#4F46E5] text-white py-3.5 rounded-2xl text-xs font-bold shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all"
+                >
+                  تفعيل الحساب الآن
+                </button>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
+                لطلب الحصول على كود جديد، يرجى التواصل عبر البريد:<br />
+                <span className="font-bold text-indigo-600">Chaoub.az.etu@gmail.com</span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* API Key Modal */}
+        {showKeyHelp && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <h3 className="text-lg font-black text-slate-900">إعدادات مفتاح التوليد</h3>
+                <button onClick={() => setShowKeyHelp(false)} className="text-slate-400 hover:text-slate-600">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  تعتمد المنصة على مفتاح منصة افتراضي لإنشاء الجذاذات. يمكن إضافة مفتاح شخصي اختياري للحصول على استجابة أسرع.
+                </p>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">المفتاح الشخصي (AIza...)</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="password" 
+                      placeholder="AIzaSy..."
+                      className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-mono"
+                      value={manualKey}
+                      onChange={(e) => setManualKey(e.target.value)}
+                    />
+                    <button 
+                      onClick={handleSaveManualKey}
+                      className="px-4 py-2 bg-[#4F46E5] text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
+                    >
+                      حفظ
+                    </button>
+                  </div>
+                  {manualKey && (
+                    <button 
+                      onClick={handleClearKey}
+                      className="mt-2 text-[10px] text-red-500 hover:underline block"
+                    >
+                      حذف المفتاح الشخصي
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Admin Modal */}
+        {showAdminPanel && isAdmin && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-xs">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 className="text-lg font-black text-slate-900">لوحة تحكم الإدارة</h3>
+                <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-bold">
                   <button 
                     onClick={() => setAdminTab('codes')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${adminTab === 'codes' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${adminTab === 'codes' ? 'bg-white shadow-xs text-indigo-700' : 'text-slate-600'}`}
                   >
-                    الأكواد
+                    الأكواد ({adminCodes.length})
                   </button>
                   <button 
                     onClick={() => setAdminTab('users')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${adminTab === 'users' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${adminTab === 'users' ? 'bg-white shadow-xs text-indigo-700' : 'text-slate-600'}`}
                   >
-                    المستخدمين
+                    المستخدمين ({adminUsers.length})
                   </button>
                 </div>
                 <button onClick={() => setShowAdminPanel(false)} className="text-slate-400 hover:text-slate-600">
-                  <X size={24} />
+                  <X size={20} />
                 </button>
               </div>
-              
-              <div className="p-8 max-h-[60vh] overflow-y-auto">
+
+              <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
                 {adminTab === 'codes' ? (
                   <>
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                    <div className="flex items-center justify-between gap-4 bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
                       <div>
-                        <p className="text-slate-500">إدارة أكواد التفعيل للمستخدمين</p>
+                        <p className="text-xs font-bold text-indigo-900">توليد كود جديد</p>
                         <div className="flex gap-2 mt-2">
                           {(['basic', 'advanced', 'unlimited'] as const).map((t) => (
                             <button
                               key={t}
                               onClick={() => setAdminSelectedTier(t)}
-                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${adminSelectedTier === t ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${adminSelectedTier === t ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600'}`}
                             >
                               {TIER_NAMES[t]}
                             </button>
@@ -834,793 +1879,42 @@ function JadhaApp() {
                       </div>
                       <button 
                         onClick={generateNewCode}
-                        className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 whitespace-nowrap"
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-xs shrink-0"
                       >
-                        <RefreshCw size={18} />
-                        توليد كود {TIER_NAMES[adminSelectedTier]}
+                        توليد
                       </button>
                     </div>
 
-                    <div className="space-y-3">
-                      {adminCodes.length === 0 ? (
-                        <div className="text-center py-10 text-slate-400">لا توجد أكواد حالياً</div>
-                      ) : (
-                        adminCodes.map((code) => (
-                          <div key={code.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <div className="flex items-center gap-4">
-                              <code className="bg-white px-4 py-2 rounded-xl font-mono font-bold text-indigo-600 border border-slate-200">
-                                {code.id}
-                              </code>
-                              <div className="flex flex-col">
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold w-fit ${code.isValid ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                  {code.isValid ? 'صالح' : 'غير صالح'}
-                                </span>
-                                <span className="text-[10px] text-slate-400 mt-1 font-bold">
-                                  المستوى: {TIER_NAMES[code.tier as keyof typeof TIER_NAMES] || code.tier}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => copyToClipboard(code.id)}
-                                className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                                title="نسخ الكود"
-                              >
-                                <Copy size={18} />
-                              </button>
-                              <button 
-                                onClick={() => deleteCode(code.id)}
-                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                                title="حذف الكود"
-                              >
-                                <X size={18} />
-                              </button>
-                            </div>
+                    <div className="space-y-2">
+                      {adminCodes.map((code) => (
+                        <div key={code.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs">
+                          <code className="font-mono font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                            {code.id}
+                          </code>
+                          <span className="font-bold text-slate-600">{TIER_NAMES[code.tier as keyof typeof TIER_NAMES]}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => copyToClipboard(code.id)} className="text-indigo-600 hover:underline font-bold">نسخ</button>
+                            <button onClick={() => deleteCode(code.id)} className="text-red-500 hover:underline font-bold">حذف</button>
                           </div>
-                        ))
-                      )}
+                        </div>
+                      ))}
                     </div>
                   </>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center mb-6">
-                      <p className="text-slate-500">قائمة المستخدمين المسجلين في المنصة</p>
-                      <div className="bg-indigo-50 px-4 py-2 rounded-xl text-indigo-600 font-bold text-sm">
-                        إجمالي المستخدمين: {adminUsers.length}
+                  <div className="space-y-3">
+                    {adminUsers.map((u) => (
+                      <div key={u.id} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs">
+                        <div>
+                          <p className="font-bold text-slate-900">{u.displayName || 'مستخدم'}</p>
+                          <p className="text-[11px] text-slate-400">{u.email}</p>
+                        </div>
+                        <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                          {TIER_NAMES[u.subscriptionTier as keyof typeof TIER_NAMES] || u.subscriptionTier}
+                        </span>
                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-3">
-                      {adminUsers.length === 0 ? (
-                        <div className="text-center py-10 text-slate-400">لا يوجد مستخدمون حالياً</div>
-                      ) : (
-                        adminUsers.map((u) => (
-                          <div key={u.id} className="p-4 bg-white border border-slate-100 rounded-3xl shadow-sm flex items-center justify-between group hover:border-indigo-100 transition-all">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
-                                <User size={24} />
-                              </div>
-                              <div className="text-right">
-                                <p className="font-black text-slate-900">{u.displayName || 'مستخدم غير معروف'}</p>
-                                <p className="text-xs text-slate-400 font-medium">{u.email}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-6">
-                              <div className="text-center">
-                                <p className="text-[10px] text-slate-400 font-bold mb-1">المستوى</p>
-                                <span className={`text-[10px] px-3 py-1 rounded-full font-black ${u.subscriptionTier === 'free' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}>
-                                  {TIER_NAMES[u.subscriptionTier as keyof typeof TIER_NAMES] || u.subscriptionTier}
-                                </span>
-                              </div>
-                              
-                              <div className="text-center">
-                                <p className="text-[10px] text-slate-400 font-bold mb-1">التحميلات</p>
-                                <p className="text-sm font-black text-slate-900">{u.downloadCount || 0}</p>
-                              </div>
-                              
-                              <div className="text-center">
-                                <p className="text-[10px] text-slate-400 font-bold mb-1">تاريخ الانضمام</p>
-                                <p className="text-[10px] font-bold text-slate-500">
-                                  {u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('ar-MA') : 'غير متوفر'}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                    ))}
                   </div>
                 )}
-              </div>
-              
-              <div className="p-8 bg-slate-50 border-t border-slate-100 text-center">
-                <button 
-                  onClick={() => setShowAdminPanel(false)}
-                  className="text-slate-500 font-bold hover:text-slate-700"
-                >
-                  إغلاق
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <div className="flex-1 flex justify-between items-center">
-              <p className="text-sm font-bold">{error}</p>
-              {!hasKey && (
-                <button 
-                  onClick={handleSelectKey}
-                  className="px-4 py-1 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors"
-                >
-                  تفعيل الآن
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-        <AnimatePresence mode="wait">
-          {step === 'landing' && (
-            <motion.div 
-              key="landing"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center text-center py-12"
-            >
-              <h1 className="text-5xl md:text-7xl font-black mb-4 leading-tight">
-                منصة جذاذات <br />
-                <span className="text-[#4F46E5]">الاجتماعيات الذكية</span>
-              </h1>
-              <p className="text-slate-500 text-lg max-w-2xl mb-12 leading-relaxed">
-                نحن نعيد ابتكار طريقة تحضير الدروس. منصة متكاملة توفر وصولاً مباشراً للمحتوى، مصممة خصيصاً لأساتذة الاجتماعيات بالمغرب لإنتاج جذاذات تربوية احترافية في ثوانٍ.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full mb-16">
-                <motion.div 
-                  whileHover={{ y: -5 }}
-                  className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm flex flex-col items-center group transition-all hover:shadow-xl hover:shadow-indigo-50"
-                >
-                  <div className="bg-yellow-50 p-4 rounded-2xl mb-6 group-hover:scale-110 transition-transform">
-                    <Clock className="text-yellow-600" size={32} />
-                  </div>
-                  <p className="text-slate-400 text-sm font-bold mb-2">توفير الوقت</p>
-                  <p className="text-3xl font-black text-slate-900">60 ثانية</p>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ y: -5 }}
-                  className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm flex flex-col items-center group transition-all hover:shadow-xl hover:shadow-emerald-50"
-                >
-                  <div className="bg-emerald-50 p-4 rounded-2xl mb-6 group-hover:scale-110 transition-transform">
-                    <CheckCircle className="text-emerald-600" size={32} />
-                  </div>
-                  <p className="text-slate-400 text-sm font-bold mb-2">الدقة</p>
-                  <p className="text-3xl font-black text-slate-900">100%</p>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ y: -5 }}
-                  className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm flex flex-col items-center group transition-all hover:shadow-xl hover:shadow-blue-50"
-                >
-                  <div className="bg-blue-50 p-4 rounded-2xl mb-6 group-hover:scale-110 transition-transform">
-                    <BookOpen className="text-blue-600" size={32} />
-                  </div>
-                  <p className="text-slate-400 text-sm font-bold mb-2">الموثوقية</p>
-                  <p className="text-3xl font-black text-slate-900">رسمي</p>
-                </motion.div>
-              </div>
-
-              <div className="bg-white w-full max-w-2xl p-12 rounded-[56px] shadow-2xl shadow-indigo-100 flex flex-col items-center border border-slate-50 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-                <div className="bg-indigo-600 p-5 rounded-3xl text-white mb-8 shadow-xl shadow-indigo-200 animate-float">
-                  <LogIn size={36} />
-                </div>
-                <h2 className="text-4xl font-black mb-4">فضاء الأساتذة</h2>
-                <p className="text-slate-500 mb-12 text-lg">اضغط على الزر أدناه للولوج مباشرة إلى فضاء العمل الخاص بك والبدء في توليد الجذاذات التربوية الاحترافية.</p>
-                <button 
-                  onClick={user ? () => setStep('form') : handleLogin}
-                  className="w-full bg-[#4F46E5] text-white py-6 rounded-3xl text-2xl font-black shadow-2xl shadow-indigo-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 group"
-                >
-                  {user ? 'دخول الأستاذ' : 'تسجيل الدخول للبدء'}
-                  <ChevronRight size={28} className="rotate-180 group-hover:translate-x-[-4px] transition-transform" />
-                </button>
-                <p className="text-xs text-slate-400 mt-10 font-medium">المنصة مخصصة حصرياً لأساتذة مادة الاجتماعيات بالمغرب</p>
-                
-                {history.length > 0 && (
-                  <div className="mt-12 w-full text-right">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
-                        <History size={20} />
-                      </div>
-                      <h3 className="text-xl font-black">آخر الجذاذات المولدة</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {history.map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            setJadhaData(item.data);
-                            setStep('view');
-                          }}
-                          className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-indigo-200 hover:bg-white transition-all group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="bg-white p-2 rounded-lg shadow-sm group-hover:text-indigo-600 transition-colors">
-                              <FileText size={18} />
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-slate-900 truncate max-w-[150px]">{item.title}</p>
-                              <p className="text-[10px] text-slate-400">
-                                {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('ar-MA') : 'قيد المعالجة...'}
-                              </p>
-                            </div>
-                          </div>
-                          <ChevronRight size={16} className="text-slate-300 group-hover:text-indigo-400 transition-colors rotate-180" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-16 bg-slate-50 border border-slate-100 p-10 rounded-[40px] text-right w-full">
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
-                      <Sparkles size={24} />
-                    </div>
-                    <h3 className="text-2xl font-black text-slate-800">نظام الوصول المتقدم</h3>
-                  </div>
-                  
-                  <div className="flex flex-col md:flex-row items-center gap-4 p-2 bg-white rounded-3xl border border-slate-200 shadow-sm focus-within:border-indigo-500 transition-colors">
-                    <div className="flex-1 px-4 py-2 w-full">
-                      <p className="text-[10px] text-slate-400 mb-1 font-bold">هل لديك كود تفعيل؟</p>
-                      <input 
-                        type="text" 
-                        placeholder="أدخل الكود هنا"
-                        className="w-full bg-transparent border-none outline-none text-lg font-black text-slate-900 placeholder:text-slate-300"
-                        value={activationCode}
-                        onChange={(e) => setActivationCode(e.target.value)}
-                      />
-                    </div>
-                    <button 
-                      onClick={handleVerifyCode}
-                      className="w-full md:w-auto bg-slate-900 text-white px-10 py-4 rounded-2xl text-sm font-black hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
-                    >
-                      تفعيل الآن
-                    </button>
-                  </div>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <div className="flex items-center gap-2 text-amber-600 bg-amber-50 py-3 px-5 rounded-2xl border border-amber-100 flex-1">
-                      <Info size={16} />
-                      <p className="text-xs font-bold">
-                        للحصول على الكود، يرجى التواصل عبر البريد الإلكتروني.
-                      </p>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText('SOCIAL-PRO-2026');
-                        toast.success('تم نسخ كود التجربة!', { description: 'يمكنك استخدامه الآن لتفعيل الميزات.' });
-                      }}
-                      className="bg-white border border-slate-200 text-slate-400 px-4 py-3 rounded-2xl text-[10px] font-bold hover:text-indigo-600 hover:border-indigo-200 transition-all flex items-center gap-2"
-                    >
-                      <Copy size={14} />
-                      نسخ كود التجربة
-                    </button>
-                  </div>
-                </div>
-
-                {/* Subscription Tiers Bento Section */}
-                <div className="mt-12 w-full max-w-2xl">
-                  <div className="flex items-center gap-3 mb-6 justify-center">
-                    <div className="bg-indigo-50 p-2 rounded-xl text-indigo-600">
-                      <ShieldCheck size={20} />
-                    </div>
-                    <h3 className="text-xl font-black text-slate-800">مستويات الدخول المتاحة</h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-slate-50 border border-slate-100 p-6 rounded-[32px] flex flex-col items-center text-center group hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50 transition-all">
-                      <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-slate-400 mb-4 shadow-sm group-hover:text-indigo-500 transition-colors">
-                        <User size={20} />
-                      </div>
-                      <p className="text-xs font-bold text-slate-400 mb-1">بسيط</p>
-                      <p className="text-xl font-black text-slate-900">10 تحميلات</p>
-                    </div>
-                    
-                    <div className="bg-slate-50 border border-slate-100 p-6 rounded-[32px] flex flex-col items-center text-center group hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50 transition-all">
-                      <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-slate-400 mb-4 shadow-sm group-hover:text-indigo-500 transition-colors">
-                        <Sparkles size={20} />
-                      </div>
-                      <p className="text-xs font-bold text-slate-400 mb-1">متقدم</p>
-                      <p className="text-xl font-black text-slate-900">25 تحميلاً</p>
-                    </div>
-                    
-                    <div className="bg-indigo-600 p-6 rounded-[32px] flex flex-col items-center text-center shadow-xl shadow-indigo-100 transform hover:scale-[1.05] transition-all">
-                      <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center text-white mb-4 backdrop-blur-sm">
-                        <CheckCircle size={20} />
-                      </div>
-                      <p className="text-xs font-bold text-indigo-100 mb-1">احترافي</p>
-                      <p className="text-xl font-black text-white">غير محدود</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 'form' && (
-            <motion.div 
-              key="form"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="space-y-6"
-            >
-              {/* Doc Type */}
-              <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-indigo-50 p-2 rounded-xl text-[#4F46E5]">
-                    <Layout size={20} />
-                  </div>
-                  <h3 className="font-bold">نوع الوثيقة</h3>
-                </div>
-                <div className="space-y-3">
-                  {DOC_TYPES.map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => setDocType(type.id)}
-                      className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
-                        docType === type.id 
-                        ? 'bg-[#4F46E5] border-[#4F46E5] text-white shadow-lg shadow-indigo-100' 
-                        : 'bg-white border-slate-50 text-slate-600 hover:border-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <type.icon size={20} />
-                        <span className="font-bold">{type.name}</span>
-                      </div>
-                      {docType === type.id && <CheckCircle size={20} />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Professional Info */}
-              <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="bg-indigo-50 p-2 rounded-xl text-[#4F46E5]">
-                    <User size={20} />
-                  </div>
-                  <h3 className="font-bold">المعلومات المهنية</h3>
-                </div>
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-2 mr-2">اسم الأستاذ(ة)</label>
-                    <input 
-                      type="text"
-                      placeholder="الاسم الكامل"
-                      className="w-full p-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={profInfo.name}
-                      onChange={e => setProfInfo({...profInfo, name: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-2 mr-2">الأكاديمية</label>
-                    <input 
-                      type="text"
-                      className="w-full p-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={profInfo.academy}
-                      onChange={e => setProfInfo({...profInfo, academy: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-2 mr-2">المديرية الإقليمية</label>
-                    <input 
-                      type="text"
-                      className="w-full p-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={profInfo.directorate}
-                      onChange={e => setProfInfo({...profInfo, directorate: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-2 mr-2">المؤسسة</label>
-                    <input 
-                      type="text"
-                      placeholder="اسم الثانوية/الإعدادية"
-                      className="w-full p-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={profInfo.school}
-                      onChange={e => setProfInfo({...profInfo, school: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-2 mr-2">الموسم الدراسي</label>
-                    <input 
-                      type="text"
-                      className="w-full p-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
-                      value={profInfo.year}
-                      onChange={e => setProfInfo({...profInfo, year: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Jadha Config */}
-              <div className="bg-[#1E1B4B] p-12 rounded-[48px] text-white shadow-2xl">
-                <h2 className="text-4xl font-black mb-4">إعداد الجذاذة التربوية</h2>
-                <p className="text-indigo-200 mb-12">حدد تفاصيل الدرس لإنشاء محتوى بيداغوجي احترافي</p>
-
-                <div className="space-y-10">
-                  <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="bg-indigo-500/20 p-2 rounded-xl">
-                        <GraduationCap size={20} />
-                      </div>
-                      <h3 className="font-bold">اختر السلك الدراسي</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {CYCLES.map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => setCycle(c.id)}
-                          className={`p-6 rounded-[32px] border-2 transition-all flex flex-col items-center gap-3 text-center ${
-                            cycle === c.id 
-                            ? 'bg-white border-white text-[#4F46E5] shadow-xl' 
-                            : 'bg-transparent border-white/10 text-white hover:border-white/20'
-                          }`}
-                        >
-                          <div className={`p-3 rounded-2xl ${cycle === c.id ? 'bg-indigo-50' : 'bg-white/5'}`}>
-                            <c.icon size={28} />
-                          </div>
-                          <span className="text-lg font-bold">{c.name}</span>
-                          <p className={`text-[10px] leading-relaxed ${cycle === c.id ? 'text-slate-500' : 'text-indigo-200/60'}`}>
-                            {c.description}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2 mr-2">
-                        <Layout size={16} className="text-indigo-400" />
-                        <span className="text-sm font-bold">المستوى الدراسي</span>
-                      </div>
-                      <select 
-                        className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:bg-white/10 transition-all appearance-none"
-                        value={level}
-                        onChange={e => setLevel(e.target.value)}
-                      >
-                        {Object.keys(LESSONS_DATA).map(lvl => (
-                          <option key={lvl} className="text-slate-900" value={lvl}>{lvl}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2 mr-2">
-                        <Layout size={16} className="text-indigo-400" />
-                        <span className="text-sm font-bold">المكون</span>
-                      </div>
-                      <select 
-                        className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:bg-white/10 transition-all appearance-none"
-                        value={component}
-                        onChange={e => setComponent(e.target.value)}
-                      >
-                        <option className="text-slate-900">التاريخ</option>
-                        <option className="text-slate-900">الجغرافيا</option>
-                        <option className="text-slate-900">التربية على المواطنة</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2 mr-2">
-                        <Layout size={16} className="text-indigo-400" />
-                        <span className="text-sm font-bold">الدورة</span>
-                      </div>
-                      <select 
-                        className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:bg-white/10 transition-all appearance-none"
-                        value={semester}
-                        onChange={e => setSemester(e.target.value)}
-                      >
-                        <option className="text-slate-900">الدورة الأولى</option>
-                        <option className="text-slate-900">الدورة الثانية</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2 mr-2">
-                        <BookOpen size={16} className="text-indigo-400" />
-                        <span className="text-sm font-bold">المرجع المعتمد</span>
-                      </div>
-                      <select 
-                        className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:bg-white/10 transition-all appearance-none"
-                        value={reference}
-                        onChange={e => setReference(e.target.value)}
-                      >
-                        {(TEXTBOOKS[level] || []).map(book => (
-                          <option key={book} className="text-slate-900" value={book}>{book}</option>
-                        ))}
-                        {(TEXTBOOKS[level] || []).length === 0 && (
-                          <>
-                            <option className="text-slate-900">منار الاجتماعيات</option>
-                            <option className="text-slate-900">الفضاء في الاجتماعيات</option>
-                            <option className="text-slate-900">المسار في الاجتماعيات</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 mb-2 mr-2">
-                      <Search size={16} className="text-indigo-400" />
-                      <span className="text-sm font-bold">عنوان الدرس</span>
-                    </div>
-                    <select 
-                      className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:bg-white/10 transition-all appearance-none"
-                      value={lessonTitle}
-                      onChange={e => setLessonTitle(e.target.value)}
-                    >
-                      {getLessonsList(level, component, semester).length > 0 ? (
-                        getLessonsList(level, component, semester).map(lesson => (
-                          <option key={lesson} className="text-slate-900" value={lesson}>{lesson}</option>
-                        ))
-                      ) : (
-                        <option className="text-slate-900" value="">لا توجد دروس متوفرة لهذا المكون حالياً</option>
-                      )}
-                    </select>
-                  </div>
-
-                  <button 
-                    onClick={handleGenerate}
-                    disabled={!lessonTitle}
-                    className="w-full bg-[#4F46E5] text-white py-6 rounded-[32px] text-2xl font-black shadow-2xl shadow-indigo-900/50 hover:scale-[1.01] transition-all flex items-center justify-center gap-4 disabled:opacity-50"
-                  >
-                    <RefreshCw size={28} />
-                    إنشاء الجذاذة التربوية
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 'generate' && (
-            <motion.div 
-              key="generate"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-24 text-center"
-            >
-              <div className="relative">
-                <div className="w-24 h-24 border-4 border-indigo-100 border-t-[#4F46E5] rounded-full animate-spin"></div>
-                <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#4F46E5] animate-pulse" size={32} />
-              </div>
-              <h2 className="text-3xl font-black mt-10 mb-4">جاري بناء جذاذة احترافية...</h2>
-              <p className="text-slate-400 max-w-md mx-auto leading-relaxed">
-                يقوم الذكاء الاصطناعي الآن بتحليل التوجيهات التربوية الرسمية، واستخراج الوثائق المناسبة، وبناء سيناريو ديداكتيكي متكامل وغني بالمعطيات. قد يستغرق هذا بضع ثوانٍ لضمان أعلى جودة.
-              </p>
-            </motion.div>
-          )}
-
-          {step === 'view' && jadhaData && (
-            <motion.div 
-              key="view"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="bg-indigo-50 p-3 rounded-2xl text-[#4F46E5]">
-                    <FileText size={28} />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black">{jadhaData.title}</h2>
-                    <p className="text-xs text-slate-400 mt-1">{jadhaData.level} • {jadhaData.year}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 no-print">
-                  <button 
-                    onClick={handleDownloadWord}
-                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition-all text-sm font-bold shadow-xl shadow-blue-100"
-                  >
-                    <FileDown size={18} />
-                    تحميل Word
-                  </button>
-                  <button 
-                    onClick={handleDownloadPDF}
-                    className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-[#4F46E5] text-white hover:opacity-90 transition-all text-sm font-bold shadow-xl shadow-indigo-100"
-                  >
-                    <FileText size={18} />
-                    تحميل PDF
-                  </button>
-                </div>
-              </div>
-
-              <div id="jadha-content" className="overflow-hidden print:shadow-none print:border-none" style={{ backgroundColor: '#ffffff', borderRadius: '48px', border: '1px solid #F1F5F9' }}>
-                <TableJadha data={jadhaData} />
-              </div>
-
-              <div className="flex justify-center py-12">
-                <button 
-                  onClick={() => setStep('form')}
-                  className="text-slate-400 hover:text-[#4F46E5] font-bold transition-colors flex items-center gap-2"
-                >
-                  <RefreshCw size={18} />
-                  توليد جذاذة أخرى
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-
-      <footer className="py-12 text-center border-t border-slate-100 bg-white mt-20">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm text-slate-500 font-bold">للتواصل والاستفسار:</p>
-            <a 
-              href="mailto:Chaoub.az.etu@gmail.com" 
-              className="text-indigo-600 font-mono text-lg hover:underline flex items-center gap-2"
-            >
-              Chaoub.az.etu@gmail.com
-              <ExternalLink size={16} />
-            </a>
-          </div>
-          <p className="text-[10px] text-slate-300 mt-8">المنصة مخصصة حصرياً لأساتذة مادة الاجتماعيات بالمغرب</p>
-          <p className="text-[10px] text-slate-300 mt-1">© 2026 جميع الحقوق محفوظة</p>
-        </div>
-      </footer>
-
-      {/* Key Help Modal */}
-      <AnimatePresence>
-        {showPremiumModal && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white w-full max-w-md rounded-[40px] p-10 text-center shadow-2xl"
-            >
-              <div className="bg-amber-100 w-20 h-20 rounded-full flex items-center justify-center text-amber-600 mx-auto mb-6">
-                <AlertCircle size={40} />
-              </div>
-              <h3 className="text-2xl font-black mb-4">لقد وصلت للحد الأقصى!</h3>
-              <p className="text-slate-500 mb-8 leading-relaxed">
-                لقد استهلكت جميع التحميلات المجانية المتاحة ({DOWNLOAD_LIMIT} تحميلات). يرجى إدخال كود التفعيل لمتابعة العمل والحصول على وصول أوسع.
-              </p>
-              
-              <div className="grid grid-cols-1 gap-3 mb-8 text-right">
-                <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-2xl flex justify-between items-center">
-                  <span className="font-bold text-emerald-700">دخول بسيط</span>
-                  <span className="text-xs text-emerald-600">10 تحميلات</span>
-                </div>
-                <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl flex justify-between items-center">
-                  <span className="font-bold text-indigo-700">دخول متقدم</span>
-                  <span className="text-xs text-indigo-600">25 تحميلاً</span>
-                </div>
-                <div className="p-3 bg-amber-50 border border-amber-100 rounded-2xl flex justify-between items-center">
-                  <span className="font-bold text-amber-700">دخول غير محدود</span>
-                  <span className="text-xs text-amber-600">بدون قيود</span>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <input 
-                  type="text" 
-                  placeholder="أدخل كود التفعيل هنا"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-center font-bold text-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={activationCode}
-                  onChange={(e) => setActivationCode(e.target.value)}
-                />
-                <button 
-                  onClick={handleVerifyCode}
-                  className="w-full bg-[#4F46E5] text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-100 hover:scale-[1.02] transition-all"
-                >
-                  تفعيل الكود
-                </button>
-                <button 
-                  onClick={() => setShowPremiumModal(false)}
-                  className="w-full py-2 text-slate-400 text-sm font-bold hover:text-slate-600"
-                >
-                  إغلاق
-                </button>
-              </div>
-              
-              <div className="mt-8 pt-8 border-t border-slate-100">
-                <p className="text-xs text-slate-400 mb-2">لطلب كود التفعيل، تواصل معنا عبر:</p>
-                <p className="font-bold text-indigo-600">Chaoub.az.etu@gmail.com</p>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {showKeyHelp && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden"
-            >
-              <div className="p-8">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
-                    <Info size={24} />
-                  </div>
-                  <button onClick={() => setShowKeyHelp(false)} className="text-slate-400 hover:text-slate-600">
-                    <X size={24} />
-                  </button>
-                </div>
-                
-                <h3 className="text-2xl font-black mb-4">إعدادات تفعيل المنصة</h3>
-                <p className="text-slate-500 mb-6 leading-relaxed">
-                  تستخدم المنصة حالياً <b>{manualKey ? 'مفتاحك الشخصي' : 'المفتاح الافتراضي للمنصة'}</b>. يمكنك تغيير الإعدادات أدناه:
-                </p>
-                
-                <div className="space-y-4 mb-8">
-                  {!manualKey && (
-                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl mb-4">
-                      <div className="flex items-center gap-2 text-emerald-700 font-bold mb-1 text-sm">
-                        <CheckCircle size={16} />
-                        المفتاح الافتراضي يعمل
-                      </div>
-                      <p className="text-xs text-emerald-600">يمكنك استخدام المنصة مباشرة، أو إضافة مفتاحك الخاص لتجنب ضغط الاستخدام.</p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl">
-                    <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-indigo-600 shadow-sm shrink-0">1</div>
-                    <p className="text-sm text-slate-600">احصل على مفتاح مجاني من <b>Google AI Studio</b>.</p>
-                  </div>
-                  
-                  <div className="flex gap-4 p-4 bg-slate-50 rounded-2xl">
-                    <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-indigo-600 shadow-sm shrink-0">2</div>
-                    <div className="flex-1">
-                      <p className="text-sm text-slate-600 mb-3">أدخل مفتاحك الشخصي هنا:</p>
-                      <div className="flex gap-2">
-                        <input 
-                          type="password" 
-                          placeholder="AIza..."
-                          className="flex-1 p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500"
-                          value={manualKey}
-                          onChange={(e) => setManualKey(e.target.value)}
-                        />
-                        <button 
-                          onClick={handleSaveManualKey}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
-                        >
-                          حفظ
-                        </button>
-                      </div>
-                      {manualKey && (
-                        <button 
-                          onClick={handleClearKey}
-                          className="mt-2 text-[10px] text-red-500 hover:underline"
-                        >
-                          حذف المفتاح الشخصي والرجوع للافتراضي
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <a 
-                    href="https://aistudio.google.com/app/apikey" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full bg-[#4F46E5] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all"
-                  >
-                    الحصول على مفتاح مجاني الآن
-                    <ExternalLink size={18} />
-                  </a>
-                  <button 
-                    onClick={() => setShowKeyHelp(false)}
-                    className="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-all"
-                  >
-                    إغلاق
-                  </button>
-                </div>
               </div>
             </motion.div>
           </div>
