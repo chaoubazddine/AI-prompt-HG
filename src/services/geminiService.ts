@@ -93,24 +93,39 @@ export const generateJadha = async (lessonTitle: string, level: string, curricul
       }
 
       const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-        },
-      });
+      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest'];
+      let responseText = '';
+      let lastErr: any = null;
 
-      if (!response.text) {
-        throw new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
+      for (const modelName of modelsToTry) {
+        try {
+          const res = await ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+            },
+          });
+          if (res.text) {
+            responseText = res.text;
+            break;
+          }
+        } catch (e) {
+          console.warn(`Model ${modelName} failed in generateJadha, trying fallback...`, e);
+          lastErr = e;
+        }
       }
 
-      const cleanJson = cleanJsonString(response.text);
+      if (!responseText) {
+        throw lastErr || new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
+      }
+
+      const cleanJson = cleanJsonString(responseText);
       
       try {
         return JSON.parse(cleanJson) as JadhaData;
       } catch (parseError) {
-        console.error("JSON Parse Error:", parseError, "Raw text:", response.text);
+        console.error("JSON Parse Error:", parseError, "Raw text:", responseText);
         throw new Error("حدث خطأ في معالجة البيانات المستلمة من الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.");
       }
     } catch (error: any) {

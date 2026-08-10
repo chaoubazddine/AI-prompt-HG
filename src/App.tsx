@@ -42,12 +42,14 @@ import {
   Sliders,
   Compass,
   MapPin,
-  Zap
+  Zap,
+  Bot
 } from 'lucide-react';
 import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha } from './services/geminiService';
 import { CYCLES, DOC_TYPES, LESSONS_DATA, CYCLE_LEVELS, TEXTBOOKS } from './constants';
 import { downloadWord } from './utils/wordExport';
+import { SmartAssistantWorkflow } from './components/SmartAssistant/SmartAssistantWorkflow';
 import { 
   auth, 
   db, 
@@ -146,7 +148,7 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'smart-assistant'>('landing');
   const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -810,6 +812,14 @@ function JadhaApp() {
                 </button>
 
                 <button 
+                  onClick={() => setStep('smart-assistant')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${step === 'smart-assistant' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'}`}
+                >
+                  <Bot size={16} />
+                  <span>المساعد الذكي</span>
+                </button>
+
+                <button 
                   onClick={() => {
                     setStep('form');
                     setFormStep(1);
@@ -1075,6 +1085,33 @@ function JadhaApp() {
                   >
                     <Plus size={18} />
                     إنشاء جذاذة جديدة
+                  </button>
+                </div>
+              </div>
+
+              {/* Smart Educational Assistant Banner */}
+              <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-500/20 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-2xl text-right">
+                    <div className="inline-flex items-center gap-2 text-indigo-300 font-bold text-xs bg-indigo-500/20 px-3.5 py-1.5 rounded-full border border-indigo-400/30">
+                      <Sparkles size={16} className="text-amber-400" />
+                      ميزة بيداغوجية حصرية جديدة
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-black flex items-center gap-3">
+                      🤖 المساعد التربوي الذكي
+                    </h3>
+                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                      «أنشئ جذاذتك انطلاقًا من المنهاج وتصورك البيداغوجي، بمساعدة الذكاء الاصطناعي.»
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setStep('smart-assistant')}
+                    className="bg-[#4F46E5] hover:bg-indigo-600 text-white px-7 py-4 rounded-2xl text-sm font-black transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2.5 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Bot size={20} />
+                    ابدأ إعداد الجذاذة
                   </button>
                 </div>
               </div>
@@ -1713,6 +1750,59 @@ function JadhaApp() {
                   إنشاء جذاذة جديدة
                 </button>
               </div>
+            </motion.div>
+          )}
+
+          {/* SMART ASSISTANT STEP */}
+          {step === 'smart-assistant' && (
+            <motion.div
+              key="smart-assistant"
+              initial={{ opacity: 0, scale: 0.99 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.99 }}
+            >
+              <SmartAssistantWorkflow
+                profInfo={profInfo}
+                userId={user?.uid}
+                onClose={() => setStep('dashboard')}
+                onSavedToHistory={(newPlan) => {
+                  const convertedData: JadhaData = {
+                    title: newPlan.title,
+                    level: newPlan.level,
+                    year: newPlan.year || '2025/2026',
+                    duration: newPlan.duration,
+                    unit: newPlan.component || newPlan.unit || 'المكون',
+                    module: newPlan.unit || '',
+                    academy: newPlan.academy,
+                    directorate: newPlan.directorate,
+                    school: newPlan.school,
+                    teacherName: newPlan.teacherName,
+                    references: newPlan.references,
+                    competencies: newPlan.competencies || [],
+                    capabilities: newPlan.capabilities || [],
+                    objectives: newPlan.objectives || { cognitive: [], skill: [], affective: [] },
+                    problematic: newPlan.problemSituation,
+                    introductionSteps: (newPlan.introductionSteps || []).map(s => ({
+                      phase: s.phaseName,
+                      subPhase: s.subPhase,
+                      teacherActivities: s.teacherActivity,
+                      studentActivities: s.learnerActivity,
+                      tools: s.resources,
+                      workForm: s.workForm
+                    })),
+                    steps: (newPlan.phases || []).map(p => ({
+                      phase: p.phaseName,
+                      subPhase: p.subPhase,
+                      teacherActivities: p.teacherActivity,
+                      studentActivities: p.learnerActivity,
+                      tools: p.resources,
+                      workForm: p.workForm
+                    })),
+                    finalEvaluation: newPlan.finalEvaluation || []
+                  };
+                  setHistory(prev => [convertedData, ...prev]);
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
