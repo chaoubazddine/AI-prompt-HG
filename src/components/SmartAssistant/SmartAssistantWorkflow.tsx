@@ -183,23 +183,23 @@ export const SmartAssistantWorkflow: React.FC<SmartAssistantWorkflowProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 p-4 sm:p-8 space-y-6" dir="rtl">
+    <div className="min-h-screen bg-slate-50/70 p-2.5 sm:p-8 space-y-4 sm:space-y-6" dir="rtl">
       {/* Top Header Bar */}
-      <div className="max-w-6xl mx-auto bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-[#4F46E5] text-white rounded-2xl shadow-md shadow-indigo-100">
-            <Bot size={22} />
+      <div className="max-w-6xl mx-auto bg-white p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="p-2 sm:p-3 bg-[#4F46E5] text-white rounded-xl sm:rounded-2xl shadow-md shadow-indigo-100 shrink-0">
+            <Bot size={18} className="sm:w-[22px] sm:h-[22px]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-xl font-black text-slate-900">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h1 className="text-sm sm:text-xl font-black text-slate-900 truncate">
                 المساعد التربوي الذكي
               </h1>
-              <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2.5 py-0.5 rounded-full border border-indigo-100">
+              <span className="hidden xs:inline-block text-[9px] sm:text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100 shrink-0">
                 الجيل الجديد
               </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-[11px] sm:text-xs text-slate-500 hidden md:block">
               «الذكاء الاصطناعي يقترح، والأستاذ يقرر.» هندسة وبناء الجذاذات وفق المنهاج المغربي والتفكير التربوي المحكم.
             </p>
           </div>
@@ -207,16 +207,17 @@ export const SmartAssistantWorkflow: React.FC<SmartAssistantWorkflowProps> = ({
 
         <button
           onClick={onClose}
-          className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/60 px-4 py-2.5 rounded-2xl transition-all flex items-center gap-1.5 shrink-0"
+          className="text-[11px] sm:text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/60 px-2.5 py-1.5 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl transition-all flex items-center gap-1 sm:gap-1.5 shrink-0"
         >
-          <Home size={15} />
-          الخروج للموحة الرئيسية
+          <Home size={14} className="sm:w-[15px] sm:h-[15px]" />
+          <span className="hidden sm:inline">الخروج للوحة الرئيسية</span>
+          <span className="sm:hidden">الرئيسية</span>
         </button>
       </div>
 
       {/* Stepper Progress Bar */}
-      <div className="max-w-6xl mx-auto bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="grid grid-cols-6 gap-2">
+      <div className="max-w-6xl mx-auto bg-white p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="grid grid-cols-6 gap-1 sm:gap-2">
           {stepTitles.map((title, idx) => {
             const stepNum = idx + 1;
             const isActive = currentStep === stepNum;
@@ -225,7 +226,7 @@ export const SmartAssistantWorkflow: React.FC<SmartAssistantWorkflowProps> = ({
             return (
               <div
                 key={title}
-                className={`flex flex-col items-center text-center space-y-1 p-2 rounded-xl transition-all ${
+                className={`flex flex-col items-center text-center space-y-0.5 sm:space-y-1 p-1 sm:p-2 rounded-lg sm:rounded-xl transition-all ${
                   isActive
                     ? 'bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold'
                     : isCompleted
@@ -234,7 +235,7 @@ export const SmartAssistantWorkflow: React.FC<SmartAssistantWorkflowProps> = ({
                 }`}
               >
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs transition-all ${
+                  className={`w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-black text-[10px] sm:text-xs transition-all ${
                     isActive
                       ? 'bg-[#4F46E5] text-white shadow-sm'
                       : isCompleted
@@ -242,9 +243,9 @@ export const SmartAssistantWorkflow: React.FC<SmartAssistantWorkflowProps> = ({
                       : 'bg-slate-200 text-slate-600'
                   }`}
                 >
-                  {isCompleted ? <Check size={14} /> : stepNum}
+                  {isCompleted ? <Check size={12} className="sm:w-[14px] sm:h-[14px]" /> : stepNum}
                 </div>
-                <span className="text-[10px] font-bold truncate max-w-full hidden sm:block">
+                <span className="text-[9px] sm:text-[10px] font-bold truncate max-w-full hidden sm:block">
                   {title}
                 </span>
               </div>

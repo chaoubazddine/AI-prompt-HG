@@ -282,65 +282,65 @@ export const InteractiveEditor: React.FC<InteractiveEditorProps> = ({
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* Top Controls Bar */}
-      <div className="bg-slate-900 text-white p-4 sm:p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-indigo-600 rounded-2xl">
-            <CheckCircle size={24} />
+      <div className="bg-slate-900 text-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="p-2 sm:p-3 bg-indigo-600 rounded-xl sm:rounded-2xl shrink-0">
+            <CheckCircle size={20} className="sm:w-[24px] sm:h-[24px]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-black">{plan.title}</h2>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h2 className="text-sm sm:text-xl font-black truncate">{plan.title}</h2>
+              <span className="hidden xs:inline-block text-[9px] sm:text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-400/30 shrink-0">
                 مسودة متاحة للتحرير
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">
               {plan.subject} • {plan.component} • {plan.level} ({plan.duration})
             </p>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 sm:gap-2 w-full md:w-auto justify-end">
           <button
             type="button"
             onClick={onSaveDraft}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-colors flex items-center justify-center gap-1 sm:gap-1.5"
           >
-            <Save size={15} />
-            حفظ مسودة
+            <Save size={14} className="sm:w-[15px] sm:h-[15px]" />
+            <span>حفظ مسودة</span>
           </button>
 
           <button
             type="button"
             onClick={() => downloadWord(getJadhaData())}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-colors flex items-center justify-center gap-1 sm:gap-1.5"
           >
-            <FileDown size={15} />
-            تصدير Word
+            <FileDown size={14} className="sm:w-[15px] sm:h-[15px]" />
+            <span>تصدير Word</span>
           </button>
 
           <button
             type="button"
             onClick={() => window.print()}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-colors flex items-center justify-center gap-1 sm:gap-1.5"
           >
-            <Printer size={15} />
-            طباعة / PDF
+            <Printer size={14} className="sm:w-[15px] sm:h-[15px]" />
+            <span>طباعة / PDF</span>
           </button>
 
           <button
             type="button"
             onClick={onApproveAndSave}
             disabled={isSaving}
-            className="bg-[#4F46E5] hover:bg-indigo-600 text-white font-black px-6 py-2.5 rounded-xl text-xs transition-all shadow-md shadow-indigo-600/30 flex items-center gap-2"
+            className="col-span-2 sm:col-span-1 bg-[#4F46E5] hover:bg-indigo-600 text-white font-black px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl text-[11px] sm:text-xs transition-all shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 sm:gap-2"
           >
             {isSaving ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <CheckCircle size={16} />
+              <CheckCircle size={15} className="sm:w-[16px] sm:h-[16px]" />
             )}
-            اعتماد الجذاذة النهائية
+            <span>اعتماد الجذاذة النهائية</span>
           </button>
         </div>
       </div>

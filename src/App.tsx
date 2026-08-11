@@ -766,30 +766,30 @@ function JadhaApp() {
       <Toaster position="top-center" richColors closeButton />
       
       {/* Top Header Navigation */}
-      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-4 py-3 shadow-xs">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-2.5 sm:px-4 py-2 sm:py-3 shadow-xs">
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
           <div 
             onClick={() => setStep(user ? 'dashboard' : 'landing')}
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0"
           >
-            <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-2.5 rounded-2xl text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-              <BookOpen size={22} />
+            <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+              <BookOpen size={18} className="sm:w-[22px] sm:h-[22px]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black tracking-tight text-slate-900">الاجتماعيات الذكية</h1>
-                <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="text-sm sm:text-lg font-black tracking-tight text-slate-900">الاجتماعيات الذكية</h1>
+                <span className="hidden sm:inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
                   المغرب 🇲🇦
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">منصة الجذاذات التربوية بالذكاء الاصطناعي</p>
+              <p className="text-[11px] text-slate-500 font-medium hidden md:block">منصة الجذاذات التربوية بالذكاء الاصطناعي</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2">
             {user ? (
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-2xl">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="hidden lg:flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-2xl">
                   <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
                     {user.displayName ? user.displayName.charAt(0) : 'أ'}
                   </div>
@@ -805,7 +805,8 @@ function JadhaApp() {
 
                 <button 
                   onClick={() => setStep('dashboard')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-600 hover:bg-slate-100'}`}
+                  className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-600 hover:bg-slate-100'}`}
+                  title="فضاء الأستاذ"
                 >
                   <Layout size={16} />
                   <span className="hidden md:inline">فضاء الأستاذ</span>
@@ -813,10 +814,12 @@ function JadhaApp() {
 
                 <button 
                   onClick={() => setStep('smart-assistant')}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${step === 'smart-assistant' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'}`}
+                  className={`px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 ${step === 'smart-assistant' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'}`}
+                  title="المساعد الذكي"
                 >
-                  <Bot size={16} />
-                  <span>المساعد الذكي</span>
+                  <Bot size={15} />
+                  <span className="hidden sm:inline">المساعد الذكي</span>
+                  <span className="sm:hidden">المساعد</span>
                 </button>
 
                 <button 
@@ -824,36 +827,38 @@ function JadhaApp() {
                     setStep('form');
                     setFormStep(1);
                   }}
-                  className="bg-[#4F46E5] text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm flex items-center gap-1.5"
+                  className="bg-[#4F46E5] text-white px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm flex items-center gap-1 sm:gap-1.5"
+                  title="جذاذة جديدة"
                 >
-                  <Plus size={16} />
-                  <span>جذاذة جديدة</span>
+                  <Plus size={15} />
+                  <span className="hidden sm:inline">جذاذة جديدة</span>
+                  <span className="sm:hidden">جديدة</span>
                 </button>
 
                 {isAdmin && (
                   <button 
                     onClick={() => setShowAdminPanel(true)}
-                    className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-all border border-amber-200/60"
+                    className="p-1.5 sm:p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-all border border-amber-200/60"
                     title="لوحة الإدارة"
                   >
-                    <ShieldCheck size={18} />
+                    <ShieldCheck size={16} />
                   </button>
                 )}
 
                 <button 
                   onClick={() => setShowKeyHelp(true)}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                  className="p-1.5 sm:p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                   title="الإعدادات والمفتاح"
                 >
-                  <Settings size={18} />
+                  <Settings size={16} />
                 </button>
 
                 <button 
                   onClick={handleLogout}
-                  className="p-2 rounded-xl text-red-500 hover:bg-red-50 transition-all"
+                  className="p-1.5 sm:p-2 rounded-xl text-red-500 hover:bg-red-50 transition-all"
                   title="تسجيل الخروج"
                 >
-                  <LogOut size={18} />
+                  <LogOut size={16} />
                 </button>
               </div>
             ) : (

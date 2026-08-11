@@ -58,20 +58,20 @@ export const DidacticConceptReviewStep: React.FC<DidacticConceptReviewStepProps>
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* Top Banner with Quality Assessment */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-850 to-slate-900 text-white p-6 rounded-3xl shadow-xl space-y-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-indigo-700/50 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3.5 bg-amber-400/20 text-amber-300 rounded-2xl shrink-0 border border-amber-400/30">
-              <Sparkles size={24} />
+      <div className="bg-gradient-to-r from-indigo-900 via-indigo-850 to-slate-900 text-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl space-y-3 sm:space-y-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 border-b border-indigo-700/50 pb-3 sm:pb-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-3.5 bg-amber-400/20 text-amber-300 rounded-xl sm:rounded-2xl shrink-0 border border-amber-400/30">
+              <Sparkles size={18} className="sm:w-[24px] sm:h-[24px]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] bg-amber-400/20 text-amber-200 font-bold px-2.5 py-0.5 rounded-full border border-amber-400/30">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className="text-[10px] sm:text-[11px] bg-amber-400/20 text-amber-200 font-bold px-2 py-0.5 rounded-full border border-amber-400/30 shrink-0">
                   مرحلة الهندسة والتفكير التربوي
                 </span>
-                <span className="text-xs text-indigo-300">• {concept.component}</span>
+                <span className="text-[11px] sm:text-xs text-indigo-300">• {concept.component}</span>
               </div>
-              <h2 className="text-lg sm:text-xl font-black mt-1">
+              <h2 className="text-sm sm:text-xl font-black mt-1 truncate">
                 التصور الديداكتيكي المقترح: {concept.lessonTitle}
               </h2>
             </div>
@@ -79,16 +79,18 @@ export const DidacticConceptReviewStep: React.FC<DidacticConceptReviewStepProps>
 
           {/* Overall Quality Badge */}
           {quality && (
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20">
+            <div className="flex items-center gap-2.5 sm:gap-3 bg-white/10 backdrop-blur-md px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl border border-white/20 self-start md:self-auto">
               <div className="text-right">
-                <span className="text-[10px] text-indigo-200 block font-bold">جودة التصور التربوي</span>
-                <span className={`text-base font-black ${
+                <span className="text-[9px] sm:text-[10px] text-indigo-200 block font-bold">جودة التصور التربوي</span>
+                <span className={`text-xs sm:text-base font-black ${
                   (quality.overallScore ?? 0) >= 85 ? 'text-emerald-300' : (quality.overallScore ?? 0) >= 70 ? 'text-amber-300' : 'text-rose-300'
                 }`}>
                   {quality.overallScore ?? 0} / 100 ({(quality.overallScore ?? 0) >= 85 ? 'ممتاز' : (quality.overallScore ?? 0) >= 70 ? 'جيد جداً' : 'يحتاج مراجعة'})
                 </span>
               </div>
-              <ShieldCheck size={28} className={(quality.overallScore ?? 0) >= 80 ? 'text-emerald-400' : 'text-amber-400'} />
+              <ShieldCheck size={22} className={`sm:w-[28px] sm:h-[28px] ${
+                (quality.overallScore ?? 0) >= 80 ? 'text-emerald-400' : 'text-amber-400'
+              }`} />
             </div>
           )}
         </div>
