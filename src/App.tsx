@@ -43,13 +43,16 @@ import {
   Compass,
   MapPin,
   Zap,
-  Bot
+  Bot,
+  FileCheck2
 } from 'lucide-react';
 import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha } from './services/geminiService';
 import { CYCLES, DOC_TYPES, LESSONS_DATA, CYCLE_LEVELS, TEXTBOOKS } from './constants';
 import { downloadWord } from './utils/wordExport';
 import { SmartAssistantWorkflow } from './components/SmartAssistant/SmartAssistantWorkflow';
+import { LessonSummaryGenerator } from './components/LessonSummary/LessonSummaryGenerator';
+import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
 import { 
   auth, 
   db, 
@@ -148,7 +151,7 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'smart-assistant'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'smart-assistant' | 'lesson-summary' | 'exam-generator'>('landing');
   const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -195,6 +198,11 @@ function JadhaApp() {
 
   const DOWNLOAD_LIMIT = TIER_LIMITS[subscriptionTier];
   const isAdmin = user?.email === 'chaoub7@gmail.com';
+
+  // Scroll to top whenever step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [step]);
 
   // Rotating loading tip timer
   useEffect(() => {
@@ -823,6 +831,26 @@ function JadhaApp() {
                 </button>
 
                 <button 
+                  onClick={() => setStep('lesson-summary')}
+                  className={`px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 ${step === 'lesson-summary' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'}`}
+                  title="ملخصات الدروس"
+                >
+                  <FileText size={15} />
+                  <span className="hidden sm:inline">الملخصات (تجريبي)</span>
+                  <span className="sm:hidden">الملخصات</span>
+                </button>
+
+                <button 
+                  onClick={() => setStep('exam-generator')}
+                  className={`px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 ${step === 'exam-generator' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'}`}
+                  title="الامتحانات والفروض"
+                >
+                  <FileCheck2 size={15} />
+                  <span className="hidden sm:inline">الامتحانات (تجريبي)</span>
+                  <span className="sm:hidden">الامتحانات</span>
+                </button>
+
+                <button 
                   onClick={() => {
                     setStep('form');
                     setFormStep(1);
@@ -1119,6 +1147,62 @@ function JadhaApp() {
                     ابدأ إعداد الجذاذة
                   </button>
                 </div>
+              </div>
+
+              {/* Lesson Summary Experimental Card */}
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 rounded-3xl border border-amber-300/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-md shadow-amber-200 shrink-0">
+                    <FileText size={22} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm sm:text-base font-black text-slate-900">مولّد ملخصات الدروس (قسم تجريبي)</h4>
+                      <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                        التوجيهات التربوية
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      صياغة ملخصات دروس الاجتماعيات بالهيكلة المعتمدة (مقدمة، أولاً، ثانياً، مفاهيم ومصطلحات وخاتمة) مع إمكانية التصدير إلى Word.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setStep('lesson-summary')}
+                  className="bg-slate-900 hover:bg-slate-800 text-amber-300 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Sparkles size={15} />
+                  <span>تجربة مولّد الملخصات</span>
+                </button>
+              </div>
+
+              {/* Exam Generator Experimental Card */}
+              <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent p-5 rounded-3xl border border-emerald-300/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-md shadow-emerald-200 shrink-0">
+                    <FileCheck2 size={22} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm sm:text-base font-black text-slate-900">مولّد الامتحانات والفروض (السلك الإعدادي)</h4>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                        الأطر المرجعية المحينة
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      إعداد فروض وامتحانات محروسة معتمدة بـ 3 وضعيات اختبارية (تعاريف وأسئلة موضوعية 6ن + اشتغال على الوثائق 7ن + موضوع مقالي 7ن) مصحوبة بسلم التنقيط وعناصر الإجابة.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setStep('exam-generator')}
+                  className="bg-slate-900 hover:bg-slate-800 text-emerald-300 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Sparkles size={15} />
+                  <span>توليد امتحان جديد</span>
+                </button>
               </div>
 
               {/* Statistics Quick Grid */}
@@ -1808,6 +1892,30 @@ function JadhaApp() {
                   setHistory(prev => [convertedData, ...prev]);
                 }}
               />
+            </motion.div>
+          )}
+
+          {/* LESSON SUMMARY STEP (EXPERIMENTAL) */}
+          {step === 'lesson-summary' && (
+            <motion.div
+              key="lesson-summary"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <LessonSummaryGenerator />
+            </motion.div>
+          )}
+
+          {/* EXAM GENERATOR STEP (MIDDLE SCHOOL & SECONDARY) */}
+          {step === 'exam-generator' && (
+            <motion.div
+              key="exam-generator"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <ExamGenerator />
             </motion.div>
           )}
         </AnimatePresence>

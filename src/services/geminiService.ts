@@ -1,15 +1,6 @@
 import { JadhaData } from "../components/TableJadha";
 import { GoogleGenAI } from "@google/genai";
-
-// Clean JSON response in case of unexpected markdown formatting or curly quotes
-const cleanJsonString = (text: string): string => {
-  return text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"') // Replace various curly/double quotes with standard "
-    .replace(/[\u2018\u2019\u201A\u201B]/g, "'") // Replace single curly quotes
-    .trim();
-};
+import { safeJsonParse } from "../utils/jsonCleaner";
 
 export const generateJadha = async (lessonTitle: string, level: string, curriculum: string): Promise<JadhaData> => {
   const prompt = `
@@ -120,14 +111,7 @@ export const generateJadha = async (lessonTitle: string, level: string, curricul
         throw lastErr || new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
       }
 
-      const cleanJson = cleanJsonString(responseText);
-      
-      try {
-        return JSON.parse(cleanJson) as JadhaData;
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError, "Raw text:", responseText);
-        throw new Error("حدث خطأ في معالجة البيانات المستلمة من الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.");
-      }
+      return safeJsonParse<JadhaData>(responseText);
     } catch (error: any) {
       console.error(`API Error (Attempts remaining: ${retries - 1}):`, error);
       retries--;

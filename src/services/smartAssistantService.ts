@@ -16,15 +16,7 @@ import {
 } from '../types/knowledgeBase';
 import { KnowledgeRetrievalService } from './knowledgeBase/retrievalService';
 import { LessonPlanQualityEvaluator } from './knowledgeBase/qualityEvaluator';
-
-const cleanJsonString = (text: string): string => {
-  return text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
-    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
-    .trim();
-};
+import { safeJsonParse } from '../utils/jsonCleaner';
 
 const getGenAIClient = (): GoogleGenAI => {
   const manualKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_key') : null;
@@ -228,8 +220,7 @@ ${curriculumBlock || 'الاعتماد على المرجعية التربوية 
 
   const ai = getGenAIClient();
   const rawText = await generateWithModelFallback(ai, prompt);
-  const cleanJson = cleanJsonString(rawText);
-  const concept = JSON.parse(cleanJson) as DidacticConcept;
+  const concept = safeJsonParse<DidacticConcept>(rawText);
 
   concept.id = `concept-${Date.now()}`;
   concept.createdAt = new Date().toISOString();
@@ -284,8 +275,7 @@ ${JSON.stringify(concept, null, 2)}
 
   const ai = getGenAIClient();
   const rawText = await generateWithModelFallback(ai, prompt);
-  const cleanJson = cleanJsonString(rawText);
-  const updated = JSON.parse(cleanJson) as DidacticConcept;
+  const updated = safeJsonParse<DidacticConcept>(rawText);
 
   updated.qualityAssessment = LessonPlanQualityEvaluator.evaluateConcept(updated, {
     subject: updated.subject,
@@ -471,8 +461,7 @@ ${JSON.stringify(concept, null, 2)}
 
   const ai = getGenAIClient();
   const rawText = await generateWithModelFallback(ai, prompt);
-  const cleanJson = cleanJsonString(rawText);
-  const plan = JSON.parse(cleanJson) as StructuredLessonPlan;
+  const plan = safeJsonParse<StructuredLessonPlan>(rawText);
 
   plan.id = `plan-${Date.now()}`;
   plan.status = 'approved';
@@ -563,8 +552,7 @@ ${JSON.stringify(currentValue, null, 2)}
   const ai = getGenAIClient();
   const rawText = await generateWithModelFallback(ai, prompt);
 
-  const cleanJson = cleanJsonString(rawText);
-  const parsed = JSON.parse(cleanJson);
+  const parsed = safeJsonParse(rawText);
   return parsed.proposedValue;
 };
 
@@ -596,8 +584,7 @@ ${JSON.stringify(currentPlan, null, 2)}
   const ai = getGenAIClient();
   const rawText = await generateWithModelFallback(ai, prompt);
 
-  const cleanJson = cleanJsonString(rawText);
-  const parsed = JSON.parse(cleanJson);
+  const parsed = safeJsonParse(rawText);
   return {
     updatedPlan: parsed.updatedPlan,
     affectedSectionName: parsed.affectedSectionName || 'الجذاذة'
