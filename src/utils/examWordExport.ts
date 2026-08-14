@@ -38,6 +38,7 @@ export const downloadExamWord = async (examData: ExamData) => {
               children: [
                 createRtlPara("المملكة المغربية", { size: 18, bold: true, alignment: AlignmentType.CENTER }),
                 createRtlPara("وزارة التربية الوطنية والتعليم الأولي والرياضة", { size: 16, alignment: AlignmentType.CENTER }),
+                createRtlPara(`المؤسسة: ${examData.schoolName || 'المؤسسة التعليمية'}`, { size: 16, bold: true, alignment: AlignmentType.CENTER }),
                 createRtlPara(`المادة: اجتماعيات | ${examData.cycle || 'السلك الثانوي'}`, { size: 18, bold: true, color: "1E40AF", alignment: AlignmentType.CENTER })
               ],
             }),
@@ -46,6 +47,7 @@ export const downloadExamWord = async (examData: ExamData) => {
               children: [
                 createRtlPara(`المستوى: ${examData.level}`, { size: 18, bold: true, alignment: AlignmentType.CENTER }),
                 createRtlPara(`${examData.term} | المدة الزمانية: ${examData.duration}`, { size: 16, alignment: AlignmentType.CENTER }),
+                createRtlPara(`الأستاذ(ة): ${examData.teacherName || 'أستاذ المادة'}`, { size: 16, bold: true, alignment: AlignmentType.CENTER }),
                 createRtlPara("الاسم والنسب: ....................................... النقطة: ...... / 20", { size: 16, bold: true, alignment: AlignmentType.CENTER })
               ],
             }),
@@ -463,11 +465,14 @@ export const downloadExamWord = async (examData: ExamData) => {
       });
     }
 
-    paragraphs.push(createRtlPara("الأسئلة المطلوب الإجابة عنها اعتماداً على الوثائق والتعلمات:", { bold: true, size: 20, color: "0F766E" }));
+    paragraphs.push(createRtlPara("الأسئلة المطلوب الإجابة عنها اعتماداً على الوثائق والتعلمات:", { bold: true, size: 20, color: "0F766E", spacing: { before: 120, after: 80 } }));
     if (s2.questions && s2.questions.length > 0) {
       s2.questions.forEach((q) => {
         paragraphs.push(
-          createRtlPara(`${q.questionNumber}) ${q.questionText} (${q.points} ن)`, { size: 18 })
+          createRtlPara(`${q.questionNumber}) ${q.questionText} (${q.points} ن)`, { size: 18, bold: true, spacing: { before: 80, after: 40 } }),
+          createRtlPara(`....................................................................................................................................................`, { size: 16, color: "64748B", spacing: { before: 20, after: 20 } }),
+          createRtlPara(`....................................................................................................................................................`, { size: 16, color: "64748B", spacing: { before: 20, after: 20 } }),
+          createRtlPara(`....................................................................................................................................................`, { size: 16, color: "64748B", spacing: { before: 20, after: 80 } })
         );
       });
     }
@@ -491,7 +496,96 @@ export const downloadExamWord = async (examData: ExamData) => {
       );
     }
 
-    if (s3.topics && s3.topics.length > 0) {
+    if (s3.topics && s3.topics.length === 2) {
+      const topic1 = s3.topics[0];
+      const topic2 = s3.topics[1];
+
+      const essayTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                shading: { fill: "1E1B4B" },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                  bottom: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                  left: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                  right: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                },
+                children: [
+                  createRtlPara(topic1.title || "الموضوع الأول", { bold: true, color: "FFFFFF", size: 20, alignment: AlignmentType.CENTER })
+                ]
+              }),
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                shading: { fill: "1E1B4B" },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                  bottom: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                  left: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                  right: { style: BorderStyle.SINGLE, size: 8, color: "1E1B4B" },
+                },
+                children: [
+                  createRtlPara(topic2.title || "الموضوع الثاني", { bold: true, color: "FFFFFF", size: 20, alignment: AlignmentType.CENTER })
+                ]
+              }),
+            ]
+          }),
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                  bottom: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                  left: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                  right: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                },
+                children: [
+                  createRtlPara("نص الانطلاق والسياق:", { bold: true, size: 18, color: "0F172A", spacing: { before: 60, after: 40 } }),
+                  createRtlPara(topic1.contextText, { size: 16, color: "1E293B", spacing: { before: 20, after: 60 } }),
+                  createRtlPara("المطلوب:", { bold: true, size: 18, color: "1E40AF", spacing: { before: 60, after: 30 } }),
+                  ...(topic1.instructions?.map(ins => createRtlPara(`• ${ins}`, { size: 16, spacing: { before: 20, after: 20 } })) || [])
+                ]
+              }),
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                  bottom: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                  left: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                  right: { style: BorderStyle.SINGLE, size: 6, color: "334155" },
+                },
+                children: [
+                  createRtlPara("نص الانطلاق والسياق:", { bold: true, size: 18, color: "0F172A", spacing: { before: 60, after: 40 } }),
+                  createRtlPara(topic2.contextText, { size: 16, color: "1E293B", spacing: { before: 20, after: 60 } }),
+                  createRtlPara("المطلوب:", { bold: true, size: 18, color: "1E40AF", spacing: { before: 60, after: 30 } }),
+                  ...(topic2.instructions?.map(ins => createRtlPara(`• ${ins}`, { size: 16, spacing: { before: 20, after: 20 } })) || [])
+                ]
+              }),
+            ]
+          })
+        ]
+      });
+
+      // @ts-ignore
+      paragraphs.push(essayTable as any);
+    } else if (s3.topics && s3.topics.length === 1) {
+      const topic = s3.topics[0];
+      paragraphs.push(
+        createRtlPara("نص الانطلاق والسياق الإشكالي:", { bold: true, size: 20, color: "0F172A", spacing: { before: 80, after: 40 } }),
+        createRtlPara(topic.contextText, { size: 18, color: "1E293B", spacing: { before: 20, after: 60 } }),
+        createRtlPara("المطلوب:", { bold: true, size: 20, color: "1E40AF", spacing: { before: 60, after: 30 } })
+      );
+
+      if (topic.instructions && topic.instructions.length > 0) {
+        topic.instructions.forEach((ins) => {
+          paragraphs.push(createRtlPara(`• ${ins}`, { size: 18, spacing: { before: 20, after: 20 } }));
+        });
+      }
+    } else if (s3.topics && s3.topics.length > 1) {
       s3.topics.forEach((topic) => {
         paragraphs.push(
           createRtlPara(`--- ${topic.title || `الموضوع ${topic.topicNumber}`} ---`, { bold: true, size: 22, color: "0F172A", spacing: { before: 120, after: 60 } }),
@@ -501,20 +595,20 @@ export const downloadExamWord = async (examData: ExamData) => {
 
         if (topic.instructions && topic.instructions.length > 0) {
           topic.instructions.forEach((ins) => {
-            paragraphs.push(createRtlPara(`- ${ins}`, { size: 18 }));
+            paragraphs.push(createRtlPara(`• ${ins}`, { size: 18, spacing: { before: 20, after: 20 } }));
           });
         }
         paragraphs.push(createRtlPara("", { spacing: { before: 60, after: 60 } }));
       });
     } else {
       paragraphs.push(
-        createRtlPara(`نص الانطلاق: ${s3.contextText}`, { size: 20, color: "0F172A" }),
+        createRtlPara(`نص الانطلاق والسياق: ${s3.contextText}`, { size: 20, color: "0F172A" }),
         createRtlPara("المطلوب:", { bold: true, size: 20, color: "1E40AF", spacing: { before: 80, after: 40 } })
       );
 
       if (s3.instructions && s3.instructions.length > 0) {
         s3.instructions.forEach((ins) => {
-          paragraphs.push(createRtlPara(`- ${ins}`, { size: 18 }));
+          paragraphs.push(createRtlPara(`• ${ins}`, { size: 18, spacing: { before: 20, after: 20 } }));
         });
       }
     }
@@ -557,13 +651,13 @@ export const downloadAnswerKeyWord = async (examData: ExamData) => {
         // @ts-ignore
         bidirectional: true,
         alignment: options.alignment || AlignmentType.RIGHT,
-        spacing: options.spacing || { before: 80, after: 80 },
+        spacing: options.spacing || { before: 60, after: 60 },
         children: [
           new TextRun({
             text,
             rightToLeft: true,
             bold: options.bold,
-            size: options.size || 22,
+            size: options.size || 20,
             color: options.color || "1E293B",
             font: "Arial"
           })
@@ -571,82 +665,263 @@ export const downloadAnswerKeyWord = async (examData: ExamData) => {
       });
     };
 
-    const paragraphs: Paragraph[] = [];
+    const paragraphs: (Paragraph | Table)[] = [];
 
-    // Main Answer Key Title Header
+    // Main Header Block
+    const headerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 33, type: WidthType.PERCENTAGE },
+              children: [
+                createRtlPara("الأكاديمية الجهوية للتربية والتكوين", { size: 16, bold: true, alignment: AlignmentType.RIGHT }),
+                createRtlPara("المديرية الإقليمية: ....................", { size: 16, alignment: AlignmentType.RIGHT }),
+                createRtlPara("المؤسسة: ....................", { size: 16, alignment: AlignmentType.RIGHT }),
+              ],
+              borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
+            }),
+            new TableCell({
+              width: { size: 34, type: WidthType.PERCENTAGE },
+              children: [
+                createRtlPara("المملكة المغربية", { size: 18, bold: true, alignment: AlignmentType.CENTER, color: "1E3A8A" }),
+                createRtlPara("وزارة التربية الوطنية والتعليم الأولي والرياضة", { size: 16, bold: true, alignment: AlignmentType.CENTER }),
+                createRtlPara("شبكة عناصر الإجابة والتدبير الديداكتيكي وسُلم التنقيط", { size: 18, bold: true, alignment: AlignmentType.CENTER, color: "065F46" }),
+              ],
+              borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
+            }),
+            new TableCell({
+              width: { size: 33, type: WidthType.PERCENTAGE },
+              children: [
+                createRtlPara("المادة: الاجتماعيات", { size: 16, bold: true, alignment: AlignmentType.LEFT }),
+                createRtlPara(`السلك: ${examData.cycle || 'التعليم الثانوي'}`, { size: 16, alignment: AlignmentType.LEFT }),
+                createRtlPara(`الأستاذ(ة): شعوب عزالدين`, { size: 16, alignment: AlignmentType.LEFT }),
+              ],
+              borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
+            }),
+          ]
+        })
+      ]
+    });
+
     paragraphs.push(
-      createRtlPara("المملكة المغربية - وزارة التربية الوطنية والتعليم الأولي والرياضة", {
+      // @ts-ignore
+      headerTable as any,
+      createRtlPara(`المستوى: ${examData.level} | الفرض: ${examData.title} | الدورة: ${examData.term} | مدة الإنجاز: ${examData.duration || 'ساعة واحدة'}`, {
         alignment: AlignmentType.CENTER,
         size: 18,
         bold: true,
-        color: "15803D"
-      }),
-      createRtlPara(`عناصر الإجابة وسُلم التنقيط الرسمية - ${examData.title}`, {
-        alignment: AlignmentType.CENTER,
-        size: 26,
-        bold: true,
-        color: "15803D",
-        spacing: { before: 150, after: 200 }
-      }),
-      createRtlPara(`المستوى: ${examData.level} | ${examData.term} | مادة الاجتماعيات`, {
-        alignment: AlignmentType.CENTER,
-        size: 18,
-        color: "334155",
-        spacing: { before: 50, after: 200 }
+        color: "0F172A",
+        spacing: { before: 120, after: 180 }
       })
     );
 
     const ak = examData.answerKey;
 
-    // Situation 1 Answers (If present)
-    if (ak.situation1Answers && ak.situation1Answers.length > 0 && examData.situation1) {
-      paragraphs.push(
-        createRtlPara(`أولاً: عناصر إجابة الوضعية الأولى (${examData.situation1.title})`, { bold: true, size: 22, color: "15803D" })
-      );
-      ak.situation1Answers.forEach((ans) => {
-        paragraphs.push(createRtlPara(`• ${ans}`, { size: 18 }));
-      });
-      paragraphs.push(createRtlPara("", { spacing: { before: 150, after: 150 } }));
-    }
+    // Didactic Grid Table Rows
+    const tableRows: TableRow[] = [];
 
-    // Situation 2 Answers
-    if (ak.situation2Answers) {
-      paragraphs.push(
-        createRtlPara(`ثانياً: عناصر إجابة الوضعية الثانية (${examData.situation2.title})`, { bold: true, size: 22, color: "15803D" })
-      );
-      ak.situation2Answers.forEach((ans) => {
-        paragraphs.push(createRtlPara(`س${ans.questionNumber}) ${ans.answer} (${ans.points}ن)`, { size: 18 }));
-      });
-    }
+    // Header Row 1
+    tableRows.push(
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 15, type: WidthType.PERCENTAGE },
+            children: [createRtlPara("المكون", { bold: true, alignment: AlignmentType.CENTER, color: "FFFFFF" })],
+            shading: { fill: "0F172A" }
+          }),
+          new TableCell({
+            width: { size: 22, type: WidthType.PERCENTAGE },
+            children: [createRtlPara("الكفايات والقدرات", { bold: true, alignment: AlignmentType.CENTER, color: "FFFFFF" })],
+            shading: { fill: "0F172A" }
+          }),
+          new TableCell({
+            width: { size: 28, type: WidthType.PERCENTAGE },
+            children: [createRtlPara("التدبير الديداكتيكي: المطلوب", { bold: true, alignment: AlignmentType.CENTER, color: "FFFFFF" })],
+            shading: { fill: "0F172A" }
+          }),
+          new TableCell({
+            width: { size: 25, type: WidthType.PERCENTAGE },
+            children: [createRtlPara("عناصر الإجابة النموذجية", { bold: true, alignment: AlignmentType.CENTER, color: "FFFFFF" })],
+            shading: { fill: "0F172A" }
+          }),
+          new TableCell({
+            width: { size: 10, type: WidthType.PERCENTAGE },
+            children: [createRtlPara("السلم", { bold: true, alignment: AlignmentType.CENTER, color: "FFFFFF" })],
+            shading: { fill: "0F172A" }
+          }),
+        ]
+      })
+    );
 
-    paragraphs.push(createRtlPara("", { spacing: { before: 150, after: 150 } }));
-
-    // Situation 3 Answers
-    if (ak.situation3AnswerGuides && ak.situation3AnswerGuides.length > 0) {
-      paragraphs.push(
-        createRtlPara(`ثالثاً: توجيهات وسُلم تصحيح الموضوع المقالي (${examData.situation3?.title || ''})`, { bold: true, size: 22, color: "15803D", spacing: { before: 150, after: 100 } })
-      );
-      ak.situation3AnswerGuides.forEach((guide) => {
-        paragraphs.push(
-          createRtlPara(`📌 ${guide.topicTitle || `دليل إجابة الموضوع ${guide.topicNumber}`}`, { bold: true, size: 20, color: "065F46", spacing: { before: 100, after: 40 } }),
-          createRtlPara(`المقدمة والجانب المنهجي: ${guide.introduction}`, { size: 18 }),
-          createRtlPara(`عناصر العرض المعرفي:`, { bold: true, size: 18 })
-        );
-        guide.development?.forEach((devPoint) => {
-          paragraphs.push(createRtlPara(`• ${devPoint}`, { size: 18 }));
+    // Row for Situation 1 (If Middle School / الإعدادي)
+    if (examData.situation1) {
+      const reqList: Paragraph[] = [createRtlPara("1. الأسئلة والتعاريف المطلوبة:", { bold: true, size: 18 })];
+      const terms = examData.situation1.termsToDefine || examData.situation1.definitions;
+      if (terms && terms.length > 0) {
+        reqList.push(createRtlPara("المفاهيم والمصطلحات:", { bold: true, size: 16, color: "1E3A8A" }));
+        terms.forEach((d: any) => reqList.push(createRtlPara(`• ${d.term || d} ${d.points ? `(${d.points}ن)` : ''}`, { size: 15 })));
+      }
+      if (examData.situation1.objectiveQuestions && examData.situation1.objectiveQuestions.length > 0) {
+        reqList.push(createRtlPara("الأسئلة الموضوعية:", { bold: true, size: 16, color: "1E3A8A", spacing: { before: 60, after: 20 } }));
+        examData.situation1.objectiveQuestions.forEach((q, qIdx) => {
+          reqList.push(createRtlPara(`س${qIdx + 1}) ${q.questionText} (${q.points || 0}ن)`, { bold: true, size: 15 }));
+          if (q.optionsOrMatches && q.optionsOrMatches.length > 0) {
+            q.optionsOrMatches.forEach((item: any) => {
+              reqList.push(createRtlPara(`   - ${item.left}${item.right ? ` ⬅️ ${item.right}` : ''}`, { size: 14, color: "475569" }));
+            });
+          }
         });
-        paragraphs.push(createRtlPara(`الخاتمة والتركيب: ${guide.conclusion}`, { size: 18, spacing: { before: 40, after: 100 } }));
+      }
+
+      const ansList: Paragraph[] = [createRtlPara("عناصر إجابة الوضعية 1:", { bold: true, size: 18, color: "065F46" })];
+      if (ak.situation1Answers) {
+        ak.situation1Answers.forEach(ans => ansList.push(createRtlPara(`• ${ans}`, { size: 16 })));
+      }
+
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [
+                createRtlPara(examData.situation1.component || "المكون 1", { bold: true, alignment: AlignmentType.CENTER }),
+                createRtlPara("(تعاريف وأسئلة موضوعية)", { size: 14, alignment: AlignmentType.CENTER, color: "1E3A8A" }),
+                createRtlPara(`(${examData.situation1.totalPoints || 6}ن)`, { bold: true, alignment: AlignmentType.CENTER, color: "065F46" })
+              ]
+            }),
+            new TableCell({
+              children: [
+                createRtlPara("• تحديد المفاهيم والأعلام.", { size: 16 }),
+                createRtlPara("• توظيف التعلمات للتمييز بين الصحيح والخطأ.", { size: 16 }),
+              ]
+            }),
+            new TableCell({ children: reqList }),
+            new TableCell({ children: ansList }),
+            new TableCell({
+              children: [createRtlPara(`(${examData.situation1.totalPoints || 6}ن)`, { bold: true, alignment: AlignmentType.CENTER, color: "065F46" })]
+            })
+          ]
+        })
+      );
+    }
+
+    // Row for Situation 2 (Document Analysis)
+    const sit2Reqs: Paragraph[] = [createRtlPara("أسئلة الاشتغال على الوثائق المطروحة:", { bold: true, size: 18 })];
+    if (examData.situation2.documents && examData.situation2.documents.length > 0) {
+      const docTitles = examData.situation2.documents.map((d: any) => d.title || `الوثيقة ${d.docNumber}`).join(' / ');
+      sit2Reqs.push(createRtlPara(`الوثائق: ${docTitles}`, { size: 14, color: "475569", spacing: { before: 20, after: 40 } }));
+    }
+    if (examData.situation2.questions) {
+      examData.situation2.questions.forEach(q => {
+        sit2Reqs.push(createRtlPara(`س${q.questionNumber}) ${q.questionText} (${q.points}ن)`, { size: 15 }));
+      });
+    }
+
+    const sit2Ans: Paragraph[] = [createRtlPara("عناصر الإجابة النموذجية:", { bold: true, size: 18, color: "065F46" })];
+    if (ak.situation2Answers) {
+      ak.situation2Answers.forEach(ans => {
+        sit2Ans.push(createRtlPara(`س${ans.questionNumber}) ${ans.answer} (${ans.points}ن)`, { size: 16 }));
+      });
+    }
+
+    tableRows.push(
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              createRtlPara(examData.situation2.component || "المكون 2", { bold: true, alignment: AlignmentType.CENTER }),
+              createRtlPara("(الاشتغال على الوثائق)", { size: 14, alignment: AlignmentType.CENTER, color: "1E3A8A" }),
+              createRtlPara(`(${examData.situation2.totalPoints || 10}ن)`, { bold: true, alignment: AlignmentType.CENTER, color: "065F46" })
+            ]
+          }),
+          new TableCell({
+            children: [
+              createRtlPara("• الاشتغال بوثائق مختلفة (نصوص، جداول، خطاطات).", { size: 16 }),
+              createRtlPara("• تحديد السياق والمفاهيم واستخراج المعطيات وتفسيرها.", { size: 16 }),
+            ]
+          }),
+          new TableCell({ children: sit2Reqs }),
+          new TableCell({ children: sit2Ans }),
+          new TableCell({
+            children: [createRtlPara(`(${examData.situation2.totalPoints || 10}ن)`, { bold: true, alignment: AlignmentType.CENTER, color: "065F46" })]
+          })
+        ]
+      })
+    );
+
+    // Row for Situation 3 (Essay Topic)
+    const sit3Reqs: Paragraph[] = [createRtlPara("الموضوع المقالي المطلوب معالجته:", { bold: true, size: 18 })];
+    if (examData.situation3.topics && examData.situation3.topics.length > 1) {
+      sit3Reqs.push(createRtlPara(examData.situation3.choiceInstruction || "اكتب في أحد الموضوعين:", { bold: true, size: 15, color: "1E3A8A" }));
+      examData.situation3.topics.forEach((t: any, idx: number) => {
+        sit3Reqs.push(createRtlPara(`• الموضوع ${idx + 1}: ${t.contextText}`, { size: 14, bold: true }));
+        if (t.instructions) {
+          t.instructions.forEach((ins: string) => sit3Reqs.push(createRtlPara(`   - ${ins}`, { size: 14 })));
+        }
+      });
+    } else {
+      const top = examData.situation3.topics?.[0];
+      sit3Reqs.push(createRtlPara(`• ${top?.contextText || examData.situation3.contextText}`, { size: 15 }));
+      const instrs = top?.instructions || examData.situation3.instructions;
+      if (instrs) {
+        instrs.forEach((ins: string) => sit3Reqs.push(createRtlPara(`   - ${ins}`, { size: 14 })));
+      }
+    }
+
+    const sit3Ans: Paragraph[] = [createRtlPara("توجيهات وسُلم تصحيح المقال:", { bold: true, size: 18, color: "065F46" })];
+    if (ak.situation3AnswerGuides && ak.situation3AnswerGuides.length > 0) {
+      ak.situation3AnswerGuides.forEach(g => {
+        sit3Ans.push(
+          createRtlPara(`• ${g.topicTitle || 'دليل الإجابة'}:`, { bold: true, size: 16, color: "1E3A8A" }),
+          createRtlPara(`- الجانب المنهجي: ${g.introduction} - ${g.conclusion}`, { size: 15 }),
+          createRtlPara(`- الجانب المعرفي: ${g.development?.join(' / ')}`, { size: 15 })
+        );
       });
     } else if (ak.situation3AnswerGuide) {
-      paragraphs.push(
-        createRtlPara(`ثالثاً: توجيهات وسُلم تصحيح الموضوع المقالي (${examData.situation3?.title || ''})`, { bold: true, size: 22, color: "15803D" }),
-        createRtlPara(`المقدمة والجانب المنهجي: ${ak.situation3AnswerGuide.introduction}`, { size: 18 })
+      sit3Ans.push(
+        createRtlPara(`- الجانب المنهجي: ${ak.situation3AnswerGuide.introduction} - ${ak.situation3AnswerGuide.conclusion}`, { size: 15 }),
+        createRtlPara(`- الجانب المعرفي: ${ak.situation3AnswerGuide.development?.join(' / ')}`, { size: 15 })
       );
-      ak.situation3AnswerGuide.development?.forEach((devPoint, dIdx) => {
-        paragraphs.push(createRtlPara(`العرض المعرفي (عنصر ${dIdx + 1}): ${devPoint}`, { size: 18 }));
-      });
-      paragraphs.push(createRtlPara(`الخاتمة والتركيب: ${ak.situation3AnswerGuide.conclusion}`, { size: 18 }));
     }
+    sit3Ans.push(createRtlPara("* الجانب الشكلي: سلامة اللغة والخط ونظافة ورقة التحرير.", { size: 14, color: "64748B" }));
+
+    tableRows.push(
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              createRtlPara(examData.situation3.component || "المكون 3", { bold: true, alignment: AlignmentType.CENTER }),
+              createRtlPara("(الموضوع المقالي)", { size: 14, alignment: AlignmentType.CENTER, color: "1E3A8A" }),
+              createRtlPara(`(${examData.situation3.totalPoints || 10}ن)`, { bold: true, alignment: AlignmentType.CENTER, color: "065F46" })
+            ]
+          }),
+          new TableCell({
+            children: [
+              createRtlPara("• صياغة موضوع مقالي محكم التصميم ومترابط.", { size: 16 }),
+              createRtlPara("• مراعاة الجوانب المنهجية والمعرفية والشكلية.", { size: 16 }),
+            ]
+          }),
+          new TableCell({ children: sit3Reqs }),
+          new TableCell({ children: sit3Ans }),
+          new TableCell({
+            children: [
+              createRtlPara(`منهجي وشكلي: 2ن`, { size: 14, alignment: AlignmentType.CENTER }),
+              createRtlPara(`معرفي: ${examData.situation3.totalPoints === 7 ? '5ن' : '8ن'}`, { size: 14, alignment: AlignmentType.CENTER }),
+              createRtlPara(`المجموع: (${examData.situation3.totalPoints || 10}ن)`, { bold: true, alignment: AlignmentType.CENTER, color: "065F46" })
+            ]
+          })
+        ]
+      })
+    );
+
+    const gridTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: tableRows
+    });
+
+    // @ts-ignore
+    paragraphs.push(gridTable as any);
 
     const doc = new Document({
       sections: [{

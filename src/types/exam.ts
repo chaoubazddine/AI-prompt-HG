@@ -104,6 +104,8 @@ export interface ExamData {
   level: string; // الأولى إعدادي / ... / الجذع المشترك / الأولى باك / الثانية باك
   term: string; // الدورة الأولى / الدورة الثانية
   duration: string; // e.g. "ساعة واحدة" or "ساعتان"
+  teacherName?: string; // اسم الأستاذ(ة)
+  schoolName?: string; // المؤسسة التعليمية
   lessonsIncluded: string[];
   situation1?: Situation1_Objective; // Optional for High School (السلك التأهيلي)
   situation2: Situation2_Documents;

@@ -15,6 +15,10 @@ export const generateMiddleSchoolExam = async (
     situation1: 'التربية على المواطنة',
     situation2: 'التاريخ',
     situation3: 'الجغرافيا'
+  },
+  teacherInfo?: {
+    teacherName?: string;
+    schoolName?: string;
   }
 ): Promise<ExamData> => {
   const lessonsText = selectedLessons.length > 0 
@@ -238,12 +242,14 @@ export const generateMiddleSchoolExam = async (
 
 5. **الوضعية الاختبارية الثالثة: كتابة موضوع مقالي (7 نقط)**
    - المكون المخصص لهذه الوضعية: **${situationComponents.situation3}**
-   - **قاعدة إجبارية وفق الأطر المرجعية**: يجب تقديم **موضوعين مقاليين اختياريين** (الموضوع الأول و الموضوع الثاني) ليتيح للمتعلم حرية الاختيار بينهما!
-   - لكل موضوع: نص انطلاق وسياق إشكالي موضوعاتي مكتمل، توجيهات ومحاور محددة.
-   - تنبيه منهاجي (1ن للجانب المنهجي والشكلي، 6ن للجانب المعرفي).
+   - **قاعدة إجبارية صارمة وفق الأطر المرجعية المحينة للسلك الإعدادي**: يجب تقديم **موضوع مقالي واحد فقط إجباري (مقترح واحد)** تنقيطه 7 نقط! (يمنع منعاً باتاً تقديم موضوعين اختياريين في السلك الإعدادي، خيار الموضوعين مخصص حصراً للسلك الثانوي التأهيلي).
+   - نص انطلاق وسياق إشكالي موضوعاتي مكتمل، توجيهات ومحاور محددة للمطلوب.
+   - **توزيع النقاط في الإعدادي**: (تخصص **1 نقطة واحدة** للجانب المنهجي والشكلي، و**6 نقط** للجانب المعرفي الموزع على المحاور).
+   - لا تضع أي حقل لـ "choiceInstruction" في الإعدادي لأنه موضوع واحد إجباري.
 
 6. **عناصر الإجابة وسلم التنقيط (ExamAnswerKey)**:
-   - عناصر إجابة دقيقة ومفصلة وشاملة لكل وضعية، ودليل إجابة مفصل لكل من الموضوع الأول والموضوع الثاني في "situation3AnswerGuides".
+   - عناصر إجابة دقيقة ومفصلة وشاملة لكل وضعية.
+   - في مصفوفة "situation3AnswerGuides": زوّد دليل إجابة مفصلاً للموضوع المقالي الواحد المذكور (عنصر واحد فقط في المصوفة).
 
 يرجى إرجاع النتيجة حصراً بتنسيق JSON الهيكلي التالي:
 
@@ -337,22 +343,11 @@ export const generateMiddleSchoolExam = async (
   "situation3": {
     "component": "${situationComponents.situation3}",
     "title": "III. مكون ${situationComponents.situation3}: تحرير موضوع مقالي (7ن)",
-    "choiceInstruction": "اكتب(ي) في أحد الموضوعين التاليين حسب اختيارك:",
     "topics": [
       {
         "topicNumber": 1,
-        "title": "الموضوع الأول",
-        "contextText": "نص الانطلاق والسياق الإشكالي للموضوع الأول...",
-        "instructions": [
-          "أكتب موضوعاً مقالياً من مقدمة وعرض وخاتمة تتناول فيه ما يلي:",
-          "1. المحور الأول المطلوب معالجته...",
-          "2. المحور الثاني المطلوب تحليله..."
-        ]
-      },
-      {
-        "topicNumber": 2,
-        "title": "الموضوع الثاني",
-        "contextText": "نص الانطلاق والسياق الإشكالي للموضوع الثاني...",
+        "title": "الموضوع المقالي",
+        "contextText": "نص الانطلاق والسياق الإشكالي للموضوع المقالي...",
         "instructions": [
           "أكتب موضوعاً مقالياً من مقدمة وعرض وخاتمة تتناول فيه ما يلي:",
           "1. المحور الأول المطلوب معالجته...",
@@ -381,34 +376,17 @@ export const generateMiddleSchoolExam = async (
     "situation3AnswerGuides": [
       {
         "topicNumber": 1,
-        "topicTitle": "عناصر إجابة الموضوع الأول",
-        "introduction": "صياغة المقدمة الإشكالية والتصميم (1ن)...",
+        "topicTitle": "عناصر إجابة الموضوع المقالي",
+        "introduction": "صياغة المقدمة الإشكالية والتصميم (0.5ن)...",
         "development": [
-          "عناصر العرض للمحور الأول (2.5ن)...",
-          "عناصر العرض للمحور الثاني (2.5ن)..."
+          "عناصر العرض للمحور الأول (3ن)...",
+          "عناصر العرض للمحور الثاني (3ن)..."
         ],
-        "conclusion": "خاتمة نموذجية وتركيب عام (1ن)...",
+        "conclusion": "خاتمة نموذجية وتركيب عام (0.5ن)...",
         "scoringBreakdown": [
           { "item": "الجانب المنهجي والشكلي", "points": 1 },
-          { "item": "الجانب المعرفي (المحور 1)", "points": 2.5 },
-          { "item": "الجانب المعرفي (المحور 2)", "points": 2.5 },
-          { "item": "الخاتمة والتركيب", "points": 1 }
-        ]
-      },
-      {
-        "topicNumber": 2,
-        "topicTitle": "عناصر إجابة الموضوع الثاني",
-        "introduction": "صياغة المقدمة الإشكالية والتصميم (1ن)...",
-        "development": [
-          "عناصر العرض للمحور الأول (2.5ن)...",
-          "عناصر العرض للمحور الثاني (2.5ن)..."
-        ],
-        "conclusion": "خاتمة نموذجية وتركيب عام (1ن)...",
-        "scoringBreakdown": [
-          { "item": "الجانب المنهجي والشكلي", "points": 1 },
-          { "item": "الجانب المعرفي (المحور 1)", "points": 2.5 },
-          { "item": "الجانب المعرفي (المحور 2)", "points": 2.5 },
-          { "item": "الخاتمة والتركيب", "points": 1 }
+          { "item": "الجانب المعرفي (المحور 1)", "points": 3 },
+          { "item": "الجانب المعرفي (المحور 2)", "points": 3 }
         ]
       }
     ]
@@ -455,7 +433,10 @@ export const generateMiddleSchoolExam = async (
         throw lastErr || new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
       }
 
-      return safeJsonParse<ExamData>(responseText);
+      const parsed = safeJsonParse<ExamData>(responseText);
+      if (teacherInfo?.teacherName) parsed.teacherName = teacherInfo.teacherName;
+      if (teacherInfo?.schoolName) parsed.schoolName = teacherInfo.schoolName;
+      return parsed;
     } catch (error: any) {
       console.error(`API Exam Error (Attempts remaining: ${retries - 1}):`, error);
       retries--;

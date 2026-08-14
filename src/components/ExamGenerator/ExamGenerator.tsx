@@ -21,7 +21,9 @@ import {
   Table,
   Clock,
   Workflow,
-  GitCommit
+  GitCommit,
+  User,
+  Building2
 } from 'lucide-react';
 import { ExamData, SubjectComponent, ExamDocument } from '../../types/exam';
 import { generateMiddleSchoolExam } from '../../services/examService';
@@ -38,6 +40,8 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
   const [level, setLevel] = useState(initialLevel);
   const [term, setTerm] = useState<'الدورة الأولى' | 'الدورة الثانية'>('الدورة الأولى');
   const [examTitle, setExamTitle] = useState('الفرض الكتابي المحروس رقم 1');
+  const [teacherName, setTeacherName] = useState('ذ. عبد السلام الحاضي');
+  const [schoolName, setSchoolName] = useState('ثانوية السلام التأهيلية');
   
   // Situation components distribution (Must cover History, Geography, Citizenship distinctly)
   const [s1Comp, setS1Comp] = useState<SubjectComponent>('التربية على المواطنة');
@@ -149,6 +153,10 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
           situation1: s1Comp,
           situation2: s2Comp,
           situation3: s3Comp
+        },
+        {
+          teacherName,
+          schoolName
         }
       );
       setExamData(data);
@@ -504,7 +512,7 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
           </div>
         </div>
         <p className="text-xs text-slate-300 leading-relaxed">
-          إعداد فرض كتابي محروس وفق المنهج الرسمي: وضعية المفاهيم والأسئلة الموضوعية (6ن)، وضعية الاشتغال على الوثائق (7ن)، ووضعية الموضوع المقالي (7ن)، مع توليد شبكة التنقيط وعناصر الإجابة الرسمية.
+          إعداد فرض كتابي محروس وفق المنهج الرسمي المؤطر للسلكين الإعدادي والتأهيلي: وضعية المفاهيم والأسئلة الموضوعية، وضعية الاشتغال على الوثائق، ووضعية الموضوع المقالي (مقترح واحد إجباري للإعدادي / موضوعان اختياريان للتأهيلي)، مع توليد شبكة التنقيط وعناصر الإجابة الرسمية.
         </p>
       </div>
 
@@ -580,6 +588,43 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
               </select>
             </div>
 
+          </div>
+
+          {/* Row 1.5: Teacher Name & Institution Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <User size={14} className="text-indigo-600" />
+                <span>اسم الأستاذ(ة):</span>
+              </label>
+              <input
+                type="text"
+                value={teacherName}
+                onChange={(e) => {
+                  setTeacherName(e.target.value);
+                  if (examData) setExamData({ ...examData, teacherName: e.target.value });
+                }}
+                placeholder="مثال: ذ. عبد السلام الحاضي"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Building2 size={14} className="text-indigo-600" />
+                <span>اسم المؤسسة التعليمية:</span>
+              </label>
+              <input
+                type="text"
+                value={schoolName}
+                onChange={(e) => {
+                  setSchoolName(e.target.value);
+                  if (examData) setExamData({ ...examData, schoolName: e.target.value });
+                }}
+                placeholder="مثال: ثانوية السلام التأهيلية"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
           </div>
 
           {/* Row 2: Situation Component Assignments */}
@@ -878,15 +923,17 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
               {/* Moroccan Official Exam Header Box */}
               <div className="border-2 border-slate-900 rounded-2xl p-4 sm:p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-xs font-bold text-slate-900 border-b border-slate-300 pb-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-right">
                     <p className="font-black text-sm">المملكة المغربية</p>
                     <p>وزارة التربية الوطنية والتعليم الأولي والرياضة</p>
+                    <p className="text-slate-800 font-bold">المؤسسة: <span className="font-black text-indigo-950">{examData.schoolName || schoolName || 'المؤسسة التعليمية'}</span></p>
                     <p className="text-indigo-900 font-black">مادة الاجتماعيات | {examData.cycle || 'السلك الثانوي'}</p>
                   </div>
                   <div className="text-left space-y-1 dir-ltr">
                     <p className="font-black text-sm">{examData.level}</p>
                     <p>{examData.term} | المدة الزمانية: {examData.duration}</p>
-                    <p className="text-slate-700">الاسم والنسب: ...........................................</p>
+                    <p className="text-slate-800 font-bold dir-rtl text-right">الأستاذ(ة): <span className="font-black text-slate-950">{examData.teacherName || teacherName || 'أستاذ المادة'}</span></p>
+                    <p className="text-slate-700 dir-rtl text-right">الاسم والنسب: ...........................................</p>
                   </div>
                 </div>
 
@@ -1033,13 +1080,15 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
                 {/* Document Questions */}
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
                   <span className="text-xs font-black text-slate-900 block">الأسئلة المطلوب الإجابة عنها اعتماداً على الوثائق والتعلمات:</span>
-                  <div className="space-y-3 pr-2 pt-1">
+                  <div className="space-y-4 pr-2 pt-2">
                     {examData.situation2.questions?.map((q, qIdx) => (
-                      <div key={qIdx} className="text-xs text-slate-800 space-y-1">
-                        <span className="font-bold text-indigo-900">{q.questionNumber}) {q.questionText} ({q.points}ن)</span>
-                        <p className="text-slate-400 border-b border-dotted border-slate-300 pb-2">
-                          .........................................................................................................................................................................
-                        </p>
+                      <div key={qIdx} className="text-xs text-slate-800 space-y-2">
+                        <span className="font-bold text-indigo-900 block">{q.questionNumber}) {q.questionText} ({q.points}ن)</span>
+                        <div className="space-y-1.5 font-mono text-slate-400 pt-0.5">
+                          <p className="border-b border-dotted border-slate-400 w-full leading-relaxed h-4"></p>
+                          <p className="border-b border-dotted border-slate-400 w-full leading-relaxed h-4"></p>
+                          <p className="border-b border-dotted border-slate-400 w-full leading-relaxed h-4"></p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1063,177 +1112,369 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
                   </div>
                 )}
 
-                {/* If multiple topics exist */}
-                {examData.situation3.topics && examData.situation3.topics.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {examData.situation3.topics.map((topic, tIdx) => (
-                      <div key={tIdx} className="bg-slate-50 p-4 sm:p-5 rounded-2xl border-2 border-indigo-200/90 space-y-3 flex flex-col justify-between shadow-sm">
-                        <div className="space-y-3">
-                          <div className="bg-indigo-950 text-white px-3 py-1.5 rounded-lg text-xs font-black text-center border border-indigo-800">
-                            {topic.title || `الموضوع ${topic.topicNumber || tIdx + 1}`}
-                          </div>
+                {/* If multiple topics exist (High School / التأهيلي Table Format) */}
+                {examData.situation3.topics && examData.situation3.topics.length > 1 ? (
+                  <div className="overflow-x-auto my-2">
+                    <table className="w-full border-collapse border-2 border-slate-900 text-xs sm:text-sm dir-rtl bg-white">
+                      <thead>
+                        <tr className="bg-indigo-950 text-white font-black">
+                          {examData.situation3.topics.map((topic, tIdx) => (
+                            <th key={tIdx} className="border border-slate-900 p-2.5 text-center w-1/2 text-xs sm:text-sm">
+                              {topic.title || `الموضوع ${topic.topicNumber || tIdx + 1}`}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          {examData.situation3.topics.map((topic, tIdx) => (
+                            <td key={tIdx} className="border border-slate-900 p-3.5 align-top w-1/2 bg-slate-50/50 space-y-3">
+                              <div className="space-y-1">
+                                <span className="font-black text-slate-900 block text-xs underline">نص الانطلاق والسياق:</span>
+                                <p className="text-xs leading-relaxed text-slate-800 font-medium bg-white p-2.5 rounded-lg border border-slate-200 text-justify">
+                                  {topic.contextText}
+                                </p>
+                              </div>
 
-                          <div className="space-y-1">
-                            <span className="text-xs font-black text-slate-900 block">نص الانطلاق والسياق:</span>
-                            <p className="text-xs leading-relaxed text-slate-800 font-medium bg-white p-3 rounded-xl border border-slate-200 text-justify">
-                              {topic.contextText}
-                            </p>
-                          </div>
+                              <div className="space-y-1.5 pt-1">
+                                <span className="font-black text-indigo-950 block text-xs underline">المطلوب:</span>
+                                <ul className="space-y-1.5 pr-1">
+                                  {topic.instructions?.map((ins, idx) => (
+                                    <li key={idx} className="text-xs font-bold text-slate-900 flex items-start gap-1.5">
+                                      <span className="text-indigo-600 font-black shrink-0">•</span>
+                                      <span>{ins}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
 
-                          <div className="space-y-1.5 pt-1">
-                            <span className="text-xs font-black text-indigo-950 block">المطلوب:</span>
-                            <ul className="space-y-1.5 pr-1">
-                              {topic.instructions?.map((ins, idx) => (
-                                <li key={idx} className="text-xs font-bold text-indigo-900 flex items-start gap-1.5">
-                                  <span className="text-indigo-600 font-black shrink-0">•</span>
-                                  <span>{ins}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                              {examData.situation3.methodologicalNotes && (
+                                <div className="pt-2 border-t border-slate-200 text-[10px] text-amber-900 font-bold">
+                                  * {examData.situation3.methodologicalNotes}
+                                </div>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  /* Single Mandatory Topic (Middle School / الإعدادي Format) */
+                  (() => {
+                    const singleTopic = (examData.situation3.topics && examData.situation3.topics.length > 0)
+                      ? examData.situation3.topics[0]
+                      : examData.situation3;
+                    
+                    return (
+                      <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200/80 space-y-4">
+                        <div className="space-y-1.5">
+                          <span className="text-xs font-black text-slate-900 block underline">نص الانطلاق والسياق الإشكالي:</span>
+                          <p className="text-xs sm:text-sm leading-relaxed text-slate-800 font-medium bg-white p-3.5 rounded-xl border border-slate-200 text-justify">
+                            {singleTopic.contextText}
+                          </p>
                         </div>
 
-                        {examData.situation3.methodologicalNotes && tIdx === 0 && (
-                          <div className="pt-2 border-t border-slate-200 text-[10px] text-amber-900 font-bold">
-                            * {examData.situation3.methodologicalNotes}
+                        <div className="space-y-2 pt-1">
+                          <span className="text-xs font-black text-indigo-950 block underline">المطلوب:</span>
+                          <ul className="space-y-2 pr-2">
+                            {singleTopic.instructions?.map((ins: string, idx: number) => (
+                              <li key={idx} className="text-xs sm:text-sm font-bold text-indigo-900 flex items-start gap-2">
+                                <span className="text-indigo-600 font-black">•</span>
+                                <span>{ins}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {examData.situation3.methodologicalNotes && (
+                          <div className="pt-3 border-t border-slate-200 text-[11px] text-amber-900 font-bold">
+                            * ملاحظة منهاجية: {examData.situation3.methodologicalNotes}
                           </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  /* Fallback Single Topic */
-                  <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200/80 space-y-3">
-                    <div className="space-y-1">
-                      <span className="text-xs font-black text-slate-900 block">نص الانطلاق والسياق:</span>
-                      <p className="text-xs sm:text-sm leading-relaxed text-slate-800 font-medium bg-white p-3 rounded-xl border border-slate-200">
-                        {examData.situation3.contextText}
-                      </p>
-                    </div>
-
-                    <div className="space-y-1.5 pt-2">
-                      <span className="text-xs font-black text-indigo-950 block">المطلوب:</span>
-                      <ul className="space-y-1.5 pr-2">
-                        {examData.situation3.instructions?.map((ins, idx) => (
-                          <li key={idx} className="text-xs sm:text-sm font-bold text-indigo-900 flex items-start gap-2">
-                            <span className="text-indigo-600 font-black">•</span>
-                            <span>{ins}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {examData.situation3.methodologicalNotes && (
-                      <div className="pt-2 border-t border-slate-200 text-[11px] text-amber-900 font-bold">
-                        * ملاحظة: {examData.situation3.methodologicalNotes}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()
                 )}
               </div>
 
             </div>
           )}
 
-          {/* Answer Key & Scoring Guide View */}
+          {/* Answer Key & Scoring Guide View (Official Didactic Management Table) */}
           {activeTab === 'answerKey' && (
-            <div className="bg-white p-6 sm:p-10 rounded-3xl border border-emerald-300 shadow-sm space-y-6 print:p-0 print:border-none">
+            <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-300 shadow-sm space-y-6 print:p-0 print:border-none dir-rtl">
               
-              <div className="border-b border-emerald-200 pb-4 text-center space-y-1">
-                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  وثيقة خاصة بالأستاذ(ة)
-                </span>
-                <h2 className="text-xl font-black text-emerald-950">
-                  عناصر الإجابة وسُلم التنقيط الرسمي - {examData.title}
-                </h2>
-              </div>
-
-              {/* Situation 1 Answers (If Present) */}
-              {examData.answerKey.situation1Answers && examData.answerKey.situation1Answers.length > 0 && (
-                <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80 space-y-2">
-                  <h3 className="text-xs sm:text-sm font-black text-emerald-950 flex items-center gap-1.5 border-b border-emerald-200 pb-2">
-                    <Award size={16} className="text-emerald-700" />
-                    <span>عناصر إجابة الوضعية الأولى ({examData.situation1?.totalPoints || 6} نقط):</span>
-                  </h3>
-                  <ul className="space-y-1.5 text-xs text-emerald-900 font-medium pr-2">
-                    {examData.answerKey.situation1Answers.map((ans, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-emerald-600 font-bold">•</span>
-                        <span>{ans}</span>
-                      </li>
-                    ))}
-                  </ul>
+              {/* Official Document Header */}
+              <div className="border-2 border-slate-900 p-4 rounded-xl space-y-3 bg-slate-50/50">
+                <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-right gap-2 text-xs font-bold text-slate-900">
+                  <div>
+                    <p>الأكاديمية الجهوية للتربية والتكوين</p>
+                    <p>المديرية الإقليمية: ....................</p>
+                    <p>المؤسسة: {schoolName || '....................'}</p>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-black text-indigo-900">المملكة المغربية</p>
+                    <p className="text-xs font-bold text-slate-800">وزارة التربية الوطنية والتعليم الأولي والرياضة</p>
+                    <span className="inline-block bg-emerald-800 text-white px-3 py-1 rounded-full text-xs font-black shadow-xs">
+                      شبكة عناصر الإجابة والتدبير الديداكتيكي وسُلم التنقيط
+                    </span>
+                  </div>
+                  <div className="text-left md:text-left">
+                    <p>الأستاذ(ة): {teacherName || 'شعوب عزالدين'}</p>
+                    <p>المادة: الاجتماعيات</p>
+                    <p>السلك: {examData.cycle || 'التعليم الثانوي'}</p>
+                  </div>
                 </div>
-              )}
 
-              {/* Situation 2 Answers */}
-              <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80 space-y-2">
-                <h3 className="text-xs sm:text-sm font-black text-emerald-950 flex items-center gap-1.5 border-b border-emerald-200 pb-2">
-                  <Award size={16} className="text-emerald-700" />
-                  <span>عناصر إجابة الوضعية الثانية ({examData.situation2?.totalPoints || 10} نقط):</span>
-                </h3>
-                <div className="space-y-2 pr-2">
-                  {examData.answerKey.situation2Answers?.map((ans, idx) => (
-                    <div key={idx} className="text-xs text-emerald-900 space-y-0.5">
-                      <span className="font-bold">س{ans.questionNumber}) ({ans.points}ن):</span>
-                      <p className="bg-white p-2 rounded-lg border border-emerald-200 text-slate-800 font-medium">
-                        {ans.answer}
-                      </p>
-                    </div>
-                  ))}
+                <div className="border-t border-slate-300 pt-2 flex flex-wrap justify-between items-center text-xs font-black text-slate-800 gap-2 bg-white p-2.5 rounded-lg border">
+                  <span>المستوى: {examData.level}</span>
+                  <span>عنوان الامتحان: {examData.title}</span>
+                  <span>الدورة: {examData.term}</span>
+                  <span>مدة الإنجاز: {examData.duration || 'ساعة واحدة'}</span>
                 </div>
               </div>
 
-              {/* Situation 3 Answers (Multiple Essay Guides or Single) */}
-              <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80 space-y-3">
-                <h3 className="text-xs sm:text-sm font-black text-emerald-950 flex items-center gap-1.5 border-b border-emerald-200 pb-2">
-                  <Award size={16} className="text-emerald-700" />
-                  <span>توجيهات وسُلم تنقيط الموضوع المقالي ({examData.situation3?.totalPoints || 10} نقط):</span>
-                </h3>
+              {/* Official Didactic Management Table Grid */}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border-2 border-slate-900 text-xs text-slate-900 bg-white dir-rtl">
+                  <thead>
+                    <tr className="bg-slate-900 text-white text-center font-black">
+                      <th className="border border-slate-900 p-2.5 w-24">المكون</th>
+                      <th className="border border-slate-900 p-2.5 w-44">الكفايات والقدرات المستهدفة</th>
+                      <th className="border border-slate-900 p-2.5" colSpan={2}>
+                        التدبير الديداكتيكي
+                      </th>
+                      <th className="border border-slate-900 p-2.5 w-20">السلم</th>
+                    </tr>
+                    <tr className="bg-slate-800 text-white text-center font-bold">
+                      <th className="border border-slate-900 p-1.5" colSpan={2}></th>
+                      <th className="border border-slate-900 p-2 w-1/2">المطلوب (الأسئلة/الوضعيات)</th>
+                      <th className="border border-slate-900 p-2 w-1/2">عناصر الإجابة النموذجية</th>
+                      <th className="border border-slate-900 p-1.5"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
 
-                {examData.answerKey.situation3AnswerGuides && examData.answerKey.situation3AnswerGuides.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {examData.answerKey.situation3AnswerGuides.map((guide, gIdx) => (
-                      <div key={gIdx} className="bg-white p-3.5 sm:p-4 rounded-xl border border-emerald-300 space-y-2.5 text-xs text-slate-800">
-                        <div className="bg-emerald-800 text-white px-2.5 py-1 rounded-lg font-black text-center">
-                          {guide.topicTitle || `دليل إجابة الموضوع ${guide.topicNumber || gIdx + 1}`}
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="font-black text-emerald-950 block">المقدمة والخاتمة:</span>
-                          <p className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-200 font-medium">{guide.introduction}</p>
-                          <p className="bg-emerald-50/60 p-2 rounded-lg border border-emerald-200 font-medium">{guide.conclusion}</p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="font-black text-emerald-950 block">عناصر العرض المعرفي:</span>
-                          <ul className="space-y-1 pr-2">
-                            {guide.development?.map((d, idx) => (
-                              <li key={idx} className="text-slate-700 font-medium leading-relaxed">• {d}</li>
-                            ))}
+                    {/* Situation 1 (If Present - e.g. Middle School / الإعدادي) */}
+                    {examData.situation1 && (
+                      <tr className="border-b-2 border-slate-900 align-top">
+                        <td className="border border-slate-900 p-3 font-black text-center bg-slate-50">
+                          {examData.situation1.component}
+                          <span className="block text-[11px] text-indigo-900 font-bold mt-1">(تعاريف وأسئلة موضوعية)</span>
+                          <span className="block text-xs text-emerald-800 font-black mt-1">({examData.situation1.totalPoints || 6}ن)</span>
+                        </td>
+                        <td className="border border-slate-900 p-3 font-medium bg-slate-50/50">
+                          <p className="font-bold mb-1">اختبار قدرة المتعلم على:</p>
+                          <ul className="space-y-1 list-disc pr-4 text-[11px] leading-relaxed">
+                            <li>تحديد المفاهيم والأعلام والرموز.</li>
+                            <li>توظيف المكتسبات للتمييز الصحيح والخطأ.</li>
+                            <li>توظيف التعلمات في سياقات ودعامات جديدة.</li>
                           </ul>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-2 text-xs text-slate-800">
-                    <div className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-1">
-                      <span className="font-black text-emerald-900 block">المقدمة والخاتمة:</span>
-                      <p>{examData.answerKey.situation3AnswerGuide?.introduction}</p>
-                      <p>{examData.answerKey.situation3AnswerGuide?.conclusion}</p>
-                    </div>
+                        </td>
+                        <td className="border border-slate-900 p-3 space-y-2">
+                          {((examData.situation1.termsToDefine && examData.situation1.termsToDefine.length > 0) || (examData.situation1.definitions && examData.situation1.definitions.length > 0)) && (
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900 underline">1. المفاهيم والمصطلحات المطلوبة:</p>
+                              <ul className="list-disc pr-4 text-slate-800 space-y-0.5 text-[11px]">
+                                {(examData.situation1.termsToDefine || examData.situation1.definitions)?.map((d: any, idx: number) => (
+                                  <li key={idx}>
+                                    <span className="font-bold text-slate-900">{d.term || d}</span>
+                                    {d.points ? <span className="text-indigo-900 font-bold mr-1">({d.points}ن)</span> : null}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {examData.situation1.objectiveQuestions && examData.situation1.objectiveQuestions.length > 0 && (
+                            <div className="space-y-2 pt-1 border-t border-slate-200">
+                              <p className="font-bold text-slate-900 underline">2. الأسئلة الموضوعية المطروحة:</p>
+                              {examData.situation1.objectiveQuestions.map((q, qIdx) => (
+                                <div key={qIdx} className="space-y-1 bg-slate-50 p-2 rounded border border-slate-200 text-[11px]">
+                                  <p className="font-bold text-indigo-950">س{qIdx + 1}) {q.questionText} {q.points ? `(${q.points}ن)` : ''}</p>
+                                  {q.optionsOrMatches && q.optionsOrMatches.length > 0 && (
+                                    <ul className="list-disc pr-4 text-slate-700 space-y-0.5">
+                                      {q.optionsOrMatches.map((item: any, iIdx: number) => (
+                                        <li key={iIdx}>
+                                          <span>{item.left}</span>
+                                          {item.right ? <span className="font-bold text-indigo-900"> ⬅️ {item.right}</span> : null}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="border border-slate-900 p-3 bg-emerald-50/30 space-y-2">
+                          {examData.answerKey.situation1Answers && examData.answerKey.situation1Answers.length > 0 ? (
+                            <ul className="space-y-1.5 pr-2 font-medium">
+                              {examData.answerKey.situation1Answers.map((ans, idx) => (
+                                <li key={idx} className="flex items-start gap-1.5">
+                                  <span className="font-bold text-emerald-800">•</span>
+                                  <span>{ans}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-slate-600 font-medium">عناصر الإجابة الرسمية للوضعية الأولى.</p>
+                          )}
+                        </td>
+                        <td className="border border-slate-900 p-3 text-center font-black text-emerald-900 bg-slate-50">
+                          ({examData.situation1.totalPoints || 6}ن)
+                        </td>
+                      </tr>
+                    )}
 
-                    <div className="bg-white p-2.5 rounded-xl border border-emerald-200 space-y-1">
-                      <span className="font-black text-emerald-900 block">عناصر العرض المعرفي:</span>
-                      <ul className="space-y-1 pr-2">
-                        {examData.answerKey.situation3AnswerGuide?.development?.map((d, idx) => (
-                          <li key={idx} className="text-slate-700 font-medium">• {d}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
+                    {/* Situation 2 (Document Analysis - Middle & High School) */}
+                    <tr className="border-b-2 border-slate-900 align-top">
+                      <td className="border border-slate-900 p-3 font-black text-center bg-slate-50">
+                        {examData.situation2.component}
+                        <span className="block text-[11px] text-indigo-900 font-bold mt-1">(الاشتغال على الوثائق)</span>
+                        <span className="block text-xs text-emerald-800 font-black mt-1">({examData.situation2.totalPoints || 10}ن)</span>
+                      </td>
+                      <td className="border border-slate-900 p-3 font-medium bg-slate-50/50">
+                        <p className="font-bold mb-1">اختبار قدرة المتعلم على:</p>
+                        <ul className="space-y-1 list-disc pr-4 text-[11px] leading-relaxed">
+                          <li>الاشتغال بوثائق مختلفة (نصوص، جداول، خطاطات).</li>
+                          <li>تحديد نوعية وسياق وموضوع الوثائق.</li>
+                          <li>استخراج واستثمار المعطيات وتفسيرها وتركيبها.</li>
+                        </ul>
+                      </td>
+                      <td className="border border-slate-900 p-3 space-y-2">
+                        <p className="font-bold text-slate-900 mb-1">الأسئلة الموجهة للوثائق:</p>
+                        <ol className="space-y-1.5 list-decimal pr-4 font-medium">
+                          {examData.situation2.questions?.map((q, idx) => (
+                            <li key={idx} className="leading-relaxed">
+                              <span>{q.questionText}</span>
+                              <span className="font-bold text-indigo-900 text-[11px] mr-1">({q.points}ن)</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </td>
+                      <td className="border border-slate-900 p-3 bg-emerald-50/30 space-y-2">
+                        <p className="font-bold text-emerald-950 mb-1">الإجابات النموذجية:</p>
+                        <div className="space-y-2 pr-1 font-medium">
+                          {examData.answerKey.situation2Answers?.map((ans, idx) => (
+                            <div key={idx} className="bg-white p-2 rounded-md border border-emerald-200">
+                              <span className="font-bold text-emerald-900">س{ans.questionNumber}) </span>
+                              <span>{ans.answer}</span>
+                              <span className="font-bold text-emerald-800 text-[11px] mr-1">({ans.points}ن)</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="border border-slate-900 p-3 text-center font-black text-emerald-900 bg-slate-50">
+                        <div className="space-y-2">
+                          {examData.situation2.questions?.map((q, idx) => (
+                            <div key={idx} className="border-b border-slate-300 pb-1 last:border-none">
+                              ({q.points}ن)
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Situation 3 (Essay Writing - Middle & High School) */}
+                    <tr className="border-b-2 border-slate-900 align-top">
+                      <td className="border border-slate-900 p-3 font-black text-center bg-slate-50">
+                        {examData.situation3.component}
+                        <span className="block text-[11px] text-indigo-900 font-bold mt-1">(الموضوع المقالي)</span>
+                        <span className="block text-xs text-emerald-800 font-black mt-1">({examData.situation3.totalPoints || 10}ن)</span>
+                      </td>
+                      <td className="border border-slate-900 p-3 font-medium bg-slate-50/50">
+                        <p className="font-bold mb-1">اختبار تمكن المتعلم من:</p>
+                        <ul className="space-y-1 list-disc pr-4 text-[11px] leading-relaxed">
+                          <li>صياغة موضوع مقالي محكم التصميم ومترابط.</li>
+                          <li>مراعاة الجانب المنهجي (مقدمة، تصميم، خاتمة).</li>
+                          <li>استيفاء العناصر والتحليل المعرفي.</li>
+                          <li>مراعاة الجانب الشكلي ونظافة الورقة وسلامة اللغة.</li>
+                        </ul>
+                      </td>
+                      <td className="border border-slate-900 p-3 space-y-3">
+                        {/* High School (Multiple Choice Essay Topics) */}
+                        {examData.situation3.topics && examData.situation3.topics.length > 1 ? (
+                          <div className="space-y-3">
+                            <p className="font-bold text-indigo-950 underline">{examData.situation3.choiceInstruction || 'اكتب في أحد الموضوعين التاليين:'}</p>
+                            {examData.situation3.topics.map((t, idx) => (
+                              <div key={idx} className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px]">
+                                <p className="font-black text-slate-900 mb-1">{t.title || `الموضوع ${idx + 1}`}:</p>
+                                <p className="text-slate-700 mb-1.5 leading-relaxed">{t.contextText}</p>
+                                <p className="font-bold text-indigo-900 mb-0.5">المطلوب:</p>
+                                <ul className="list-disc pr-4 space-y-0.5">
+                                  {t.instructions?.map((ins, iIdx) => (
+                                    <li key={iIdx}>{ins}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          /* Middle School (Single Essay Topic) */
+                          <div className="space-y-2 text-[11px]">
+                            <p className="font-bold text-slate-900 underline">نص الموضوع المقالي:</p>
+                            <p className="text-slate-800 leading-relaxed bg-slate-50 p-2.5 rounded-lg border">
+                              {examData.situation3.topics?.[0]?.contextText || examData.situation3.contextText}
+                            </p>
+                            <p className="font-bold text-indigo-900">المطلوب معالجته:</p>
+                            <ul className="list-disc pr-4 space-y-0.5">
+                              {(examData.situation3.topics?.[0]?.instructions || examData.situation3.instructions)?.map((ins: string, iIdx: number) => (
+                                <li key={iIdx}>{ins}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </td>
+                      <td className="border border-slate-900 p-3 bg-emerald-50/30 space-y-3">
+                        {examData.answerKey.situation3AnswerGuides && examData.answerKey.situation3AnswerGuides.length > 0 ? (
+                          <div className="space-y-3">
+                            {examData.answerKey.situation3AnswerGuides.map((guide, gIdx) => (
+                              <div key={gIdx} className="bg-white p-2.5 rounded-lg border border-emerald-300 space-y-1.5 text-[11px]">
+                                <p className="font-black text-emerald-950 bg-emerald-100 px-2 py-0.5 rounded text-center">
+                                  {guide.topicTitle || `عناصر إجابة الموضوع ${gIdx + 1}`}
+                                </p>
+                                <p className="leading-relaxed"><strong>• الجانب المنهجي:</strong> {guide.introduction} - {guide.conclusion}</p>
+                                <p className="font-bold text-emerald-900"><strong>• الجانب المعرفي (العرض):</strong></p>
+                                <ul className="list-disc pr-4 space-y-0.5 text-slate-800">
+                                  {guide.development?.map((d, dIdx) => (
+                                    <li key={dIdx}>{d}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                            <p className="text-[10px] text-slate-600 font-bold border-t border-emerald-200 pt-1">
+                              * الجانب الشكلي: سلامة اللغة، خلو العمل من الأخطاء ونظافة ورقة التحرير.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2 text-[11px] bg-white p-2.5 rounded-lg border border-emerald-300">
+                            <p><strong>• الجانب المنهجي:</strong> {examData.answerKey.situation3AnswerGuide?.introduction} - {examData.answerKey.situation3AnswerGuide?.conclusion}</p>
+                            <p className="font-bold text-emerald-900"><strong>• الجانب المعرفي:</strong></p>
+                            <ul className="list-disc pr-4 space-y-0.5 text-slate-800">
+                              {examData.answerKey.situation3AnswerGuide?.development?.map((d, dIdx) => (
+                                <li key={dIdx}>{d}</li>
+                              ))}
+                            </ul>
+                            <p className="text-[10px] text-slate-600 font-bold border-t border-emerald-200 pt-1">
+                              * الجانب الشكلي: خلو الورقة من الأخطاء والتنظيم.
+                            </p>
+                          </div>
+                        )}
+                      </td>
+                      <td className="border border-slate-900 p-3 text-center font-black text-emerald-900 bg-slate-50 text-[11px]">
+                        <div className="space-y-1">
+                          <p>الجانب المنهجي والشكلي: ({examData.situation3.totalPoints === 7 ? '2ن' : '2ن'})</p>
+                          <p>الجانب المعرفي: ({examData.situation3.totalPoints === 7 ? '5ن' : '8ن'})</p>
+                          <p className="border-t border-slate-300 pt-1 font-black text-xs text-indigo-950">
+                            المجموع: ({examData.situation3.totalPoints || 10}ن)
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+
+                  </tbody>
+                </table>
               </div>
 
             </div>

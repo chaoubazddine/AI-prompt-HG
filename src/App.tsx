@@ -50,9 +50,9 @@ import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha } from './services/geminiService';
 import { CYCLES, DOC_TYPES, LESSONS_DATA, CYCLE_LEVELS, TEXTBOOKS } from './constants';
 import { downloadWord } from './utils/wordExport';
-import { SmartAssistantWorkflow } from './components/SmartAssistant/SmartAssistantWorkflow';
 import { LessonSummaryGenerator } from './components/LessonSummary/LessonSummaryGenerator';
 import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
+import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './components/SocialLinks';
 import { 
   auth, 
   db, 
@@ -151,7 +151,7 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'smart-assistant' | 'lesson-summary' | 'exam-generator'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator'>('landing');
   const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -774,121 +774,149 @@ function JadhaApp() {
       <Toaster position="top-center" richColors closeButton />
       
       {/* Top Header Navigation */}
-      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-2.5 sm:px-4 py-2 sm:py-3 shadow-xs">
-        <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
-          <div 
-            onClick={() => setStep(user ? 'dashboard' : 'landing')}
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0"
-          >
-            <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-              <BookOpen size={18} className="sm:w-[22px] sm:h-[22px]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <h1 className="text-sm sm:text-lg font-black tracking-tight text-slate-900">الاجتماعيات الذكية</h1>
-                <span className="hidden sm:inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
-                  المغرب 🇲🇦
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium hidden md:block">منصة الجذاذات التربوية بالذكاء الاصطناعي</p>
-            </div>
-          </div>
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-3 sm:px-6 py-2.5 shadow-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           
-          <div className="flex items-center gap-1 sm:gap-2">
+          {/* Logo & Social Links */}
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <div 
+              onClick={() => setStep(user ? 'dashboard' : 'landing')}
+              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group"
+            >
+              <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-1.5 sm:p-2 rounded-xl sm:rounded-2xl text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+                <BookOpen size={18} className="sm:w-[20px] sm:h-[20px]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900">الاجتماعيات الذكية</h1>
+                  <span className="hidden md:inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+                    المغرب 🇲🇦
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 font-medium hidden lg:block">منصة الجذاذات بالذكاء الاصطناعي</p>
+              </div>
+            </div>
+
+            <HeaderSocialLinks />
+          </div>
+
+          {/* Center Navigation Tabs (Pill style container, streamlined & compact) */}
+          {user && (
+            <nav className="hidden md:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 text-xs font-bold">
+              <button 
+                onClick={() => setStep('dashboard')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <Layout size={14} />
+                <span>فضاء الأستاذ</span>
+              </button>
+
+              <button 
+                onClick={() => setStep('lesson-summary')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'lesson-summary' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <FileText size={14} />
+                <span>الملخصات</span>
+              </button>
+
+              <button 
+                onClick={() => setStep('exam-generator')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'exam-generator' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <FileCheck2 size={14} />
+                <span>الامتحانات</span>
+              </button>
+
+              <button 
+                onClick={() => {
+                  setStep('form');
+                  setFormStep(1);
+                }}
+                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${step === 'form' ? 'bg-[#4F46E5] text-white shadow-xs' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+              >
+                <Plus size={14} />
+                <span>جذاذة جديدة</span>
+              </button>
+            </nav>
+          )}
+
+          {/* User Controls */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {user ? (
-              <div className="flex items-center gap-1 sm:gap-2">
-                <div className="hidden lg:flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-2xl">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
-                    {user.displayName ? user.displayName.charAt(0) : 'أ'}
-                  </div>
-                  <div className="flex flex-col text-right">
-                    <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">{user.displayName || 'الأستاذ'}</span>
-                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                      <ShieldCheck size={12} />
-                      {TIER_NAMES[subscriptionTier]}
-                      {subscriptionTier !== 'unlimited' && ` (${downloadCount}/${DOWNLOAD_LIMIT})`}
-                    </span>
-                  </div>
+              <>
+                {/* Mobile Navigation Icons */}
+                <div className="flex md:hidden items-center gap-1">
+                  <button 
+                    onClick={() => setStep('dashboard')}
+                    className={`p-2 rounded-xl text-xs font-bold ${step === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
+                    title="فضاء الأستاذ"
+                  >
+                    <Layout size={16} />
+                  </button>
+                  <button 
+                    onClick={() => setStep('lesson-summary')}
+                    className={`p-2 rounded-xl text-xs font-bold ${step === 'lesson-summary' ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}
+                    title="الملخصات"
+                  >
+                    <FileText size={16} />
+                  </button>
+                  <button 
+                    onClick={() => setStep('exam-generator')}
+                    className={`p-2 rounded-xl text-xs font-bold ${step === 'exam-generator' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
+                    title="الامتحانات"
+                  >
+                    <FileCheck2 size={16} />
+                  </button>
+                  <button 
+                    onClick={() => { setStep('form'); setFormStep(1); }}
+                    className="bg-[#4F46E5] text-white p-2 rounded-xl text-xs font-bold shadow-xs"
+                    title="جذاذة جديدة"
+                  >
+                    <Plus size={16} />
+                  </button>
                 </div>
 
-                <button 
-                  onClick={() => setStep('dashboard')}
-                  className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-600 hover:bg-slate-100'}`}
-                  title="فضاء الأستاذ"
-                >
-                  <Layout size={16} />
-                  <span className="hidden md:inline">فضاء الأستاذ</span>
-                </button>
+                {/* User Badge & Actions */}
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 p-1 rounded-2xl">
+                  <div className="hidden lg:flex items-center gap-2 px-2.5 py-1">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs">
+                      {user.displayName ? user.displayName.charAt(0) : 'أ'}
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 truncate max-w-[100px]">
+                      {user.displayName || 'الأستاذ'}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                      {TIER_NAMES[subscriptionTier]}
+                    </span>
+                  </div>
 
-                <button 
-                  onClick={() => setStep('smart-assistant')}
-                  className={`px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 ${step === 'smart-assistant' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100'}`}
-                  title="المساعد الذكي"
-                >
-                  <Bot size={15} />
-                  <span className="hidden sm:inline">المساعد الذكي</span>
-                  <span className="sm:hidden">المساعد</span>
-                </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => setShowAdminPanel(true)}
+                      className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                      title="لوحة الإدارة"
+                    >
+                      <ShieldCheck size={16} />
+                    </button>
+                  )}
 
-                <button 
-                  onClick={() => setStep('lesson-summary')}
-                  className={`px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 ${step === 'lesson-summary' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'}`}
-                  title="ملخصات الدروس"
-                >
-                  <FileText size={15} />
-                  <span className="hidden sm:inline">الملخصات (تجريبي)</span>
-                  <span className="sm:hidden">الملخصات</span>
-                </button>
-
-                <button 
-                  onClick={() => setStep('exam-generator')}
-                  className={`px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1 sm:gap-1.5 ${step === 'exam-generator' ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'}`}
-                  title="الامتحانات والفروض"
-                >
-                  <FileCheck2 size={15} />
-                  <span className="hidden sm:inline">الامتحانات (تجريبي)</span>
-                  <span className="sm:hidden">الامتحانات</span>
-                </button>
-
-                <button 
-                  onClick={() => {
-                    setStep('form');
-                    setFormStep(1);
-                  }}
-                  className="bg-[#4F46E5] text-white px-2 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm flex items-center gap-1 sm:gap-1.5"
-                  title="جذاذة جديدة"
-                >
-                  <Plus size={15} />
-                  <span className="hidden sm:inline">جذاذة جديدة</span>
-                  <span className="sm:hidden">جديدة</span>
-                </button>
-
-                {isAdmin && (
                   <button 
-                    onClick={() => setShowAdminPanel(true)}
-                    className="p-1.5 sm:p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-all border border-amber-200/60"
-                    title="لوحة الإدارة"
+                    onClick={() => setShowKeyHelp(true)}
+                    className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                    title="الإعدادات والمفتاح"
                   >
-                    <ShieldCheck size={16} />
+                    <Settings size={16} />
                   </button>
-                )}
 
-                <button 
-                  onClick={() => setShowKeyHelp(true)}
-                  className="p-1.5 sm:p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                  title="الإعدادات والمفتاح"
-                >
-                  <Settings size={16} />
-                </button>
-
-                <button 
-                  onClick={handleLogout}
-                  className="p-1.5 sm:p-2 rounded-xl text-red-500 hover:bg-red-50 transition-all"
-                  title="تسجيل الخروج"
-                >
-                  <LogOut size={16} />
-                </button>
-              </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    title="تسجيل الخروج"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="flex items-center gap-2">
                 <button 
@@ -907,6 +935,7 @@ function JadhaApp() {
               </div>
             )}
           </div>
+
         </div>
       </header>
 
@@ -940,23 +969,23 @@ function JadhaApp() {
               className="space-y-10 py-4"
             >
               {/* Clean Hero Section */}
-              <div className="bg-gradient-to-b from-white to-slate-50/50 p-8 sm:p-12 rounded-3xl border border-slate-200/80 shadow-xs text-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+              <div className="bg-gradient-to-b from-white via-slate-50/40 to-slate-100/50 p-8 sm:p-12 rounded-3xl border border-slate-200/80 shadow-xs text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-indigo-500 via-emerald-500 to-amber-500"></div>
                 
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-xs font-bold mb-6">
                   <Sparkles size={14} className="text-indigo-600 animate-pulse" />
-                  مصممة خصيصاً لأطر وهيئة تدريس مادة الاجتماعيات بالمغرب
+                  المنصة التربوية الرقمية المتكاملة لأستاذ مادة الاجتماعيات بالمغرب (إعدادي وتأهيلي)
                 </div>
 
                 <h1 className="text-3xl sm:text-5xl font-black mb-6 leading-tight text-slate-900 max-w-4xl mx-auto">
-                  إعداد الجذاذات التربوية <br className="hidden sm:inline" />
-                  <span className="text-[#4F46E5] bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                    بسرعة ودقة بالذكاء الاصطناعي
+                  كل ما يحتاجه أستاذ الاجتماعيات <br className="hidden sm:inline" />
+                  <span className="text-[#4F46E5] bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-emerald-600 to-amber-600">
+                    الجذاذات، الامتحانات وعناصر الإجابة، والملخصات
                   </span>
                 </h1>
 
-                <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto mb-8 leading-relaxed font-normal">
-                  منصة ذكية تساعد الأستاذ المغربي على إعداد الجذاذات التربوية بسرعة ودقة وفق السياق التربوي والتوجيهات الرسمية لمادة الاجتماعيات (التاريخ، الجغرافيا، والتربية على المواطنة).
+                <p className="text-slate-600 text-sm sm:text-base max-w-3xl mx-auto mb-8 leading-relaxed font-normal">
+                  منصة بيداغوجية ذكية تمكّن الأستاذ من توليد الجذاذات التربوية، إعداد الفروض والامتحانات المحروسة وفق الأطر المرجعية المحينة مع عناصر الإجابة والتدبير الديداكتيكي، واستخراج ملخصات الدروس المركزة والتصدير المباشر بصيغتي Word و PDF.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
@@ -965,7 +994,7 @@ function JadhaApp() {
                     className="w-full sm:w-auto bg-[#4F46E5] text-white px-8 py-4 rounded-2xl text-base font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-98 transition-all flex items-center justify-center gap-3"
                   >
                     <LogIn size={20} />
-                    {user ? 'الانتقال إلى فضاء الأستاذ' : 'دخول الأستاذ والتجربة'}
+                    {user ? 'الانتقال إلى فضاء الأستاذ' : 'دخول الأستاذ واستكشاف المنصة'}
                   </button>
 
                   <button 
@@ -978,6 +1007,154 @@ function JadhaApp() {
                 </div>
               </div>
 
+              {/* Comprehensive Teacher Services Showcase */}
+              <div className="space-y-6">
+                <div className="text-center max-w-2xl mx-auto space-y-2">
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                    أدوات بيداغوجية حصرية
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">أدوات وخدمات المنصة الشاملة للأستاذ</h2>
+                  <p className="text-xs sm:text-sm text-slate-500">
+                    حزمة متكاملة من أدوات الذكاء الاصطناعي التربوي المصممة خصيصاً لمادة الاجتماعيات بالمنظومة المغربية
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Tool 1: Lesson Plans */}
+                  <div className="bg-white p-7 rounded-3xl border border-indigo-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden">
+                    <div className="space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+                        <BookOpen size={24} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">
+                          التوجيهات التربوية الرسمية
+                        </span>
+                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد الجذاذات التربوية</h3>
+                      </div>
+                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                        توليد جذاذات بيداغوجية شاملة وفق النهج التاريخي والجغرافي والتربية على المواطنة، مع تحديد الكفايات، الأهداف، والأنشطة والتدابير الديداكتيكية.
+                      </p>
+                    </div>
+
+                    <div className="pt-6 mt-6 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1.5 font-medium">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
+                          <span>صياغة النهج والمقاطع البيداغوجية</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
+                          <span>تحديد المهام والأنشطة والتقويمات</span>
+                        </li>
+                      </ul>
+                      <button 
+                        onClick={() => {
+                          if (user) {
+                            setStep('form');
+                            setFormStep(1);
+                          } else {
+                            handleLogin();
+                          }
+                        }}
+                        className="w-full bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                      >
+                        <Sparkles size={15} />
+                        <span>إنشاء جذاذة جديدة</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tool 2: Exam & Official Answer Keys */}
+                  <div className="bg-white p-7 rounded-3xl border border-emerald-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-emerald-300 transition-all group relative overflow-hidden">
+                    <div className="space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 group-hover:scale-105 transition-transform">
+                        <FileCheck2 size={24} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-100">
+                          الأطر المرجعية المحينة
+                        </span>
+                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد الامتحانات وعناصر الإجابة</h3>
+                      </div>
+                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                        إعداد فروام امتحانات بـ 3 وضعيات اختبارية معتمدة، وتوليد تلقائي لشبكة التدبير الديداكتيكي وعناصر الإجابة الرسمية وسُلم التنقيط.
+                      </p>
+                    </div>
+
+                    <div className="pt-6 mt-6 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1.5 font-medium">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-emerald-600 shrink-0" />
+                          <span>التعاريف، الوثائق والموضوع المقالي</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-emerald-600 shrink-0" />
+                          <span>شبكة التدبير الديداكتيكي وعناصر الإجابة</span>
+                        </li>
+                      </ul>
+                      <button 
+                        onClick={() => {
+                          if (user) {
+                            setStep('exam-generator');
+                          } else {
+                            handleLogin();
+                          }
+                        }}
+                        className="w-full bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                      >
+                        <Sparkles size={15} />
+                        <span>توليد فرض أو امتحان</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tool 3: Lesson Summaries */}
+                  <div className="bg-white p-7 rounded-3xl border border-amber-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-300 transition-all group relative overflow-hidden">
+                    <div className="space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-200 group-hover:scale-105 transition-transform">
+                        <FileText size={24} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-100">
+                          هيكلة بيداغوجية مركزة
+                        </span>
+                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد ملخصات الدروس</h3>
+                      </div>
+                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                        استخراج وتنسيق ملخصات دروس الاجتماعيات المركزة بالهيكلة المعتمدة (مقدمة، محاور وأنشطة، مفاهيم ومصطلحات وخاتمة) جاهزة للتقديم والتوزيع.
+                      </p>
+                    </div>
+
+                    <div className="pt-6 mt-6 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1.5 font-medium">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
+                          <span>مفاهيم ومصطلحات أساسية موحدة</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
+                          <span>محاور مركزة قابلة للطباعة والتصدير</span>
+                        </li>
+                      </ul>
+                      <button 
+                        onClick={() => {
+                          if (user) {
+                            setStep('lesson-summary');
+                          } else {
+                            handleLogin();
+                          }
+                        }}
+                        className="w-full bg-amber-50 hover:bg-amber-500 text-amber-800 hover:text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                      >
+                        <Sparkles size={15} />
+                        <span>إعداد ملخص درس</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Core Benefits Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col items-start text-right hover:border-indigo-200 transition-all group">
@@ -986,7 +1163,7 @@ function JadhaApp() {
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-2">توفير الوقت والجهد</h3>
                   <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                    توليد جذاذة بيداغوجية كاملة ومصوغة بأسلوب تربوي رصين في أقل من 60 ثانية لجميع مقاطع ودروس المادة.
+                    إنجاز الجذاذات والفروض والملخصات بأسلوب بيداغوجي رصين ومطابق للتوجيهات في ثوانٍ معدودة لكل مستويات السلكين الإعدادي والتأهيلي.
                   </p>
                 </div>
 
@@ -994,9 +1171,9 @@ function JadhaApp() {
                   <div className="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600 mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                     <CheckCircle size={24} />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">مطابقة التوجيهات الرسمية</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">مطابقة الأطر المرجعية</h3>
                   <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                    احترام تام لمبادئ النهج التاريخي والنهج الجغرافي وقواعد التربية على المواطنة المعتمدة بالمنظومة المغربية.
+                    احترام تام لمبادئ النهج التاريخي والنهج الجغرافي وقواعد التربية على المواطنة والأطر المرجعية المحينة للامتحانات.
                   </p>
                 </div>
 
@@ -1004,9 +1181,9 @@ function JadhaApp() {
                   <div className="bg-purple-50 p-3.5 rounded-2xl text-purple-600 mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
                     <FileDown size={24} />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">جاهزة للطباعة والتعديل</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">تصدير Word و PDF وتخزين سحابي</h3>
                   <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                    تصدير مباشر بصيغتي Word و PDF بجداول منسقة بعناية وقابلة للطباعة والتخصيص الفوري.
+                    تصدير مباشر بضغطة زر لملفات Word (.docx) منسقة بجداول رسمية قابلة للتعديل والطباعة مع حفظ المستندات في أرشيف فضاء الأستاذ.
                   </p>
                 </div>
               </div>
@@ -1014,7 +1191,7 @@ function JadhaApp() {
               {/* 3-Step Interactive Workflow */}
               <div className="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
                 <div className="text-center max-w-xl mx-auto space-y-2">
-                  <h3 className="text-xl sm:text-2xl font-black text-slate-900">طريقة إنشاء الجذاذة في 3 خطوات بسيطة</h3>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900">طريقة استخدام المنصة في 3 خطوات بسيطة</h3>
                   <p className="text-xs sm:text-sm text-slate-500">مسار إعداد مرن وسريع يراعي الخصوصيات الديداكتيكية لكل مرحلة</p>
                 </div>
 
@@ -1023,9 +1200,9 @@ function JadhaApp() {
                     <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
                       1
                     </div>
-                    <h4 className="font-bold text-slate-900 text-sm">إدخال البيانات الرسمية</h4>
+                    <h4 className="font-bold text-slate-900 text-sm">اختيار الخدمة المطلوبة</h4>
                     <p className="text-slate-500 text-xs leading-relaxed">
-                      تأكيد اسم الأستاذ، الأكاديمية الجهوية، المديرية الإقليمية، والمؤسسة لتضمينها تلقائياً في الترويسة.
+                      تحديد الأداة (جذاذة درس، فرض امتحان مع عناصر الإجابة، أو ملخص درس) من فضاء الأستاذ.
                     </p>
                   </div>
 
@@ -1033,9 +1210,9 @@ function JadhaApp() {
                     <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
                       2
                     </div>
-                    <h4 className="font-bold text-slate-900 text-sm">اختيار المادة والدرس والزمن</h4>
+                    <h4 className="font-bold text-slate-900 text-sm">اختيار المادة والدرس والسلك</h4>
                     <p className="text-slate-500 text-xs leading-relaxed">
-                      تحديد السلك (إعدادي أو تأهيلي)، المستوى، المقرر المعتمد والغلاف الزمني المناسب لمستواك.
+                      تحديد المستوى الدراسي (إعدادي أو تأهيلي)، المقرر المعتمد والدرس أو الوضعيات الاختبارية.
                     </p>
                   </div>
 
@@ -1043,9 +1220,9 @@ function JadhaApp() {
                     <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
                       3
                     </div>
-                    <h4 className="font-bold text-slate-900 text-sm">التوليد والتصدير الفوري</h4>
+                    <h4 className="font-bold text-slate-900 text-sm">التوليد والتصدير إلى Word</h4>
                     <p className="text-slate-500 text-xs leading-relaxed">
-                      الحصول على الجذاذة كاملة مع القدرة على طباعتها أو تحميلها كملف Word أو PDF قابل للتعديل.
+                      معاينة الوثيقة وتصديرها فوراً بصيغة Word (.docx) أو PDF منسقة ومؤطرة بالكامل وجاهزة للطباعة والتعديل.
                     </p>
                   </div>
                 </div>
@@ -1122,87 +1299,98 @@ function JadhaApp() {
                 </div>
               </div>
 
-              {/* Smart Educational Assistant Banner */}
-              <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-500/20 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                  <div className="space-y-2 max-w-2xl text-right">
-                    <div className="inline-flex items-center gap-2 text-indigo-300 font-bold text-xs bg-indigo-500/20 px-3.5 py-1.5 rounded-full border border-indigo-400/30">
-                      <Sparkles size={16} className="text-amber-400" />
-                      ميزة بيداغوجية حصرية جديدة
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-black flex items-center gap-3">
-                      🤖 المساعد التربوي الذكي
-                    </h3>
-                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                      «أنشئ جذاذتك انطلاقًا من المنهاج وتصورك البيداغوجي، بمساعدة الذكاء الاصطناعي.»
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setStep('smart-assistant')}
-                    className="bg-[#4F46E5] hover:bg-indigo-600 text-white px-7 py-4 rounded-2xl text-sm font-black transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2.5 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Bot size={20} />
-                    ابدأ إعداد الجذاذة
-                  </button>
-                </div>
-              </div>
-
-              {/* Lesson Summary Experimental Card */}
-              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 rounded-3xl border border-amber-300/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-md shadow-amber-200 shrink-0">
-                    <FileText size={22} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm sm:text-base font-black text-slate-900">مولّد ملخصات الدروس (قسم تجريبي)</h4>
-                      <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-                        التوجيهات التربوية
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 mt-0.5">
-                      صياغة ملخصات دروس الاجتماعيات بالهيكلة المعتمدة (مقدمة، أولاً، ثانياً، مفاهيم ومصطلحات وخاتمة) مع إمكانية التصدير إلى Word.
-                    </p>
-                  </div>
+              {/* Quick Launchpad for Teacher Tools */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Sparkles size={18} className="text-indigo-600" />
+                    <span>الخدمات البيداغوجية السريعة</span>
+                  </h3>
+                  <span className="text-xs text-slate-500 font-medium">اختر الأداة للبدء فوراً</span>
                 </div>
 
-                <button
-                  onClick={() => setStep('lesson-summary')}
-                  className="bg-slate-900 hover:bg-slate-800 text-amber-300 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
-                >
-                  <Sparkles size={15} />
-                  <span>تجربة مولّد الملخصات</span>
-                </button>
-              </div>
-
-              {/* Exam Generator Experimental Card */}
-              <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent p-5 rounded-3xl border border-emerald-300/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-md shadow-emerald-200 shrink-0">
-                    <FileCheck2 size={22} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm sm:text-base font-black text-slate-900">مولّد الامتحانات والفروض (السلك الإعدادي)</h4>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                        الأطر المرجعية المحينة
-                      </span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Tool 1: Lesson Plan */}
+                  <div className="bg-gradient-to-br from-indigo-50/80 via-white to-indigo-50/30 p-5 rounded-3xl border border-indigo-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-xs">
+                          <BookOpen size={20} />
+                        </div>
+                        <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                          جذاذات رسمية
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">مولّد الجذاذات التربوية</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        بناء جذاذة بيداغوجية كاملة بأسلوب تربوي محين مع تحديد المقاطع والأهداف والنهج المعتمد.
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-600 mt-0.5">
-                      إعداد فروض وامتحانات محروسة معتمدة بـ 3 وضعيات اختبارية (تعاريف وأسئلة موضوعية 6ن + اشتغال على الوثائق 7ن + موضوع مقالي 7ن) مصحوبة بسلم التنقيط وعناصر الإجابة.
-                    </p>
+
+                    <button
+                      onClick={() => {
+                        setStep('form');
+                        setFormStep(1);
+                      }}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-200"
+                    >
+                      <Plus size={15} />
+                      <span>إنشاء جذاذة جديدة</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 2: Exam & Official Answer Keys */}
+                  <div className="bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 p-5 rounded-3xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-emerald-400 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">
+                          <FileCheck2 size={20} />
+                        </div>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                          الأطر المرجعية المحينة
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">مولّد الامتحانات وعناصر الإجابة</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        إعداد فروام امتحانات بـ 3 وضعيات اختبارية مع إخراج شبكة التدبير الديداكتيكي وعناصر الإجابة الرسمية.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setStep('exam-generator')}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-200"
+                    >
+                      <Sparkles size={15} />
+                      <span>توليد فرض أو امتحان</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 3: Lesson Summaries */}
+                  <div className="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 p-5 rounded-3xl border border-amber-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-xs">
+                          <FileText size={20} />
+                        </div>
+                        <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                          ملخصات بيداغوجية
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">مولّد ملخصات الدروس</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        صياغة واستخراج ملخصات الدروس بالهيكلة المعتمدة (مقدمة، محاور، مفاهيم ومصطلحات وخاتمة).
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setStep('lesson-summary')}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-amber-200"
+                    >
+                      <Sparkles size={15} />
+                      <span>إعداد ملخص درس</span>
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => setStep('exam-generator')}
-                  className="bg-slate-900 hover:bg-slate-800 text-emerald-300 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
-                >
-                  <Sparkles size={15} />
-                  <span>توليد امتحان جديد</span>
-                </button>
               </div>
 
               {/* Statistics Quick Grid */}
@@ -1842,59 +2030,6 @@ function JadhaApp() {
             </motion.div>
           )}
 
-          {/* SMART ASSISTANT STEP */}
-          {step === 'smart-assistant' && (
-            <motion.div
-              key="smart-assistant"
-              initial={{ opacity: 0, scale: 0.99 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.99 }}
-            >
-              <SmartAssistantWorkflow
-                profInfo={profInfo}
-                userId={user?.uid}
-                onClose={() => setStep('dashboard')}
-                onSavedToHistory={(newPlan) => {
-                  const convertedData: JadhaData = {
-                    title: newPlan.title,
-                    level: newPlan.level,
-                    year: newPlan.year || '2025/2026',
-                    duration: newPlan.duration,
-                    unit: newPlan.component || newPlan.unit || 'المكون',
-                    module: newPlan.unit || '',
-                    academy: newPlan.academy,
-                    directorate: newPlan.directorate,
-                    school: newPlan.school,
-                    teacherName: newPlan.teacherName,
-                    references: newPlan.references,
-                    competencies: newPlan.competencies || [],
-                    capabilities: newPlan.capabilities || [],
-                    objectives: newPlan.objectives || { cognitive: [], skill: [], affective: [] },
-                    problematic: newPlan.problemSituation,
-                    introductionSteps: (newPlan.introductionSteps || []).map(s => ({
-                      phase: s.phaseName,
-                      subPhase: s.subPhase,
-                      teacherActivities: s.teacherActivity,
-                      studentActivities: s.learnerActivity,
-                      tools: s.resources,
-                      workForm: s.workForm
-                    })),
-                    steps: (newPlan.phases || []).map(p => ({
-                      phase: p.phaseName,
-                      subPhase: p.subPhase,
-                      teacherActivities: p.teacherActivity,
-                      studentActivities: p.learnerActivity,
-                      tools: p.resources,
-                      workForm: p.workForm
-                    })),
-                    finalEvaluation: newPlan.finalEvaluation || []
-                  };
-                  setHistory(prev => [convertedData, ...prev]);
-                }}
-              />
-            </motion.div>
-          )}
-
           {/* LESSON SUMMARY STEP (EXPERIMENTAL) */}
           {step === 'lesson-summary' && (
             <motion.div
@@ -1922,10 +2057,11 @@ function JadhaApp() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200/80 py-8 text-center text-xs text-slate-400 no-print mt-12">
-        <div className="max-w-6xl mx-auto px-4 space-y-2">
+      <footer className="bg-white border-t border-slate-200/80 py-8 text-center text-xs text-slate-400 no-print mt-12 space-y-6">
+        <div className="max-w-6xl mx-auto px-4 space-y-4">
           <p className="font-bold text-slate-600">منصة الاجتماعيات الذكية • السياق التربوي والتوجيهات الرسمية بالمغرب</p>
-          <p className="text-[11px]">Chaoub.az.etu@gmail.com © 2026 جميع الحقوق محفوظة</p>
+          <FooterSocialSection />
+          <p className="text-[11px] pt-2">Chaoub.az.etu@gmail.com © 2026 جميع الحقوق محفوظة</p>
         </div>
       </footer>
 
@@ -1937,7 +2073,7 @@ function JadhaApp() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative"
+              className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative space-y-4"
             >
               <button 
                 onClick={() => setShowPremiumModal(false)}
@@ -1946,16 +2082,18 @@ function JadhaApp() {
                 <X size={20} />
               </button>
 
-              <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center text-amber-600 mx-auto mb-4">
+              <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center text-amber-600 mx-auto">
                 <ShieldCheck size={32} />
               </div>
 
-              <h3 className="text-xl font-black mb-2 text-slate-900">تفعيل كود الوصول للمنصة</h3>
-              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                أدخل كود التفعيل لتوسيع رصيد التحميلات أو الحصول على دخول غير محدود لكافة الميزات.
-              </p>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">تفعيل كود الوصول للمنصة</h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  أدخل كود التفعيل لتوسيع رصيد التحميلات أو الحصول على دخول غير محدود لكافة الميزات.
+                </p>
+              </div>
 
-              <div className="space-y-3 mb-6">
+              <div className="space-y-3">
                 <input 
                   type="text" 
                   placeholder="أدخل كود التفعيل هنا"
@@ -1972,8 +2110,10 @@ function JadhaApp() {
                 </button>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
-                لطلب الحصول على كود جديد، يرجى التواصل عبر البريد:<br />
+              <ContactSocialBlock />
+
+              <div className="pt-2 text-[11px] text-slate-400">
+                أو التواصل عبر البريد الإلكتروني:<br />
                 <span className="font-bold text-indigo-600">Chaoub.az.etu@gmail.com</span>
               </div>
             </motion.div>
