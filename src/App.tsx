@@ -44,7 +44,8 @@ import {
   MapPin,
   Zap,
   Bot,
-  FileCheck2
+  FileCheck2,
+  ClipboardCheck
 } from 'lucide-react';
 import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha } from './services/geminiService';
@@ -52,6 +53,8 @@ import { CYCLES, DOC_TYPES, LESSONS_DATA, CYCLE_LEVELS, TEXTBOOKS } from './cons
 import { downloadWord } from './utils/wordExport';
 import { LessonSummaryGenerator } from './components/LessonSummary/LessonSummaryGenerator';
 import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
+import { RayadaPioneerHub } from './components/Rayada/RayadaPioneerHub';
+import { DiagnosticHub } from './components/Diagnostic/DiagnosticHub';
 import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './components/SocialLinks';
 import { 
   auth, 
@@ -151,7 +154,7 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator' | 'rayada' | 'diagnostic'>('landing');
   const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -172,7 +175,7 @@ function JadhaApp() {
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminTab, setAdminTab] = useState<'codes' | 'users'>('codes');
   const [adminSelectedTier, setAdminSelectedTier] = useState<'basic' | 'advanced' | 'unlimited'>('basic');
-  const [dashboardTab, setDashboardTab] = useState<'overview' | 'history' | 'profile'>('overview');
+  const [dashboardTab, setDashboardTab] = useState<'overview' | 'history' | 'profile'>('profile');
 
   const LOADING_TIPS = [
     'جاري تحضير الوثائق والدعامات الديداكتيكية المعتمدة...',
@@ -239,7 +242,18 @@ function JadhaApp() {
       const users = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })).sort((a: any, b: any) => {
+        const getTime = (u: any) => {
+          if (!u || !u.createdAt) return 0;
+          if (typeof u.createdAt.toMillis === 'function') return u.createdAt.toMillis();
+          if (typeof u.createdAt.toDate === 'function') return u.createdAt.toDate().getTime();
+          if (u.createdAt.seconds) return u.createdAt.seconds * 1000;
+          if (typeof u.createdAt === 'number') return u.createdAt;
+          if (typeof u.createdAt === 'string') return new Date(u.createdAt).getTime() || 0;
+          return 0;
+        };
+        return getTime(b) - getTime(a);
+      });
       setAdminUsers(users);
     }, (err) => {
       handleFirestoreError(err, OperationType.LIST, 'users');
@@ -812,6 +826,30 @@ function JadhaApp() {
               </button>
 
               <button 
+                onClick={() => setStep('rayada')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
+                  step === 'rayada'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-xs'
+                    : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                }`}
+              >
+                <Sparkles size={14} className="text-amber-500" />
+                <span>إعداديات الريادة 🌟</span>
+              </button>
+
+              <button 
+                onClick={() => setStep('diagnostic')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
+                  step === 'diagnostic' 
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
+                }`}
+              >
+                <ClipboardCheck size={14} className="text-indigo-600" />
+                <span>التقويم التشخيصي</span>
+              </button>
+
+              <button 
                 onClick={() => setStep('lesson-summary')}
                 className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'lesson-summary' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
               >
@@ -852,6 +890,20 @@ function JadhaApp() {
                     title="فضاء الأستاذ"
                   >
                     <Layout size={16} />
+                  </button>
+                  <button 
+                    onClick={() => setStep('rayada')}
+                    className={`p-2 rounded-xl text-xs font-bold ${step === 'rayada' ? 'bg-amber-100 text-amber-900' : 'text-amber-700'}`}
+                    title="إعداديات الريادة"
+                  >
+                    <Sparkles size={16} className="text-amber-600" />
+                  </button>
+                  <button 
+                    onClick={() => setStep('diagnostic')}
+                    className={`p-2 rounded-xl text-xs font-bold ${step === 'diagnostic' ? 'bg-indigo-100 text-indigo-900' : 'text-indigo-700'}`}
+                    title="التقويم التشخيصي"
+                  >
+                    <ClipboardCheck size={16} className="text-indigo-600" />
                   </button>
                   <button 
                     onClick={() => setStep('lesson-summary')}
@@ -1019,33 +1071,33 @@ function JadhaApp() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
                   {/* Tool 1: Lesson Plans */}
-                  <div className="bg-white p-7 rounded-3xl border border-indigo-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden">
-                    <div className="space-y-4">
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-                        <BookOpen size={24} />
+                  <div className="bg-white p-5 rounded-3xl border border-indigo-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden">
+                    <div className="space-y-3">
+                      <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+                        <BookOpen size={22} />
                       </div>
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">
                           التوجيهات التربوية الرسمية
                         </span>
-                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد الجذاذات التربوية</h3>
+                        <h3 className="text-base font-black text-slate-900 pt-1">مولّد الجذاذات التربوية</h3>
                       </div>
-                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                        توليد جذاذات بيداغوجية شاملة وفق النهج التاريخي والجغرافي والتربية على المواطنة، مع تحديد الكفايات، الأهداف، والأنشطة والتدابير الديداكتيكية.
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        توليد جذاذات بيداغوجية شاملة وفق النهج التاريخي والجغرافي والتربية على المواطنة مع التدابير الديداكتيكية.
                       </p>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-slate-100 space-y-3">
-                      <ul className="text-xs text-slate-500 space-y-1.5 font-medium">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
-                          <span>صياغة النهج والمقاطع البيداغوجية</span>
+                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-indigo-600 shrink-0" />
+                          <span>النهج والمقاطع البيداغوجية</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
-                          <span>تحديد المهام والأنشطة والتقويمات</span>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-indigo-600 shrink-0" />
+                          <span>تحديد المهام والتقويمات</span>
                         </li>
                       </ul>
                       <button 
@@ -1057,40 +1109,134 @@ function JadhaApp() {
                             handleLogin();
                           }
                         }}
-                        className="w-full bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                       >
-                        <Sparkles size={15} />
+                        <Sparkles size={14} />
                         <span>إنشاء جذاذة جديدة</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Tool 2: Exam & Official Answer Keys */}
-                  <div className="bg-white p-7 rounded-3xl border border-emerald-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-emerald-300 transition-all group relative overflow-hidden">
-                    <div className="space-y-4">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 group-hover:scale-105 transition-transform">
-                        <FileCheck2 size={24} />
+                  {/* Tool 2: Pioneer Schools Section */}
+                  <div className="bg-gradient-to-b from-amber-50/70 via-white to-amber-50/30 p-5 rounded-3xl border-2 border-amber-300/80 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-500 transition-all group relative overflow-hidden">
+                    <div className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                      الريادة 🌟
+                    </div>
+                    <div className="space-y-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shadow-md shadow-amber-200 group-hover:scale-105 transition-transform">
+                        <Sparkles size={22} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-200">
+                          إعداديات الريادة • التدريس الصريح
+                        </span>
+                        <h3 className="text-base font-black text-slate-900 pt-1">إعداديات الريادة</h3>
+                      </div>
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        قسم خاص بمدارس وإعداديات الريادة: جذاذات التدريس الصريح، امتحانات معيارية، ودعم TaRL.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-amber-100 space-y-3">
+                      <ul className="text-xs text-slate-600 space-y-1 font-medium">
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-amber-600 shrink-0" />
+                          <span>النمذجة والممارسة الموجهة</span>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-amber-600 shrink-0" />
+                          <span>فروض معيارية وعلاج بيداغوجي</span>
+                        </li>
+                      </ul>
+                      <button 
+                        onClick={() => {
+                          if (user) {
+                            setStep('rayada');
+                          } else {
+                            handleLogin();
+                          }
+                        }}
+                        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Sparkles size={14} />
+                        <span>دخول فضاء الريادة</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tool 3: Diagnostic Assessment & Remediation */}
+                  <div className="bg-gradient-to-b from-blue-50/60 via-white to-indigo-50/40 p-5 rounded-3xl border-2 border-indigo-200 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all group relative overflow-hidden">
+                    <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                      بداية السنة 📋
+                    </div>
+                    <div className="space-y-3">
+                      <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+                        <ClipboardCheck size={22} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-md border border-indigo-200">
+                          المقرر الوزاري • الأطر المرجعية
+                        </span>
+                        <h3 className="text-base font-black text-slate-900 pt-1">التقويم التشخيصي والدعم</h3>
+                      </div>
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        إعداد روائز التقويم التشخيصي، شبكات تفريغ النقط، التقارير الإحصائية، وخطط وجذاذات الدعم والاستدراك.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-indigo-600 shrink-0" />
+                          <span>رائز + تقرير + شبكة تفيؤ</span>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-indigo-600 shrink-0" />
+                          <span>خطة علاجية وجذاذة دعم</span>
+                        </li>
+                      </ul>
+                      <button 
+                        onClick={() => {
+                          if (user) {
+                            setStep('diagnostic');
+                          } else {
+                            handleLogin();
+                          }
+                        }}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Sparkles size={14} />
+                        <span>فضاء التقويم التشخيصي</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tool 4: Exam & Official Answer Keys */}
+                  <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-emerald-300 transition-all group relative overflow-hidden">
+                    <div className="space-y-3">
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 group-hover:scale-105 transition-transform">
+                        <FileCheck2 size={22} />
                       </div>
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-100">
                           الأطر المرجعية المحينة
                         </span>
-                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد الامتحانات وعناصر الإجابة</h3>
+                        <h3 className="text-base font-black text-slate-900 pt-1">مولّد الامتحانات والإجابة</h3>
                       </div>
-                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                        إعداد فروام امتحانات بـ 3 وضعيات اختبارية معتمدة، وتوليد تلقائي لشبكة التدبير الديداكتيكي وعناصر الإجابة الرسمية وسُلم التنقيط.
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        إعداد فروض بـ 3 وضعيات اختبارية معتمدة مع عناصر الإجابة الرسمية وسُلم التنقيط.
                       </p>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-slate-100 space-y-3">
-                      <ul className="text-xs text-slate-500 space-y-1.5 font-medium">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle size={14} className="text-emerald-600 shrink-0" />
-                          <span>التعاريف، الوثائق والموضوع المقالي</span>
+                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-emerald-600 shrink-0" />
+                          <span>التعاريف، الوثائق والمقال</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle size={14} className="text-emerald-600 shrink-0" />
-                          <span>شبكة التدبير الديداكتيكي وعناصر الإجابة</span>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-emerald-600 shrink-0" />
+                          <span>شبكة التدبير الديداكتيكي</span>
                         </li>
                       </ul>
                       <button 
@@ -1101,40 +1247,40 @@ function JadhaApp() {
                             handleLogin();
                           }
                         }}
-                        className="w-full bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                       >
-                        <Sparkles size={15} />
+                        <Sparkles size={14} />
                         <span>توليد فرض أو امتحان</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Tool 3: Lesson Summaries */}
-                  <div className="bg-white p-7 rounded-3xl border border-amber-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-300 transition-all group relative overflow-hidden">
-                    <div className="space-y-4">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-200 group-hover:scale-105 transition-transform">
-                        <FileText size={24} />
+                  {/* Tool 5: Lesson Summaries */}
+                  <div className="bg-white p-5 rounded-3xl border border-amber-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-300 transition-all group relative overflow-hidden">
+                    <div className="space-y-3">
+                      <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-200 group-hover:scale-105 transition-transform">
+                        <FileText size={22} />
                       </div>
                       <div className="space-y-1">
                         <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-100">
                           هيكلة بيداغوجية مركزة
                         </span>
-                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد ملخصات الدروس</h3>
+                        <h3 className="text-base font-black text-slate-900 pt-1">مولّد ملخصات الدروس</h3>
                       </div>
-                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                        استخراج وتنسيق ملخصات دروس الاجتماعيات المركزة بالهيكلة المعتمدة (مقدمة، محاور وأنشطة، مفاهيم ومصطلحات وخاتمة) جاهزة للتقديم والتوزيع.
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        استخراج وتنسيق ملخصات دروس الاجتماعيات المركزة (مقدمة، محاور، مصطلحات وخاتمة).
                       </p>
                     </div>
 
-                    <div className="pt-6 mt-6 border-t border-slate-100 space-y-3">
-                      <ul className="text-xs text-slate-500 space-y-1.5 font-medium">
-                        <li className="flex items-center gap-2">
-                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
-                          <span>مفاهيم ومصطلحات أساسية موحدة</span>
+                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-amber-600 shrink-0" />
+                          <span>مفاهيم ومصطلحات موحدة</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
-                          <span>محاور مركزة قابلة للطباعة والتصدير</span>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-amber-600 shrink-0" />
+                          <span>تصدير Word و PDF</span>
                         </li>
                       </ul>
                       <button 
@@ -1145,9 +1291,9 @@ function JadhaApp() {
                             handleLogin();
                           }
                         }}
-                        className="w-full bg-amber-50 hover:bg-amber-500 text-amber-800 hover:text-white py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-amber-50 hover:bg-amber-500 text-amber-800 hover:text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                       >
-                        <Sparkles size={15} />
+                        <Sparkles size={14} />
                         <span>إعداد ملخص درس</span>
                       </button>
                     </div>
@@ -1300,7 +1446,7 @@ function JadhaApp() {
               </div>
 
               {/* Quick Launchpad for Teacher Tools */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                     <Sparkles size={18} className="text-indigo-600" />
@@ -1309,7 +1455,7 @@ function JadhaApp() {
                   <span className="text-xs text-slate-500 font-medium">اختر الأداة للبدء فوراً</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   {/* Tool 1: Lesson Plan */}
                   <div className="bg-gradient-to-br from-indigo-50/80 via-white to-indigo-50/30 p-5 rounded-3xl border border-indigo-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                     <div className="space-y-2">
@@ -1321,9 +1467,9 @@ function JadhaApp() {
                           جذاذات رسمية
                         </span>
                       </div>
-                      <h4 className="text-base font-black text-slate-900">مولّد الجذاذات التربوية</h4>
+                      <h4 className="text-base font-black text-slate-900">مولّد الجذاذات</h4>
                       <p className="text-xs text-slate-600 leading-relaxed">
-                        بناء جذاذة بيداغوجية كاملة بأسلوب تربوي محين مع تحديد المقاطع والأهداف والنهج المعتمد.
+                        بناء جذاذة بيداغوجية كاملة مع تحديد المقاطع والأهداف والنهج المعتمد.
                       </p>
                     </div>
 
@@ -1332,14 +1478,66 @@ function JadhaApp() {
                         setStep('form');
                         setFormStep(1);
                       }}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-200"
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
                     >
                       <Plus size={15} />
-                      <span>إنشاء جذاذة جديدة</span>
+                      <span>جذاذة جديدة</span>
                     </button>
                   </div>
 
-                  {/* Tool 2: Exam & Official Answer Keys */}
+                  {/* Tool 2: Pioneer Schools Section */}
+                  <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 p-5 rounded-3xl border-2 border-amber-300 shadow-xs flex flex-col justify-between space-y-4 hover:border-amber-500 transition-all relative overflow-hidden">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 rounded-2xl shadow-xs">
+                          <Sparkles size={20} />
+                        </div>
+                        <span className="text-[10px] bg-amber-100 text-amber-900 font-black px-2 py-0.5 rounded-full border border-amber-200">
+                          إعداديات الريادة 🌟
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">إعداديات الريادة</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        جذاذات التدريس الصريح، نماذج امتحانات معيارية، واختبارات TaRL.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setStep('rayada')}
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <Sparkles size={15} />
+                      <span>فضاء الريادة</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 3: Diagnostic Assessment & Remediation */}
+                  <div className="bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/40 p-5 rounded-3xl border-2 border-indigo-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-xs">
+                          <ClipboardCheck size={20} />
+                        </div>
+                        <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                          بداية السنة 📋
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">التقويم التشخيصي</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        روائز التقويم، شبكات التنقيط، التقارير الإحصائية، وخطط وجذاذات الدعم.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setStep('diagnostic')}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <ClipboardCheck size={15} />
+                      <span>فضاء التقويم</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 4: Exam & Official Answer Keys */}
                   <div className="bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 p-5 rounded-3xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-emerald-400 transition-all">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -1347,25 +1545,25 @@ function JadhaApp() {
                           <FileCheck2 size={20} />
                         </div>
                         <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                          الأطر المرجعية المحينة
+                          الأطر المرجعية
                         </span>
                       </div>
-                      <h4 className="text-base font-black text-slate-900">مولّد الامتحانات وعناصر الإجابة</h4>
+                      <h4 className="text-base font-black text-slate-900">مولّد الامتحانات</h4>
                       <p className="text-xs text-slate-600 leading-relaxed">
-                        إعداد فروام امتحانات بـ 3 وضعيات اختبارية مع إخراج شبكة التدبير الديداكتيكي وعناصر الإجابة الرسمية.
+                        إعداد فروض بـ 3 وضعيات اختبارية مع عناصر الإجابة الرسمية.
                       </p>
                     </div>
 
                     <button
                       onClick={() => setStep('exam-generator')}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-200"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
                     >
                       <Sparkles size={15} />
-                      <span>توليد فرض أو امتحان</span>
+                      <span>توليد فرض</span>
                     </button>
                   </div>
 
-                  {/* Tool 3: Lesson Summaries */}
+                  {/* Tool 5: Lesson Summaries */}
                   <div className="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 p-5 rounded-3xl border border-amber-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -1376,18 +1574,18 @@ function JadhaApp() {
                           ملخصات بيداغوجية
                         </span>
                       </div>
-                      <h4 className="text-base font-black text-slate-900">مولّد ملخصات الدروس</h4>
+                      <h4 className="text-base font-black text-slate-900">ملخصات الدروس</h4>
                       <p className="text-xs text-slate-600 leading-relaxed">
-                        صياغة واستخراج ملخصات الدروس بالهيكلة المعتمدة (مقدمة، محاور، مفاهيم ومصطلحات وخاتمة).
+                        ملخصات دروس بالهيكلة المعتمدة (محاور، مصطلحات وخاتمة).
                       </p>
                     </div>
 
                     <button
                       onClick={() => setStep('lesson-summary')}
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-amber-200"
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
                     >
                       <Sparkles size={15} />
-                      <span>إعداد ملخص درس</span>
+                      <span>إعداد ملخص</span>
                     </button>
                   </div>
                 </div>
@@ -1431,16 +1629,16 @@ function JadhaApp() {
               {/* Dashboard Navigation Tabs */}
               <div className="flex border-b border-slate-200 gap-6 text-sm font-bold text-slate-500">
                 <button 
-                  onClick={() => setDashboardTab('overview')}
-                  className={`pb-3 transition-colors border-b-2 ${dashboardTab === 'overview' ? 'border-[#4F46E5] text-[#4F46E5]' : 'border-transparent hover:text-slate-800'}`}
-                >
-                  الجذاذات الأخيرة ({history.length})
-                </button>
-                <button 
                   onClick={() => setDashboardTab('profile')}
                   className={`pb-3 transition-colors border-b-2 ${dashboardTab === 'profile' ? 'border-[#4F46E5] text-[#4F46E5]' : 'border-transparent hover:text-slate-800'}`}
                 >
                   المعلومات المهنية والحساب
+                </button>
+                <button 
+                  onClick={() => setDashboardTab('overview')}
+                  className={`pb-3 transition-colors border-b-2 ${dashboardTab === 'overview' ? 'border-[#4F46E5] text-[#4F46E5]' : 'border-transparent hover:text-slate-800'}`}
+                >
+                  الجذاذات الأخيرة ({history.length})
                 </button>
               </div>
 
@@ -2030,6 +2228,18 @@ function JadhaApp() {
             </motion.div>
           )}
 
+          {/* RAYADA PIONEER SCHOOLS STEP (MIDDLE SCHOOL FOCUS) */}
+          {step === 'rayada' && (
+            <motion.div
+              key="rayada"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <RayadaPioneerHub />
+            </motion.div>
+          )}
+
           {/* LESSON SUMMARY STEP (EXPERIMENTAL) */}
           {step === 'lesson-summary' && (
             <motion.div
@@ -2039,6 +2249,18 @@ function JadhaApp() {
               exit={{ opacity: 0, y: -10 }}
             >
               <LessonSummaryGenerator />
+            </motion.div>
+          )}
+
+          {/* DIAGNOSTIC ASSESSMENT & REMEDIATION STEP */}
+          {step === 'diagnostic' && (
+            <motion.div
+              key="diagnostic"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <DiagnosticHub profInfo={profInfo} onBack={() => setStep('dashboard')} />
             </motion.div>
           )}
 
@@ -2245,17 +2467,58 @@ function JadhaApp() {
                   </>
                 ) : (
                   <div className="space-y-3">
-                    {adminUsers.map((u) => (
-                      <div key={u.id} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs">
-                        <div>
-                          <p className="font-bold text-slate-900">{u.displayName || 'مستخدم'}</p>
-                          <p className="text-[11px] text-slate-400">{u.email}</p>
-                        </div>
-                        <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                          {TIER_NAMES[u.subscriptionTier as keyof typeof TIER_NAMES] || u.subscriptionTier}
-                        </span>
-                      </div>
-                    ))}
+                    {adminUsers
+                      .slice()
+                      .sort((a: any, b: any) => {
+                        const getTime = (u: any) => {
+                          if (!u || !u.createdAt) return 0;
+                          if (typeof u.createdAt.toMillis === 'function') return u.createdAt.toMillis();
+                          if (typeof u.createdAt.toDate === 'function') return u.createdAt.toDate().getTime();
+                          if (u.createdAt.seconds) return u.createdAt.seconds * 1000;
+                          if (typeof u.createdAt === 'number') return u.createdAt;
+                          if (typeof u.createdAt === 'string') return new Date(u.createdAt).getTime() || 0;
+                          return 0;
+                        };
+                        return getTime(b) - getTime(a);
+                      })
+                      .map((u) => {
+                        const getTimeStr = (createdAt: any) => {
+                          if (!createdAt) return null;
+                          const ms = typeof createdAt.toMillis === 'function' 
+                            ? createdAt.toMillis() 
+                            : createdAt.seconds 
+                            ? createdAt.seconds * 1000 
+                            : new Date(createdAt).getTime();
+                          if (!ms || isNaN(ms)) return null;
+                          return new Date(ms).toLocaleDateString('ar-MA', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                        };
+                        const dateStr = getTimeStr(u.createdAt);
+
+                        return (
+                          <div key={u.id} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-slate-900">{u.displayName || 'مستخدم'}</p>
+                                {dateStr && (
+                                  <span className="text-[10px] bg-slate-200/70 text-slate-600 px-2 py-0.5 rounded-md font-medium">
+                                    {dateStr}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">{u.email}</p>
+                            </div>
+                            <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                              {TIER_NAMES[u.subscriptionTier as keyof typeof TIER_NAMES] || u.subscriptionTier}
+                            </span>
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>

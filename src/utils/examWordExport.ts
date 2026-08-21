@@ -758,7 +758,7 @@ export const downloadAnswerKeyWord = async (examData: ExamData) => {
     // Row for Situation 1 (If Middle School / الإعدادي)
     if (examData.situation1) {
       const reqList: Paragraph[] = [createRtlPara("1. الأسئلة والتعاريف المطلوبة:", { bold: true, size: 18 })];
-      const terms = examData.situation1.termsToDefine || examData.situation1.definitions;
+      const terms = examData.situation1.termsToDefine || (examData.situation1 as any).definitions;
       if (terms && terms.length > 0) {
         reqList.push(createRtlPara("المفاهيم والمصطلحات:", { bold: true, size: 16, color: "1E3A8A" }));
         terms.forEach((d: any) => reqList.push(createRtlPara(`• ${d.term || d} ${d.points ? `(${d.points}ن)` : ''}`, { size: 15 })));
