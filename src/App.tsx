@@ -56,6 +56,9 @@ import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
 import { RayadaPioneerHub } from './components/Rayada/RayadaPioneerHub';
 import { DiagnosticHub } from './components/Diagnostic/DiagnosticHub';
 import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './components/SocialLinks';
+import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
+import { PricingSection } from './components/Pricing/PricingSection';
+import { trackUserUsage } from './services/usageTracker';
 import { 
   auth, 
   db, 
@@ -166,15 +169,14 @@ function JadhaApp() {
   const [showKeyHelp, setShowKeyHelp] = useState(false);
   const [manualKey, setManualKey] = useState(() => localStorage.getItem('user_gemini_key') || '');
   const [downloadCount, setDownloadCount] = useState(0);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'basic' | 'advanced' | 'unlimited'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'basic' | 'semester' | 'advanced' | 'unlimited'>('free');
   const [activationCode, setActivationCode] = useState('');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [adminCodes, setAdminCodes] = useState<any[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
-  const [adminTab, setAdminTab] = useState<'codes' | 'users'>('codes');
-  const [adminSelectedTier, setAdminSelectedTier] = useState<'basic' | 'advanced' | 'unlimited'>('basic');
   const [dashboardTab, setDashboardTab] = useState<'overview' | 'history' | 'profile'>('profile');
 
   const LOADING_TIPS = [
@@ -185,18 +187,20 @@ function JadhaApp() {
     'جاري تنسيق الجذاذة لتكون جاهزة للطباعة والتصدير...'
   ];
 
-  const TIER_LIMITS = {
+  const TIER_LIMITS: Record<string, number> = {
     free: 5,
-    basic: 10,
-    advanced: 25,
+    basic: 30,
+    semester: 60,
+    advanced: 60,
     unlimited: Infinity
   };
 
-  const TIER_NAMES = {
-    free: 'دخول مجاني',
-    basic: 'الدخول البسيط',
-    advanced: 'الدخول المتقدم',
-    unlimited: 'دخول غير محدود'
+  const TIER_NAMES: Record<string, string> = {
+    free: 'دخول مجاني (5)',
+    basic: 'باقة الأستاذ (الأساسية)',
+    semester: 'اشتراك الدورة (Pass الأسدس)',
+    advanced: 'اشتراك الدورة (الأسدس)',
+    unlimited: 'الأستاذ المتميز (VIP)'
   };
 
   const DOWNLOAD_LIMIT = TIER_LIMITS[subscriptionTier];
@@ -265,38 +269,9 @@ function JadhaApp() {
     };
   }, [isAdmin]);
 
-  const generateNewCode = async () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = 'JADHA-';
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    try {
-      await setDoc(doc(db, 'activationCodes', code), {
-        isValid: true,
-        tier: adminSelectedTier,
-        createdAt: serverTimestamp(),
-        createdBy: user?.email
-      });
-      toast.success(`تم توليد كود (${adminSelectedTier}): ${code}`);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, 'activationCodes');
-    }
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('تم النسخ إلى الحافظة بنجاح');
-  };
-
-  const deleteCode = async (codeId: string) => {
-    try {
-      await deleteDoc(doc(db, 'activationCodes', codeId));
-      toast.success('تم حذف الكود');
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, 'activationCodes');
-    }
   };
 
   const deleteJadhaFromHistory = async (jadhaId: string) => {
@@ -463,7 +438,10 @@ function JadhaApp() {
   };
 
   const incrementDownloadCount = async () => {
-    if (!user || subscriptionTier === 'unlimited') return;
+    if (!user) return;
+    trackUserUsage('download');
+
+    if (subscriptionTier === 'unlimited') return;
 
     try {
       const userRef = doc(db, 'users', user.uid);
@@ -485,6 +463,7 @@ function JadhaApp() {
         data: data,
         createdAt: serverTimestamp()
       });
+      trackUserUsage('jadha', `توليد جذاذة: ${data.title}`);
       toast.success('تم حفظ الجذاذة تلقائياً في أرشيفك الشخصي.');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'jadhas');
@@ -493,7 +472,15 @@ function JadhaApp() {
 
   const checkDownloadLimit = () => {
     if (subscriptionTier !== 'unlimited' && downloadCount >= DOWNLOAD_LIMIT) {
-      setShowPremiumModal(true);
+      toast.error('لقد استنفدت رصيدك المتاح في هذه الباقة', {
+        description: `بلغت الحد الأقصى (${DOWNLOAD_LIMIT} تحميلاً). يمكنك الترقية إلى باقة VIP السنوية للاستفادة من تحميل وتوليد غير محدود لجميع وثائق الموسم بدون أي سقف شهري.`,
+        duration: 7000,
+        action: {
+          label: 'عرض باقات الترقية',
+          onClick: () => setShowPricingModal(true)
+        }
+      });
+      setShowPricingModal(true);
       return false;
     }
     return true;
@@ -930,7 +917,20 @@ function JadhaApp() {
 
                 {/* User Badge & Actions */}
                 <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 p-1 rounded-2xl">
-                  <div className="hidden lg:flex items-center gap-2 px-2.5 py-1">
+                  <button 
+                    onClick={() => setShowPricingModal(true)}
+                    className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100 shadow-2xs"
+                    title="عرض باقات الاشتراك والأسعار"
+                  >
+                    <Sparkles size={14} className="text-amber-500" />
+                    <span>الاشتراكات</span>
+                  </button>
+
+                  <div 
+                    onClick={() => setShowPricingModal(true)}
+                    className="hidden lg:flex items-center gap-2 px-2.5 py-1 cursor-pointer hover:bg-slate-100/80 rounded-xl transition-all"
+                    title="انقر لترقية الباقة أو عرض خطط الاشتراك"
+                  >
                     <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs">
                       {user.displayName ? user.displayName.charAt(0) : 'أ'}
                     </div>
@@ -971,6 +971,13 @@ function JadhaApp() {
               </>
             ) : (
               <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowPricingModal(true)}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Sparkles size={14} className="text-amber-600" />
+                  <span>خطط الاشتراك</span>
+                </button>
                 <button 
                   onClick={() => setShowPremiumModal(true)}
                   className="text-slate-600 hover:text-indigo-600 px-3 py-2 text-xs font-bold transition-colors hidden sm:block"
@@ -1374,34 +1381,14 @@ function JadhaApp() {
                 </div>
               </div>
 
-              {/* Code Activation Highlight */}
-              <div className="bg-slate-900 text-white p-8 sm:p-10 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="text-right space-y-2 max-w-xl">
-                  <div className="inline-flex items-center gap-2 text-amber-400 font-bold text-xs bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/20">
-                    <Zap size={14} />
-                    نظام تفعيل فوري للأستاذ
-                  </div>
-                  <h3 className="text-2xl font-black">هل لديك كود تفعيل خاص؟</h3>
-                  <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-                    أدخل كود التفعيل لتوسيع رصيد التحميلات أو الاستفادة من الوصول الكامل للمحتوى البيداغوجي.
-                  </p>
-                </div>
-
-                <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-                  <input 
-                    type="text" 
-                    placeholder="أدخل الكود (مثال: SOCIAL-PRO)"
-                    className="bg-white/10 border border-white/20 text-white placeholder-slate-400 px-4 py-3.5 rounded-2xl text-sm font-bold outline-none focus:border-indigo-400 text-center uppercase"
-                    value={activationCode}
-                    onChange={(e) => setActivationCode(e.target.value)}
-                  />
-                  <button 
-                    onClick={handleVerifyCode}
-                    className="bg-[#4F46E5] text-white px-6 py-3.5 rounded-2xl text-sm font-bold hover:bg-indigo-600 transition-all whitespace-nowrap shadow-md shadow-indigo-900/50"
-                  >
-                    تفعيل الحساب
-                  </button>
-                </div>
+              {/* Pricing & Subscriptions Section */}
+              <div id="pricing-section" className="pt-6">
+                <PricingSection 
+                  onOpenActivationModal={() => setShowPremiumModal(true)}
+                  onLogin={handleLogin}
+                  isLoggedIn={!!user}
+                  currentTier={subscriptionTier}
+                />
               </div>
             </motion.div>
           )}
@@ -1603,24 +1590,37 @@ function JadhaApp() {
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+                <div 
+                  onClick={() => setShowPricingModal(true)}
+                  className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-emerald-300 hover:shadow-md transition-all group"
+                  title="انقر لترقية الباقة أو عرض الاشتراكات"
+                >
                   <div>
-                    <p className="text-xs font-bold text-slate-400 mb-1">مستوى الاشتراك</p>
-                    <p className="text-base font-black text-emerald-600">{TIER_NAMES[subscriptionTier]}</p>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <p className="text-xs font-bold text-slate-400">مستوى الاشتراك</p>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-sm group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                        ترقية
+                      </span>
+                    </div>
+                    <p className="text-sm sm:text-base font-black text-emerald-600 truncate">{TIER_NAMES[subscriptionTier]}</p>
                   </div>
-                  <div className="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600">
+                  <div className="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600 group-hover:scale-105 transition-transform">
                     <ShieldCheck size={22} />
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+                <div 
+                  onClick={() => setShowPricingModal(true)}
+                  className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-purple-300 hover:shadow-md transition-all group"
+                  title="انقر لزيادة رصيدك"
+                >
                   <div>
-                    <p className="text-xs font-bold text-slate-400 mb-1">الرصيد المتاحة</p>
+                    <p className="text-xs font-bold text-slate-400 mb-1">الرصيد المتاح</p>
                     <p className="text-2xl font-black text-slate-900">
-                      {subscriptionTier === 'unlimited' ? 'غير محدود' : `${DOWNLOAD_LIMIT - downloadCount} / ${DOWNLOAD_LIMIT}`}
+                      {subscriptionTier === 'unlimited' ? 'غير محدود' : `${Math.max(0, DOWNLOAD_LIMIT - downloadCount)} / ${DOWNLOAD_LIMIT}`}
                     </p>
                   </div>
-                  <div className="bg-purple-50 p-3.5 rounded-2xl text-purple-600">
+                  <div className="bg-purple-50 p-3.5 rounded-2xl text-purple-600 group-hover:scale-105 transition-transform">
                     <Award size={22} />
                   </div>
                 </div>
@@ -1667,9 +1667,9 @@ function JadhaApp() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {history.map((item) => (
+                      {history.map((item, idx) => (
                         <div 
-                          key={item.id}
+                          key={item.id ? `${item.id}-${idx}` : `hist-${idx}`}
                           className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:border-indigo-200 transition-all flex flex-col justify-between gap-4 group"
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -1949,8 +1949,8 @@ function JadhaApp() {
                           value={level}
                           onChange={e => setLevel(e.target.value)}
                         >
-                          {(CYCLE_LEVELS[cycle] || []).map(lvl => (
-                            <option key={lvl} value={lvl}>{lvl}</option>
+                          {(CYCLE_LEVELS[cycle] || []).map((lvl, lIdx) => (
+                            <option key={`lvl-${lIdx}-${lvl}`} value={lvl}>{lvl}</option>
                           ))}
                         </select>
                       </div>
@@ -1999,8 +1999,8 @@ function JadhaApp() {
                           value={reference}
                           onChange={e => setReference(e.target.value)}
                         >
-                          {(TEXTBOOKS[level] || []).map(book => (
-                            <option key={book} value={book}>{book}</option>
+                          {(TEXTBOOKS[level] || []).map((book, bIdx) => (
+                            <option key={`book-${bIdx}-${book}`} value={book}>{book}</option>
                           ))}
                         </select>
                       </div>
@@ -2014,8 +2014,8 @@ function JadhaApp() {
                         onChange={e => setLessonTitle(e.target.value)}
                       >
                         {getLessonsList(level, component, semester).length > 0 ? (
-                          getLessonsList(level, component, semester).map(lesson => (
-                            <option key={lesson} value={lesson}>{lesson}</option>
+                          getLessonsList(level, component, semester).map((lesson, lIdx) => (
+                            <option key={`lesson-${lIdx}-${lesson}`} value={lesson}>{lesson}</option>
                           ))
                         ) : (
                           <option value="">لا توجد دروس متوفرة لهذه الدورة والمكون حالياً</option>
@@ -2031,9 +2031,9 @@ function JadhaApp() {
                         </span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {getDurationOptions(cycle).map(d => (
+                        {getDurationOptions(cycle).map((d, dIdx) => (
                           <button
-                            key={d}
+                            key={`dur-${dIdx}-${d}`}
                             type="button"
                             onClick={() => setDuration(d)}
                             className={`p-3.5 rounded-2xl border text-xs font-bold transition-all text-center ${
@@ -2290,8 +2290,9 @@ function JadhaApp() {
       {/* Premium Activation Modal */}
       <AnimatePresence>
         {showPremiumModal && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+          <div key="premium-modal-backdrop" className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
             <motion.div 
+              key="premium-modal-card"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -2330,6 +2331,17 @@ function JadhaApp() {
                 >
                   تفعيل الحساب الآن
                 </button>
+
+                <button
+                  onClick={() => {
+                    setShowPremiumModal(false);
+                    setShowPricingModal(true);
+                  }}
+                  className="w-full py-2.5 text-xs text-indigo-600 font-bold hover:text-indigo-800 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Sparkles size={14} className="text-amber-500" />
+                  <span>لا تملك كوداً؟ استكشف خطط وباقات الاشتراك</span>
+                </button>
               </div>
 
               <ContactSocialBlock />
@@ -2342,10 +2354,36 @@ function JadhaApp() {
           </div>
         )}
 
+        {/* Subscriptions & Pricing Modal */}
+        {showPricingModal && (
+          <div key="pricing-modal-backdrop" className="fixed inset-0 z-[115] flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              key="pricing-modal-card"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="w-full max-w-5xl my-auto"
+            >
+              <PricingSection
+                isModal={true}
+                onClose={() => setShowPricingModal(false)}
+                onOpenActivationModal={() => {
+                  setShowPricingModal(false);
+                  setShowPremiumModal(true);
+                }}
+                onLogin={handleLogin}
+                isLoggedIn={!!user}
+                currentTier={subscriptionTier}
+              />
+            </motion.div>
+          </div>
+        )}
+
         {/* API Key Modal */}
         {showKeyHelp && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+          <div key="key-help-modal-backdrop" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
             <motion.div 
+              key="key-help-modal-card"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -2394,136 +2432,17 @@ function JadhaApp() {
           </div>
         )}
 
-        {/* Admin Modal */}
+        {/* Admin Dashboard Modal */}
         {showAdminPanel && isAdmin && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-xs">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden"
-            >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 className="text-lg font-black text-slate-900">لوحة تحكم الإدارة</h3>
-                <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-bold">
-                  <button 
-                    onClick={() => setAdminTab('codes')}
-                    className={`px-3 py-1.5 rounded-lg transition-all ${adminTab === 'codes' ? 'bg-white shadow-xs text-indigo-700' : 'text-slate-600'}`}
-                  >
-                    الأكواد ({adminCodes.length})
-                  </button>
-                  <button 
-                    onClick={() => setAdminTab('users')}
-                    className={`px-3 py-1.5 rounded-lg transition-all ${adminTab === 'users' ? 'bg-white shadow-xs text-indigo-700' : 'text-slate-600'}`}
-                  >
-                    المستخدمين ({adminUsers.length})
-                  </button>
-                </div>
-                <button onClick={() => setShowAdminPanel(false)} className="text-slate-400 hover:text-slate-600">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
-                {adminTab === 'codes' ? (
-                  <>
-                    <div className="flex items-center justify-between gap-4 bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-                      <div>
-                        <p className="text-xs font-bold text-indigo-900">توليد كود جديد</p>
-                        <div className="flex gap-2 mt-2">
-                          {(['basic', 'advanced', 'unlimited'] as const).map((t) => (
-                            <button
-                              key={t}
-                              onClick={() => setAdminSelectedTier(t)}
-                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${adminSelectedTier === t ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600'}`}
-                            >
-                              {TIER_NAMES[t]}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <button 
-                        onClick={generateNewCode}
-                        className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-xs shrink-0"
-                      >
-                        توليد
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {adminCodes.map((code) => (
-                        <div key={code.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs">
-                          <code className="font-mono font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-                            {code.id}
-                          </code>
-                          <span className="font-bold text-slate-600">{TIER_NAMES[code.tier as keyof typeof TIER_NAMES]}</span>
-                          <div className="flex gap-2">
-                            <button onClick={() => copyToClipboard(code.id)} className="text-indigo-600 hover:underline font-bold">نسخ</button>
-                            <button onClick={() => deleteCode(code.id)} className="text-red-500 hover:underline font-bold">حذف</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-3">
-                    {adminUsers
-                      .slice()
-                      .sort((a: any, b: any) => {
-                        const getTime = (u: any) => {
-                          if (!u || !u.createdAt) return 0;
-                          if (typeof u.createdAt.toMillis === 'function') return u.createdAt.toMillis();
-                          if (typeof u.createdAt.toDate === 'function') return u.createdAt.toDate().getTime();
-                          if (u.createdAt.seconds) return u.createdAt.seconds * 1000;
-                          if (typeof u.createdAt === 'number') return u.createdAt;
-                          if (typeof u.createdAt === 'string') return new Date(u.createdAt).getTime() || 0;
-                          return 0;
-                        };
-                        return getTime(b) - getTime(a);
-                      })
-                      .map((u) => {
-                        const getTimeStr = (createdAt: any) => {
-                          if (!createdAt) return null;
-                          const ms = typeof createdAt.toMillis === 'function' 
-                            ? createdAt.toMillis() 
-                            : createdAt.seconds 
-                            ? createdAt.seconds * 1000 
-                            : new Date(createdAt).getTime();
-                          if (!ms || isNaN(ms)) return null;
-                          return new Date(ms).toLocaleDateString('ar-MA', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          });
-                        };
-                        const dateStr = getTimeStr(u.createdAt);
-
-                        return (
-                          <div key={u.id} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-slate-900">{u.displayName || 'مستخدم'}</p>
-                                {dateStr && (
-                                  <span className="text-[10px] bg-slate-200/70 text-slate-600 px-2 py-0.5 rounded-md font-medium">
-                                    {dateStr}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-400 mt-0.5">{u.email}</p>
-                            </div>
-                            <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                              {TIER_NAMES[u.subscriptionTier as keyof typeof TIER_NAMES] || u.subscriptionTier}
-                            </span>
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
+          <AdminDashboardModal 
+            key="admin-dashboard-modal"
+            isOpen={true}
+            onClose={() => setShowAdminPanel(false)}
+            users={adminUsers}
+            codes={adminCodes}
+            allJadhas={history}
+            currentUserEmail={user?.email}
+          />
         )}
       </AnimatePresence>
     </div>

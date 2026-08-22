@@ -308,8 +308,8 @@ export const RayadaExamView: React.FC<RayadaExamViewProps> = ({ examData }) => {
 
               {/* Document Questions */}
               <div className="space-y-3 pt-1">
-                {examData.situation2.questions.map((q) => (
-                  <div key={q.questionNumber} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
+                {examData.situation2.questions.map((q, qIdx) => (
+                  <div key={`s2-q-${qIdx}-${q.questionNumber || ''}`} className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <p className="font-bold text-slate-900">
                         <span className="font-black text-indigo-700">س{q.questionNumber}:</span> {q.questionText}
@@ -394,8 +394,8 @@ export const RayadaExamView: React.FC<RayadaExamViewProps> = ({ examData }) => {
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
               <h4 className="text-xs font-black text-slate-900">2. عناصر إجابة الوضعية الثانية (الاشتغال على وثيقة - 7 نقط):</h4>
               <div className="space-y-2 text-xs">
-                {examData.answerKey.situation2Answers.map((ans) => (
-                  <div key={ans.questionNumber} className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+                {examData.answerKey.situation2Answers.map((ans, ansIdx) => (
+                  <div key={`ans2-${ansIdx}-${ans.questionNumber || ''}`} className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
                     <div className="flex justify-between font-bold text-slate-800">
                       <span>السؤال {ans.questionNumber}:</span>
                       <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-black">({ans.points}ن)</span>

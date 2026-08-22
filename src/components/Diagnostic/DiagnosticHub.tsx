@@ -34,6 +34,7 @@ import {
   Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { trackUserUsage } from '../../services/usageTracker';
 import { 
   downloadDiagnosticTestDocx, 
   downloadDiagnosticReportDocx, 
@@ -99,6 +100,7 @@ export const DiagnosticHub: React.FC<Props> = ({ profInfo, onBack }) => {
       );
 
       setDossier(generated);
+      trackUserUsage('diagnostic', `تقويم تشخيصي: ${level}`);
       toast.success(`تم إنشاء ملف التقويم التشخيصي لمستوى ${level} بنجاح!`, { id: toastId });
     } catch (err: any) {
       console.error("Diagnostic generation failed:", err);
@@ -376,8 +378,8 @@ export const DiagnosticHub: React.FC<Props> = ({ profInfo, onBack }) => {
                 onChange={(e) => setLevel(e.target.value as MoroccanLevel)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
               >
-                {levels.map((lvl) => (
-                  <option key={lvl} value={lvl}>{lvl}</option>
+                {levels.map((lvl, lvlIdx) => (
+                  <option key={`diag-lvl-${lvlIdx}-${lvl}`} value={lvl}>{lvl}</option>
                 ))}
               </select>
             </div>

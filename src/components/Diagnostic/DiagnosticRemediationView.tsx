@@ -113,7 +113,8 @@ export const DiagnosticRemediationView: React.FC<Props> = ({ dossier }) => {
           </h4>
 
           <div className="space-y-4">
-            {plan.activities.map((act) => {
+            {plan.activities.map((act, actIdx) => {
+              const actKey = act.id ? `${act.id}-${actIdx}` : `act-${actIdx}`;
               const targetBadge = act.targetCategory === 'غير متحكم' 
                 ? 'bg-red-100 text-red-800 border-red-200' 
                 : act.targetCategory === 'في طور التحكم' 
@@ -121,7 +122,7 @@ export const DiagnosticRemediationView: React.FC<Props> = ({ dossier }) => {
                 : 'bg-indigo-100 text-indigo-800 border-indigo-200';
 
               return (
-                <div key={act.id} className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                <div key={actKey} className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
                   {/* Activity Top Bar */}
                   <div className="bg-slate-50 p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
                     <div className="space-y-1">

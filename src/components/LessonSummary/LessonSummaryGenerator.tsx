@@ -20,6 +20,7 @@ import { LessonSummaryData } from '../../types/summary';
 import { generateLessonSummary } from '../../services/summaryService';
 import { downloadSummaryWord } from '../../utils/summaryWordExport';
 import { LESSONS_DATA } from '../../constants';
+import { trackUserUsage } from '../../services/usageTracker';
 
 interface LessonSummaryGeneratorProps {
   initialTitle?: string;
@@ -83,6 +84,7 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
     try {
       const data = await generateLessonSummary(lessonTitle, subject, level, term);
       setSummaryData(data);
+      trackUserUsage('summary', `ملخص درس: ${lessonTitle}`);
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء توليد ملخص الدرس. يرجى المحاولة مرة أخرى.');
     } finally {

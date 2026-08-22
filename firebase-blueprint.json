@@ -9,8 +9,14 @@
         "email": { "type": "string", "format": "email" },
         "subscriptionTier": { "type": "string", "enum": ["free", "basic", "advanced", "unlimited"] },
         "downloadCount": { "type": "number" },
+        "usageCount": { "type": "number" },
+        "toolsUsage": { "type": "object" },
+        "lastActiveAt": { "type": "string", "format": "date-time" },
+        "lastAction": { "type": "string" },
+        "role": { "type": "string" },
         "profInfo": { "type": "object" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["email", "subscriptionTier", "downloadCount"]
     },

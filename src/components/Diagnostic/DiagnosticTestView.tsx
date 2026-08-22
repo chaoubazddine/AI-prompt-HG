@@ -154,11 +154,12 @@ export const DiagnosticTestView: React.FC<Props> = ({ dossier }) => {
 
         {/* Questions List */}
         <div className="space-y-4">
-          {dossier.test.questions.map((q) => {
+          {dossier.test.questions.map((q, qIdx) => {
+            const qKey = q.id ? `${q.id}-${qIdx}` : `diag-q-${qIdx}`;
             const isExpanded = expandedQuestions[q.id] !== false; // default true
             return (
               <div 
-                key={q.id}
+                key={qKey}
                 className="border border-slate-200 rounded-2xl overflow-hidden transition-all hover:border-slate-300"
               >
                 {/* Question Header */}

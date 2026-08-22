@@ -57,10 +57,13 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'createdAt']) &&
-             data.keys().hasOnly(['email', 'subscriptionTier', 'downloadCount', 'createdAt', 'displayName', 'role', 'profInfo', 'isPremium']) &&
+             data.keys().hasOnly(['email', 'subscriptionTier', 'downloadCount', 'usageCount', 'toolsUsage', 'lastActiveAt', 'lastAction', 'createdAt', 'updatedAt', 'displayName', 'role', 'profInfo', 'isPremium']) &&
              isValidEmail(data.email) &&
              (!('subscriptionTier' in data) || data.subscriptionTier in ['free', 'basic', 'advanced', 'unlimited']) &&
              (!('downloadCount' in data) || (data.downloadCount is number && data.downloadCount >= 0)) &&
+             (!('usageCount' in data) || (data.usageCount is number && data.usageCount >= 0)) &&
+             (!('toolsUsage' in data) || data.toolsUsage is map) &&
+             (!('lastAction' in data) || data.lastAction is string) &&
              data.createdAt is timestamp &&
              (!('profInfo' in data) || data.profInfo is map);
     }
@@ -83,7 +86,7 @@ service cloud.firestore {
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
                       request.resource.data.keys().hasAll(['subscriptionTier', 'downloadCount']) &&
                       (!('role' in request.resource.data) || request.resource.data.role == 'user' || isAdmin());
-      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && 
                       (request.resource.data.email == resource.data.email) &&
                       (request.resource.data.createdAt == resource.data.createdAt) &&
                       (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin());

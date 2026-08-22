@@ -29,6 +29,7 @@ import { ExamData, SubjectComponent, ExamDocument } from '../../types/exam';
 import { generateMiddleSchoolExam } from '../../services/examService';
 import { downloadExamWord, downloadAnswerKeyWord } from '../../utils/examWordExport';
 import { LESSONS_DATA } from '../../constants';
+import { trackUserUsage } from '../../services/usageTracker';
 
 interface ExamGeneratorProps {
   initialLevel?: string;
@@ -160,6 +161,7 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
         }
       );
       setExamData(data);
+      trackUserUsage('exam', `توليد فرض: ${level}`);
       setActiveTab('exam');
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء توليد الامتحان. يرجى المحاولة مرة أخرى.');

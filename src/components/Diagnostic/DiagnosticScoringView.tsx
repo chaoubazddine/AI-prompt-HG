@@ -608,12 +608,15 @@ export const DiagnosticScoringView: React.FC<Props> = ({
                 <th className="p-3 text-center w-10">الرقم</th>
                 <th className="p-3 min-w-[170px]">اسم ونسب المتعلم(ة)</th>
                 <th className="p-3 text-center w-14">الجنس</th>
-                {questions.map((q, qIdx) => (
-                  <th key={q.id || `q-${qIdx}`} className="p-2 text-center min-w-[70px]">
-                    <div className="font-black text-slate-800">س {q.number || qIdx + 1}</div>
-                    <div className="text-[10px] text-indigo-600 font-bold">({q.maxScore || 3}ن)</div>
-                  </th>
-                ))}
+                {questions.map((q, qIdx) => {
+                  const keyId = q.id ? `${q.id}-${qIdx}` : `q-${qIdx}`;
+                  return (
+                    <th key={keyId} className="p-2 text-center min-w-[70px]">
+                      <div className="font-black text-slate-800">س {q.number || qIdx + 1}</div>
+                      <div className="text-[10px] text-indigo-600 font-bold">({q.maxScore || 3}ن)</div>
+                    </th>
+                  );
+                })}
                 <th className="p-3 text-center min-w-[85px] bg-slate-200/70 font-black">المجموع / 20</th>
                 <th className="p-3 text-center min-w-[110px]">فئة التحكم</th>
                 <th className="p-3 text-center w-10">حذف</th>
@@ -640,7 +643,7 @@ export const DiagnosticScoringView: React.FC<Props> = ({
                         ? student.scores[qKey]
                         : 0;
                       return (
-                        <td key={qKey} className="p-1.5 text-center">
+                        <td key={`st-${sIdx}-q-${qIdx}-${qKey}`} className="p-1.5 text-center">
                           <input
                             type="number"
                             min="0"
