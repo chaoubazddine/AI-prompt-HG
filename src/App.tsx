@@ -782,10 +782,15 @@ function JadhaApp() {
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <div 
               onClick={() => setStep(user ? 'dashboard' : 'landing')}
-              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group"
+              className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group"
             >
-              <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-1.5 sm:p-2 rounded-xl sm:rounded-2xl text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-                <BookOpen size={18} className="sm:w-[20px] sm:h-[20px]" />
+              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden border border-indigo-200/80 shadow-md shadow-indigo-100/50 group-hover:scale-105 transition-transform bg-white shrink-0 p-0.5">
+                <img 
+                  src="/logo.jpg" 
+                  alt="شعار منصة الاجتماعيات الذكية" 
+                  className="w-full h-full object-contain rounded-xl"
+                  referrerPolicy="no-referrer"
+                />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -1031,9 +1036,20 @@ function JadhaApp() {
               <div className="bg-gradient-to-b from-white via-slate-50/40 to-slate-100/50 p-8 sm:p-12 rounded-3xl border border-slate-200/80 shadow-xs text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-indigo-500 via-emerald-500 to-amber-500"></div>
                 
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-xs font-bold mb-6">
-                  <Sparkles size={14} className="text-indigo-600 animate-pulse" />
-                  المنصة التربوية الرقمية المتكاملة لأستاذ مادة الاجتماعيات بالمغرب (إعدادي وتأهيلي)
+                {/* Official Platform Logo & Badge */}
+                <div className="flex flex-col items-center justify-center mb-5">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-indigo-200/80 shadow-xl shadow-indigo-100 bg-white p-1 mb-4 hover:scale-105 transition-transform">
+                    <img 
+                      src="/logo.jpg" 
+                      alt="شعار مادة التاريخ والجغرافيا - إعدادي وتأهيلي" 
+                      className="w-full h-full object-contain rounded-2xl"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-xs font-bold">
+                    <Sparkles size={14} className="text-indigo-600 animate-pulse" />
+                    المنصة التربوية الرقمية المتكاملة لأستاذ مادة الاجتماعيات بالمغرب (إعدادي وتأهيلي)
+                  </div>
                 </div>
 
                 <h1 className="text-3xl sm:text-5xl font-black mb-6 leading-tight text-slate-900 max-w-4xl mx-auto">
@@ -2281,7 +2297,20 @@ function JadhaApp() {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200/80 py-8 text-center text-xs text-slate-400 no-print mt-12 space-y-6">
         <div className="max-w-6xl mx-auto px-4 space-y-4">
-          <p className="font-bold text-slate-600">منصة الاجتماعيات الذكية • السياق التربوي والتوجيهات الرسمية بالمغرب</p>
+          <div className="flex items-center justify-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl overflow-hidden border border-indigo-200 shadow-2xs bg-white p-0.5">
+              <img 
+                src="/logo.jpg" 
+                alt="شعار منصة الاجتماعيات الذكية" 
+                className="w-full h-full object-contain rounded-lg"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <p className="font-bold text-slate-700 text-sm">منصة الاجتماعيات الذكية • التاريخ والجغرافيا (إعدادي وتأهيلي)</p>
+          </div>
+          <p className="text-xs text-slate-500 font-medium max-w-xl mx-auto">
+            المنظومة التربوية الرقمية المتكاملة للجذاذات، الفروض المحروسة والامتحانات، والملخصات وفق التوجيهات الرسمية بالمغرب 🇲🇦
+          </p>
           <FooterSocialSection />
           <p className="text-[11px] pt-2">Chaoub.az.etu@gmail.com © 2026 جميع الحقوق محفوظة</p>
         </div>
