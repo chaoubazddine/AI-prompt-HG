@@ -1,0 +1,137 @@
+<svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="topArcPath" d="M 65,250 A 185,185 0 0,1 435,250" fill="none" />
+    <path id="bottomArcPath" d="M 435,250 A 185,185 0 0,1 65,250" fill="none" />
+
+    <linearGradient id="jacketGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A" />
+      <stop offset="100%" stop-color="#172554" />
+    </linearGradient>
+
+    <linearGradient id="lapelGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14B8A6" />
+      <stop offset="100%" stop-color="#0D9488" />
+    </linearGradient>
+
+    <linearGradient id="bookGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+
+    <linearGradient id="skinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FED7AA" />
+      <stop offset="100%" stop-color="#FDBA74" />
+    </linearGradient>
+  </defs>
+
+  <!-- Circular Background -->
+  <circle cx="250" cy="250" r="240" fill="#FCFBFA" />
+  <circle cx="250" cy="250" r="238" stroke="#E2E8F0" stroke-width="2" fill="none" />
+
+  <!-- Background Educational Doodles (Watermark effect) -->
+  <g opacity="0.09" stroke="#334155" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="120" cy="130" r="32" />
+    <path d="M 88,130 Q 120,110 152,130" />
+    <path d="M 88,130 Q 120,150 152,130" />
+    <path d="M 120,98 Q 105,130 120,162" />
+    <path d="M 120,98 Q 135,130 120,162" />
+
+    <path d="M 90,380 Q 115,365 140,380 L 140,410 Q 115,395 90,410 Z" />
+    <path d="M 140,380 Q 165,365 190,380 L 190,410 Q 165,395 140,410 Z" />
+
+    <path d="M 370,120 A 18,18 0 1,0 394,120 C 394,130 388,135 388,142 L 376,142 C 376,135 370,130 370,120 Z" />
+    <path d="M 376,147 L 388,147" />
+
+    <polygon points="380,360 415,345 450,360 415,375" />
+    <path d="M 395,368 L 395,385 Q 415,395 435,385 L 435,368" />
+    <path d="M 445,363 L 445,390" />
+
+    <path d="M 100,240 Q 110,230 120,245 T 140,240" />
+    <path d="M 360,250 Q 370,240 380,255 T 400,250" />
+  </g>
+
+  <!-- TOP ARC TEXT: HISTOIRE & GÉOGRAPHIE -->
+  <text fill="#291812" font-size="31" font-weight="900" letter-spacing="4.5" font-family="system-ui, -apple-system, sans-serif">
+    <textPath href="#topArcPath" startOffset="50%" text-anchor="middle">
+      HISTOIRE &amp; GÉOGRAPHIE
+    </textPath>
+  </text>
+
+  <!-- BOTTOM ARC TEXT: COLLÈGE & LYCÉE -->
+  <text fill="#B9381E" font-size="31" font-weight="900" letter-spacing="5.5" font-family="system-ui, -apple-system, sans-serif">
+    <textPath href="#bottomArcPath" startOffset="50%" text-anchor="middle">
+      COLLÈGE &amp; LYCÉE
+    </textPath>
+  </text>
+
+  <!-- CHARACTER ILLUSTRATION -->
+  <g id="character">
+    <ellipse cx="250" cy="405" rx="55" ry="7" fill="#0F172A" opacity="0.15" />
+
+    <!-- Legs & Trousers -->
+    <path d="M 226,245 L 218,375 L 235,375 L 244,245 Z" fill="#18181B" />
+    <path d="M 252,245 L 258,375 L 275,375 L 268,245 Z" fill="#18181B" />
+
+    <!-- Red Shoes -->
+    <path d="M 205,385 C 205,377 215,372 235,372 L 238,382 C 238,387 232,390 220,390 L 208,390 C 205,390 205,388 205,385 Z" fill="#DC2626" />
+    <rect x="204" y="388" width="35" height="4" rx="2" fill="#FFFFFF" />
+    <path d="M 215,376 L 225,380" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" />
+
+    <path d="M 258,372 C 278,372 288,377 288,385 C 288,388 288,390 285,390 L 273,390 C 261,390 255,387 255,382 Z" fill="#DC2626" />
+    <rect x="254" y="388" width="35" height="4" rx="2" fill="#FFFFFF" />
+    <path d="M 268,376 L 278,380" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" />
+
+    <!-- Body: Navy Blazer -->
+    <path d="M 212,152 Q 250,146 288,152 L 276,252 Q 250,256 222,252 Z" fill="url(#jacketGradient)" />
+
+    <!-- Inner Shirt -->
+    <polygon points="242,150 258,150 254,198 246,198" fill="#FFFFFF" />
+
+    <!-- Teal Green Lapel & Collar -->
+    <path d="M 235,150 L 246,198 L 230,195 L 222,156 Z" fill="url(#lapelGradient)" />
+    <path d="M 265,150 L 254,198 L 270,195 L 278,156 Z" fill="url(#lapelGradient)" />
+
+    <!-- Yellow Textbook under Left Arm -->
+    <g transform="rotate(-6 260 215)">
+      <rect x="240" y="188" width="36" height="52" rx="3" fill="url(#bookGradient)" />
+      <rect x="238" y="188" width="5" height="52" rx="1.5" fill="#B45309" />
+      <rect x="246" y="202" width="24" height="3" rx="1" fill="#FFFFFF" opacity="0.9" />
+      <rect x="246" y="209" width="18" height="2.5" rx="1" fill="#FFFFFF" opacity="0.75" />
+      <path d="M 244,235 C 248,235 258,234 260,230 C 262,226 256,220 248,222 C 244,223 240,227 242,234 Z" fill="url(#skinGradient)" />
+    </g>
+
+    <!-- Left Sleeve -->
+    <path d="M 285,155 L 298,198 L 274,215 L 268,196 L 282,165 Z" fill="url(#jacketGradient)" />
+
+    <!-- Right Arm -->
+    <path d="M 215,155 L 188,190 L 198,200 L 224,168 Z" fill="url(#jacketGradient)" />
+    <path d="M 188,190 L 315,138 L 322,148 L 198,200 Z" fill="url(#jacketGradient)" />
+    <rect x="313" y="136" width="6" height="13" rx="2" transform="rotate(-22 316 142)" fill="#FFFFFF" />
+
+    <!-- Pointing Hand & Index Finger -->
+    <g transform="translate(320, 122) rotate(-18)">
+      <circle cx="9" cy="14" r="7.5" fill="url(#skinGradient)" />
+      <rect x="7" y="-2" width="5.5" height="16" rx="2.75" fill="url(#skinGradient)" />
+      <ellipse cx="6" cy="11" rx="4" ry="2.5" transform="rotate(-30 6 11)" fill="url(#skinGradient)" />
+    </g>
+
+    <!-- Neck -->
+    <rect x="244" y="132" width="12" height="20" rx="3" fill="url(#skinGradient)" />
+
+    <!-- Head & Face -->
+    <ellipse cx="250" cy="118" rx="17" ry="19" fill="url(#skinGradient)" />
+
+    <!-- Facial Features -->
+    <ellipse cx="244" cy="116" rx="2" ry="2.5" fill="#1E293B" />
+    <ellipse cx="256" cy="116" rx="2" ry="2.5" fill="#1E293B" />
+    <path d="M 241,111 Q 244,109 247,111" stroke="#5D4037" stroke-width="1.2" stroke-linecap="round" />
+    <path d="M 253,111 Q 256,109 259,111" stroke="#5D4037" stroke-width="1.2" stroke-linecap="round" />
+    <path d="M 246,124 Q 250,128 254,124" stroke="#A16207" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <ellipse cx="232" cy="118" rx="3" ry="5" fill="url(#skinGradient)" />
+    <ellipse cx="268" cy="118" rx="3" ry="5" fill="url(#skinGradient)" />
+
+    <!-- Hair -->
+    <path d="M 233,114 C 232,102 238,94 250,94 C 263,94 270,102 268,114 C 265,107 258,103 248,103 C 240,103 235,108 233,114 Z" fill="#5C3826" />
+    <path d="M 235,106 C 242,98 255,96 264,102 C 258,103 252,107 246,106 C 240,105 237,108 235,106 Z" fill="#784730" />
+  </g>
+</svg>
