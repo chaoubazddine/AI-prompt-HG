@@ -58,6 +58,7 @@ import { DiagnosticHub } from './components/Diagnostic/DiagnosticHub';
 import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './components/SocialLinks';
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { PricingSection } from './components/Pricing/PricingSection';
+import officialLogo from './assets/logo.jpg';
 import { trackUserUsage } from './services/usageTracker';
 import { 
   auth, 
@@ -784,12 +785,16 @@ function JadhaApp() {
               onClick={() => setStep(user ? 'dashboard' : 'landing')}
               className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group"
             >
-              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden border border-indigo-200/80 shadow-md shadow-indigo-100/50 group-hover:scale-105 transition-transform bg-white shrink-0 p-0.5">
+              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden border border-indigo-200/80 shadow-md shadow-indigo-100/50 group-hover:scale-105 transition-transform bg-white shrink-0 p-0.5 flex items-center justify-center">
                 <img 
-                  src="/logo.jpg" 
+                  src={officialLogo} 
                   alt="شعار منصة الاجتماعيات الذكية" 
                   className="w-full h-full object-contain rounded-xl"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (target.src !== '/logo.jpg') target.src = '/logo.jpg';
+                  }}
                 />
               </div>
               <div>
@@ -1038,12 +1043,16 @@ function JadhaApp() {
                 
                 {/* Official Platform Logo & Badge */}
                 <div className="flex flex-col items-center justify-center mb-5">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-indigo-200/80 shadow-xl shadow-indigo-100 bg-white p-1 mb-4 hover:scale-105 transition-transform">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-indigo-200/80 shadow-xl shadow-indigo-100 bg-white p-1 mb-4 hover:scale-105 transition-transform flex items-center justify-center">
                     <img 
-                      src="/logo.jpg" 
+                      src={officialLogo} 
                       alt="شعار مادة التاريخ والجغرافيا - إعدادي وتأهيلي" 
                       className="w-full h-full object-contain rounded-2xl"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src !== '/logo.jpg') target.src = '/logo.jpg';
+                      }}
                     />
                   </div>
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-xs font-bold">
@@ -2298,12 +2307,16 @@ function JadhaApp() {
       <footer className="bg-white border-t border-slate-200/80 py-8 text-center text-xs text-slate-400 no-print mt-12 space-y-6">
         <div className="max-w-6xl mx-auto px-4 space-y-4">
           <div className="flex items-center justify-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl overflow-hidden border border-indigo-200 shadow-2xs bg-white p-0.5">
+            <div className="w-8 h-8 rounded-xl overflow-hidden border border-indigo-200 shadow-2xs bg-white p-0.5 flex items-center justify-center">
               <img 
-                src="/logo.jpg" 
+                src={officialLogo} 
                 alt="شعار منصة الاجتماعيات الذكية" 
                 className="w-full h-full object-contain rounded-lg"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (target.src !== '/logo.jpg') target.src = '/logo.jpg';
+                }}
               />
             </div>
             <p className="font-bold text-slate-700 text-sm">منصة الاجتماعيات الذكية • التاريخ والجغرافيا (إعدادي وتأهيلي)</p>
