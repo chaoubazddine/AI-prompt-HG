@@ -58,6 +58,7 @@ import { DiagnosticHub } from './components/Diagnostic/DiagnosticHub';
 import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './components/SocialLinks';
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { PricingSection } from './components/Pricing/PricingSection';
+import { AuthModal } from './components/Auth/AuthModal';
 import { trackUserUsage } from './services/usageTracker';
 import { 
   auth, 
@@ -174,6 +175,8 @@ function JadhaApp() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [history, setHistory] = useState<any[]>([]);
   const [adminCodes, setAdminCodes] = useState<any[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
@@ -372,15 +375,9 @@ function JadhaApp() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      toast.success('تم تسجيل الدخول بنجاح! مرحباً بك في فضاء الأستاذ');
-      setStep('dashboard');
-    } catch (err) {
-      toast.error('فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
-      console.error(err);
-    }
+  const handleLogin = (mode: 'login' | 'register' = 'login') => {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
   };
 
   const handleLogout = async () => {
@@ -2433,6 +2430,20 @@ function JadhaApp() {
               </div>
             </motion.div>
           </div>
+        )}
+
+        {/* Teacher Authentication Modal (Email, Password & Google) */}
+        {showAuthModal && (
+          <AuthModal 
+            key="teacher-auth-modal"
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            initialMode={authModalMode}
+            onSuccess={() => {
+              setShowAuthModal(false);
+              setStep('dashboard');
+            }}
+          />
         )}
 
         {/* Admin Dashboard Modal */}
