@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://www.hg-prof.ma/sitemap.xml
+Sitemap: https://hg-prof.ma/sitemap.xml
