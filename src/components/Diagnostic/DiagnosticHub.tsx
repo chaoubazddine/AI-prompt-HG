@@ -34,7 +34,7 @@ import {
   Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { trackUserUsage } from '../../services/usageTracker';
+import { trackUserUsage, checkAndRecordDownload } from '../../services/usageTracker';
 import { 
   downloadDiagnosticTestDocx, 
   downloadDiagnosticReportDocx, 
@@ -501,7 +501,10 @@ export const DiagnosticHub: React.FC<Props> = ({ profInfo, onBack }) => {
               {/* Bulk Export Button */}
               <div className="flex items-center gap-2 pr-2">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!dossier) return;
+                    const allowed = await checkAndRecordDownload(`تحميل الملف الشامل للتقويم التشخيصي (${dossier.level})`);
+                    if (!allowed) return;
                     downloadDiagnosticTestDocx(dossier);
                     setTimeout(() => downloadDiagnosticReportDocx(dossier), 600);
                     setTimeout(() => downloadRemediationPlanDocx(dossier), 1200);

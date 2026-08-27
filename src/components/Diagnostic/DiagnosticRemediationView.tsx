@@ -13,6 +13,8 @@ import {
   Users
 } from 'lucide-react';
 import { downloadRemediationPlanDocx } from '../../utils/diagnosticWordExport';
+import { checkAndRecordDownload } from '../../services/usageTracker';
+import { toast } from 'sonner';
 
 interface Props {
   dossier: DiagnosticDossier;
@@ -47,7 +49,17 @@ export const DiagnosticRemediationView: React.FC<Props> = ({ dossier }) => {
           </button>
 
           <button
-            onClick={() => downloadRemediationPlanDocx(dossier)}
+            onClick={async () => {
+              const allowed = await checkAndRecordDownload(`تحميل خطة الدعم والمعالجة (${dossier.level})`);
+              if (!allowed) return;
+              try {
+                toast.loading('جاري تحميل خطة الدعم والمعالجة...', { id: 'diag-rem-word' });
+                await downloadRemediationPlanDocx(dossier);
+                toast.success('تم تحميل خطة الدعم والمعالجة بنجاح!', { id: 'diag-rem-word' });
+              } catch (err) {
+                toast.error('حدث خطأ أثناء تحميل ملف Word', { id: 'diag-rem-word' });
+              }
+            }}
             className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#4F46E5] text-white hover:bg-indigo-700 shadow-xs transition-all flex items-center gap-1.5"
           >
             <Download size={14} />

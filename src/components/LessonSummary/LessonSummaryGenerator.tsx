@@ -20,7 +20,8 @@ import { LessonSummaryData } from '../../types/summary';
 import { generateLessonSummary } from '../../services/summaryService';
 import { downloadSummaryWord } from '../../utils/summaryWordExport';
 import { LESSONS_DATA } from '../../constants';
-import { trackUserUsage } from '../../services/usageTracker';
+import { trackUserUsage, checkAndRecordDownload } from '../../services/usageTracker';
+import { toast } from 'sonner';
 
 interface LessonSummaryGeneratorProps {
   initialTitle?: string;
@@ -378,7 +379,18 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
 
               <button
                 type="button"
-                onClick={() => downloadSummaryWord(summaryData)}
+                onClick={async () => {
+                  if (!summaryData) return;
+                  const allowed = await checkAndRecordDownload(`تحميل ملخص درس: ${summaryData.title} (${summaryData.level})`);
+                  if (!allowed) return;
+                  try {
+                    toast.loading('جاري تجهيز مستند Word لملخص الدرس...', { id: 'summary-download' });
+                    await downloadSummaryWord(summaryData);
+                    toast.success('تم تحميل مستند Word بنجاح!', { id: 'summary-download' });
+                  } catch (err) {
+                    toast.error('حدث خطأ أثناء تحميل ملف Word', { id: 'summary-download' });
+                  }
+                }}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
               >
                 <Download size={14} />

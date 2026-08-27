@@ -17,6 +17,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { downloadRayadaExamWord } from '../../utils/rayadaWordExport';
+import { checkAndRecordDownload } from '../../services/usageTracker';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -52,6 +53,9 @@ export const RayadaExamView: React.FC<RayadaExamViewProps> = ({ examData }) => {
   };
 
   const handleDownloadWord = async () => {
+    const allowed = await checkAndRecordDownload(`تحميل فرض الريادة (Word): ${examData.title} (${examData.level})`);
+    if (!allowed) return;
+
     try {
       toast.loading('جاري تجهيز مستند Word لفرض وشبكة الريادة...', { id: 'exam-word' });
       await downloadRayadaExamWord(examData);
@@ -62,6 +66,9 @@ export const RayadaExamView: React.FC<RayadaExamViewProps> = ({ examData }) => {
   };
 
   const handleDownloadPDF = async () => {
+    const allowed = await checkAndRecordDownload(`تحميل فرض الريادة (PDF): ${examData.title} (${examData.level})`);
+    if (!allowed) return;
+
     const element = document.getElementById('rayada-exam-print-area');
     if (!element) return;
 

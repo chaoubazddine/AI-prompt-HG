@@ -25,6 +25,7 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { downloadRayadaJadhaWord } from '../../utils/rayadaWordExport';
+import { checkAndRecordDownload } from '../../services/usageTracker';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -68,6 +69,9 @@ export const RayadaJadhaView: React.FC<RayadaJadhaViewProps> = ({ jadhaData, onU
   };
 
   const handleDownloadWord = async () => {
+    const allowed = await checkAndRecordDownload(`تحميل جذاذة الريادة (Word): ${data.title} (${data.level})`);
+    if (!allowed) return;
+
     try {
       toast.loading('جاري تحضير مستند Word لجذاذة الريادة بتنسيق الجداول العربية RTL...', { id: 'word-export' });
       await downloadRayadaJadhaWord(data);
@@ -78,6 +82,9 @@ export const RayadaJadhaView: React.FC<RayadaJadhaViewProps> = ({ jadhaData, onU
   };
 
   const handleDownloadPDF = async () => {
+    const allowed = await checkAndRecordDownload(`تحميل جذاذة الريادة (PDF): ${data.title} (${data.level})`);
+    if (!allowed) return;
+
     const element = document.getElementById('rayada-jadha-print-area');
     if (!element) return;
 

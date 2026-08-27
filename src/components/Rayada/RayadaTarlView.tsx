@@ -12,6 +12,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { downloadRayadaTarlWord } from '../../utils/rayadaWordExport';
+import { checkAndRecordDownload } from '../../services/usageTracker';
 import { toast } from 'sonner';
 
 interface RayadaTarlViewProps {
@@ -34,6 +35,9 @@ export const RayadaTarlView: React.FC<RayadaTarlViewProps> = ({ tarlData }) => {
   };
 
   const handleDownloadWord = async () => {
+    const allowed = await checkAndRecordDownload(`تحميل رائز TaRL (Word): ${tarlData.level} - ${tarlData.subject}`);
+    if (!allowed) return;
+
     try {
       toast.loading('جاري تحميل رائز TaRL كملف Word...', { id: 'tarl-word' });
       await downloadRayadaTarlWord(tarlData);

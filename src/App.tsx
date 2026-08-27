@@ -59,7 +59,7 @@ import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './co
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { PricingSection } from './components/Pricing/PricingSection';
 import { AuthModal } from './components/Auth/AuthModal';
-import { trackUserUsage } from './services/usageTracker';
+import { trackUserUsage, checkAndRecordDownload } from './services/usageTracker';
 import { 
   auth, 
   db, 
@@ -375,6 +375,22 @@ function JadhaApp() {
     return () => unsubscribe();
   }, [user]);
 
+  useEffect(() => {
+    const handleOpenPricingEvent = () => setShowPricingModal(true);
+    const handleOpenAuthEvent = (e: any) => {
+      setAuthModalMode(e?.detail?.mode || 'login');
+      setShowAuthModal(true);
+    };
+
+    window.addEventListener('open-pricing-modal', handleOpenPricingEvent);
+    window.addEventListener('open-auth-modal', handleOpenAuthEvent);
+
+    return () => {
+      window.removeEventListener('open-pricing-modal', handleOpenPricingEvent);
+      window.removeEventListener('open-auth-modal', handleOpenAuthEvent);
+    };
+  }, []);
+
   const handleLogin = (mode: 'login' | 'register' = 'login') => {
     setAuthModalMode(mode);
     setShowAuthModal(true);
@@ -434,20 +450,9 @@ function JadhaApp() {
     }
   };
 
-  const incrementDownloadCount = async () => {
+  const incrementDownloadCount = async (description?: string) => {
     if (!user) return;
-    trackUserUsage('download');
-
-    if (subscriptionTier === 'unlimited') return;
-
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        downloadCount: downloadCount + 1
-      });
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'users');
-    }
+    await trackUserUsage('download', description || 'تحميل جذاذة بيداغوجية');
   };
 
   const saveJadhaToHistory = async (data: JadhaData) => {
@@ -469,11 +474,11 @@ function JadhaApp() {
 
   const checkDownloadLimit = () => {
     if (subscriptionTier !== 'unlimited' && downloadCount >= DOWNLOAD_LIMIT) {
-      toast.error('لقد استنفدت رصيدك المتاح في هذه الباقة', {
-        description: `بلغت الحد الأقصى (${DOWNLOAD_LIMIT} تحميلاً). يمكنك الترقية إلى باقة VIP السنوية للاستفادة من تحميل وتوليد غير محدود لجميع وثائق الموسم بدون أي سقف شهري.`,
-        duration: 7000,
+      toast.error('⛔ تم استنفاد الرصيد المتاح (5 تحميلات مجانية)', {
+        description: `بلغت الحد الأقصى (${DOWNLOAD_LIMIT} تحميلاً). يجب تفعيل إحدى الباقات المتقدمة أو السنوية (VIP) لمواصلة التحميل والاستفادة من المنصة.`,
+        duration: 8000,
         action: {
-          label: 'عرض باقات الترقية',
+          label: 'تفعيل الباقة الآن',
           onClick: () => setShowPricingModal(true)
         }
       });
@@ -687,15 +692,13 @@ function JadhaApp() {
 
   const handleDownloadWord = async () => {
     if (!jadhaData) return;
-    if (!checkDownloadLimit()) return;
+    const allowed = await checkAndRecordDownload(`تحميل جذاذة بيداغوجية (Word): ${jadhaData.title}`);
+    if (!allowed) return;
     
     const promise = downloadWord(jadhaData);
     toast.promise(promise, {
       loading: 'جاري تحضير ملف Word وفق المظهر الرسمي...',
-      success: () => {
-        incrementDownloadCount();
-        return 'تم تحميل ملف Word بنجاح!';
-      },
+      success: 'تم تحميل ملف Word بنجاح!',
       error: 'عذراً، فشل تحميل ملف Word.',
     });
   };
@@ -703,7 +706,8 @@ function JadhaApp() {
   const handleDownloadPDF = async () => {
     const element = document.getElementById('jadha-content');
     if (!element) return;
-    if (!checkDownloadLimit()) return;
+    const allowed = await checkAndRecordDownload(`تحميل جذاذة بيداغوجية (PDF): ${jadhaData?.title || 'الدرس'}`);
+    if (!allowed) return;
 
     toast.loading('جاري تحضير ملف PDF عالي الجودة...', { id: 'pdf-toast' });
 
@@ -756,7 +760,6 @@ function JadhaApp() {
       pdf.save(`جذاذة_${(jadhaData?.title || "الدرس").replace(/\s+/g, '_')}.pdf`);
 
       toast.success('تم تحميل ملف PDF بنجاح!', { id: 'pdf-toast' });
-      await incrementDownloadCount();
     } catch (error) {
       console.error("PDF export failed:", error);
       toast.error('عذراً، فشل تصدير ملف PDF.', { id: 'pdf-toast' });

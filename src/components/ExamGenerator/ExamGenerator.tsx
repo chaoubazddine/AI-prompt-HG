@@ -29,7 +29,8 @@ import { ExamData, SubjectComponent, ExamDocument } from '../../types/exam';
 import { generateMiddleSchoolExam } from '../../services/examService';
 import { downloadExamWord, downloadAnswerKeyWord } from '../../utils/examWordExport';
 import { LESSONS_DATA } from '../../constants';
-import { trackUserUsage } from '../../services/usageTracker';
+import { trackUserUsage, checkAndRecordDownload } from '../../services/usageTracker';
+import { toast } from 'sonner';
 
 interface ExamGeneratorProps {
   initialLevel?: string;
@@ -888,7 +889,18 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
               {activeTab === 'exam' ? (
                 <button
                   type="button"
-                  onClick={() => downloadExamWord(examData)}
+                  onClick={async () => {
+                    if (!examData) return;
+                    const allowed = await checkAndRecordDownload(`تحميل فرض محروس: ${examData.title} (${examData.level})`);
+                    if (!allowed) return;
+                    try {
+                      toast.loading('جاري تجهيز مستند Word للامتحان...', { id: 'exam-download' });
+                      await downloadExamWord(examData);
+                      toast.success('تم تحميل مستند الامتحان بنجاح!', { id: 'exam-download' });
+                    } catch (err) {
+                      toast.error('حدث خطأ أثناء تحميل ملف Word', { id: 'exam-download' });
+                    }
+                  }}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
                   title="تصدير موضوع الامتحان فقط بدون إجابات"
                 >
@@ -898,7 +910,18 @@ export const ExamGenerator: React.FC<ExamGeneratorProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={() => downloadAnswerKeyWord(examData)}
+                  onClick={async () => {
+                    if (!examData) return;
+                    const allowed = await checkAndRecordDownload(`تحميل عناصر إجابة: ${examData.title} (${examData.level})`);
+                    if (!allowed) return;
+                    try {
+                      toast.loading('جاري تجهيز مستند Word لعناصر الإجابة...', { id: 'exam-download' });
+                      await downloadAnswerKeyWord(examData);
+                      toast.success('تم تحميل عناصر الإجابة بنجاح!', { id: 'exam-download' });
+                    } catch (err) {
+                      toast.error('حدث خطأ أثناء تحميل ملف Word', { id: 'exam-download' });
+                    }
+                  }}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
                   title="تصدير عناصر الإجابة وسُلم التنقيط للأستاذ"
                 >
