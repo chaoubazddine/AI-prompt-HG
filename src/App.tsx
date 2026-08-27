@@ -789,12 +789,12 @@ function JadhaApp() {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900">الاجتماعيات الذكية</h1>
+                  <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900">منصة الاجتماعيات الذكية</h1>
                   <span className="hidden md:inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
                     المغرب 🇲🇦
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500 font-medium hidden lg:block">منصة الجذاذات بالذكاء الاصطناعي</p>
+                <p className="text-[10px] text-slate-500 font-medium hidden lg:block">المنظومة البيداغوجية الشاملة بالذكاء الاصطناعي</p>
               </div>
             </div>
 
