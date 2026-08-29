@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import { 
   MoroccanLevel, 
   EducationCycle, 
@@ -12,6 +11,7 @@ import {
 import { DIAGNOSTIC_FRAMEWORKS, SAMPLE_STUDENTS_LIST } from "../constants/diagnosticData";
 import { safeJsonParse } from "../utils/jsonCleaner";
 import { getDeterministicQuestionsForLevel } from "./diagnosticQuestionsByLevel";
+import { generateAIContent } from "./aiClient";
 
 /**
  * Generate a complete, high-standard Diagnostic Dossier for Social Studies in Morocco
@@ -290,44 +290,36 @@ ${customFocusArea ? `- تركيز خاص: ${customFocusArea}` : ''}
   let retries = 3;
   while (retries > 0) {
     try {
-      const manualKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_key') : null;
-      const apiKey = manualKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
+      const rawText = await generateAIContent({
+        prompt,
+        responseMimeType: "application/json",
+        preferredModel: "gemini-3.6-flash",
+      });
 
-      if (apiKey) {
-        const ai = new GoogleGenAI({ apiKey });
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.7-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-          }
-        });
+      const parsed = safeJsonParse<DiagnosticDossier>(rawText);
+      if (parsed && parsed.test && parsed.report && parsed.remediationPlan) {
+        parsed.id = parsed.id || `diag-${Date.now()}`;
+        parsed.prerequisiteLevel = framework.prerequisiteLevel;
 
-        const rawText = response.text || '';
-        const parsed = safeJsonParse<DiagnosticDossier>(rawText);
-        if (parsed && parsed.test && parsed.report && parsed.remediationPlan) {
-          parsed.id = parsed.id || `diag-${Date.now()}`;
-          parsed.prerequisiteLevel = framework.prerequisiteLevel;
+        // Normalize questions
+        if (Array.isArray(parsed.test.questions)) {
+          parsed.test.questions = parsed.test.questions.map((q, idx) => ({
+            ...q,
+            id: q.id || `q${idx + 1}`,
+            number: q.number || idx + 1,
+            maxScore: typeof q.maxScore === 'number' && q.maxScore > 0 ? q.maxScore : 3
+          }));
+        } else {
+          parsed.test.questions = getDeterministicQuestionsForLevel(level);
+        }
 
-          // Normalize questions
-          if (Array.isArray(parsed.test.questions)) {
-            parsed.test.questions = parsed.test.questions.map((q, idx) => ({
-              ...q,
-              id: q.id || `q${idx + 1}`,
-              number: q.number || idx + 1,
-              maxScore: typeof q.maxScore === 'number' && q.maxScore > 0 ? q.maxScore : 3
-            }));
-          } else {
-            parsed.test.questions = getDeterministicQuestionsForLevel(level);
-          }
-
-          // Fill sample students if empty or normalize existing
-          if (!parsed.sampleScoringGrid?.sampleStudents?.length) {
-            parsed.sampleScoringGrid = {
-              sampleStudents: generateDeterministicStudentScores(parsed.test.questions)
-            };
-          } else {
-            parsed.sampleScoringGrid.sampleStudents = parsed.sampleScoringGrid.sampleStudents.map((s, idx) => {
+        // Fill sample students if empty or normalize existing
+        if (!parsed.sampleScoringGrid?.sampleStudents?.length) {
+          parsed.sampleScoringGrid = {
+            sampleStudents: generateDeterministicStudentScores(parsed.test.questions)
+          };
+        } else {
+          parsed.sampleScoringGrid.sampleStudents = parsed.sampleScoringGrid.sampleStudents.map((s, idx) => {
               const scoresDict: Record<string, number> = {};
               const rawScores = s.scores || (s as any).itemScores || {};
               let total = 0;
@@ -363,9 +355,8 @@ ${customFocusArea ? `- تركيز خاص: ${customFocusArea}` : ''}
           }
           return parsed;
         }
-      }
-      break;
-    } catch (err) {
+        break;
+      } catch (err) {
       console.warn("AI generation failed, retrying or falling back to offline generator:", err);
       retries--;
       if (retries === 0) break;

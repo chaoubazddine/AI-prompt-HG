@@ -231,7 +231,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
     const text = encodeURIComponent(
       `السلام عليكم، أرغب في الاشتراك في منصة الاجتماعيات الذكية - باقة: ${selected} (${cycleText}). المرجو تزويدي بمعلومات التفعيل وشكراً.`
     );
-    return `https://wa.me/212629739500?text=${text}`;
+    return `https://wa.me/212646662690?text=${text}`;
   };
 
   return (
@@ -666,7 +666,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-200"
                   >
                     <MessageCircle size={16} />
-                    <span>مراسلتنا الآن على واتساب (0629739500)</span>
+                    <span>مراسلتنا الآن على واتساب (0646662690)</span>
                   </a>
                 </div>
               )}

@@ -31,7 +31,12 @@ import {
   TrendingUp,
   UserCheck,
   Activity,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Mail,
+  Send,
+  AlertTriangle,
+  MessageSquare,
+  Megaphone
 } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../firebase';
@@ -86,6 +91,22 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   
   // Selected user for detail modal
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+
+  // Email Outreach State (Single)
+  const [emailModalUser, setEmailModalUser] = useState<any | null>(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailTemplateType, setEmailTemplateType] = useState<'limit_reached' | 'special_offer' | 'vip_invitation' | 'custom'>('limit_reached');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSendStatus, setEmailSendStatus] = useState<string | null>(null);
+
+  // Bulk Email Campaign State (All Users)
+  const [showBulkEmailModal, setShowBulkEmailModal] = useState(false);
+  const [bulkAudience, setBulkAudience] = useState<'all' | 'free_only' | 'limit_reached' | 'near_limit'>('all');
+  const [bulkSubject, setBulkSubject] = useState('');
+  const [bulkBody, setBulkBody] = useState('');
+  const [bulkTemplate, setBulkTemplate] = useState<'promo_general' | 'vip_unlimited' | 'special_discount' | 'custom'>('promo_general');
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
 
   // New Code Generation State
   const [newCodeTier, setNewCodeTier] = useState<'basic' | 'semester' | 'unlimited'>('unlimited');
@@ -152,6 +173,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const totalPlatformUsage = users.reduce((acc, u) => acc + getUserTotalUsage(u), 0);
   const totalPlatformDownloads = users.reduce((acc, u) => acc + (u?.downloadCount || 0), 0);
   const premiumUsersCount = users.filter(u => u?.subscriptionTier && u.subscriptionTier !== 'free').length;
+  
+  // Count users who reached limit on free tier
+  const limitReachedUsersCount = users.filter(u => {
+    const tier = u?.subscriptionTier || 'free';
+    const downloads = u?.downloadCount || 0;
+    const limit = TIER_LIMITS[tier] || 5;
+    return tier === 'free' && downloads >= limit;
+  }).length;
 
   // Filter and Sort Users
   const filteredUsers = users
@@ -162,7 +191,22 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       const term = searchTerm.toLowerCase().trim();
 
       const matchesSearch = !term || name.includes(term) || email.includes(term) || school.includes(term);
-      const matchesTier = tierFilter === 'all' || u?.subscriptionTier === tierFilter;
+      
+      let matchesTier = true;
+      if (tierFilter === 'all') {
+        matchesTier = true;
+      } else if (tierFilter === 'limit_reached') {
+        const tier = u?.subscriptionTier || 'free';
+        const downloads = u?.downloadCount || 0;
+        const limit = TIER_LIMITS[tier] || 5;
+        matchesTier = tier === 'free' && downloads >= limit;
+      } else if (tierFilter === 'near_limit') {
+        const tier = u?.subscriptionTier || 'free';
+        const downloads = u?.downloadCount || 0;
+        matchesTier = tier === 'free' && downloads >= 3;
+      } else {
+        matchesTier = u?.subscriptionTier === tierFilter || (!u?.subscriptionTier && tierFilter === 'free');
+      }
 
       return matchesSearch && matchesTier;
     })
@@ -262,6 +306,392 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       toast.error('فشل حذف الكود');
     }
   };
+
+  // Action: Open Email Composer for a User
+  const handleOpenEmailComposer = (user: any, template: 'limit_reached' | 'special_offer' | 'vip_invitation' = 'limit_reached') => {
+    setEmailModalUser(user);
+    setEmailTemplateType(template);
+
+    const teacherName = user?.displayName || user?.profInfo?.name || 'أستاذنا الفاضل';
+    const downloads = user?.downloadCount || 0;
+    const tier = user?.subscriptionTier || 'free';
+    const tierName = TIER_NAMES[tier] || 'المجانية';
+
+    if (template === 'limit_reached') {
+      setEmailSubject(`🚀 ترقية حسابك في منصة الاجتماعيات الذكية - وصولك للحد الأقصى المجاني`);
+      setEmailBody(`تحية طيبة وتقدير أستاذنا الفاضل ${teacherName}،
+
+نود إعلامكم بأنكم قد بلغتم الحد الأقصى من الرصيد المجاني المتاح في منصة الاجتماعيات الذكية (${downloads} تحميلات من أصل 5).
+
+نظراً لاقتناعكم بجودة وأهمية أدوات المنصة في تيسير التحضير التربوي اليومي، يسعدنا دعوتكم للاستفادة من الباقات المتقدمة:
+
+⭐ باقة الأستاذ المتميز (VIP السنوية - 149 درهم للموسم كاملاً):
+- توليد وتحميل غير محدود كلياً (∞) للجذاذات والامتحانات والملخصات
+- المنظومة الكاملة للتقويم التشخيصي واستيراد نقط مسار بنقرة واحدة
+- مولد الفروض المحروسة والإشهادية بسلالم التنقيط
+- ركن إعداديات الريادة والتصدير بصيغة Word قابلة للتعديل
+
+🎯 اشتراك الدورة / الأسدس (59 درهم):
+- رصيد 60 تحميلاً شاملاً لكافة الوثائق طيلة 4 أشهر.
+
+لترقية حسابكم فوراً أو استلام كود التفعيل المباشر:
+- الرد على هذه الرسالة البريدية
+- أو التواصل المباشر عبر واتساب: 0646662690 (https://wa.me/212646662690)
+
+مع خالص المتمنيات بموسم دراسي حافل بالتميز والنجاح.`);
+    } else if (template === 'special_offer') {
+      setEmailSubject(`🎁 عرض استثنائي لترقية حسابك في منصة الاجتماعيات الذكية`);
+      setEmailBody(`تحية تربوية خالصة أستاذنا الفاضل ${teacherName}،
+
+تقديراً لثقتكم المستمرة واستعمالكم لمنصة الاجتماعيات الذكية، يسعدنا تقديم عرض حصري ومخفض لترقية حسابكم:
+
+🌟 باقة VIP السنوية الشاملة مع أولوية الدعم التقني والتربوي
+- وصول غير محدود لكافة الجذاذات والفروض المحينة (2025/2026)
+- استيراد سريع لنقط مسار وإعداد تقارير الدعم والمعالجة
+
+للاستفادة وتفعيل الكود المباشر، يرجى التواصل معنا عبر واتساب:
+0646662690 (https://wa.me/212646662690)
+
+دمتم في خدمة المنظومة التربوية.`);
+    } else if (template === 'vip_invitation') {
+      setEmailSubject(`👑 دعوة خاصة للانضمام إلى نخبة أساتذة الاجتماعيات VIP`);
+      setEmailBody(`أستاذنا العزيز ${teacherName}،
+
+ندعوكم للانضمام إلى شبكة الأساتذة المتميزين على منصة الاجتماعيات الذكية.
+استمتعوا بتحضير رقمي متكامل، وتوليد أوتوماتيكي لكافة الوثائق الديداكتيكية وفق التوجيهات الرسمية المغربية.
+
+للتفعيل الفوري لحسابكم:
+واتساب: 0646662690 (https://wa.me/212646662690)
+
+تحيات فريق منصة الاجتماعيات الذكية.`);
+    }
+  };
+
+  // Helper to switch email templates dynamically
+  const handleChangeEmailTemplate = (template: 'limit_reached' | 'special_offer' | 'vip_invitation') => {
+    if (!emailModalUser) return;
+    handleOpenEmailComposer(emailModalUser, template);
+  };
+
+  // Action: Open in Gmail Web directly
+  const handleSendViaGmail = () => {
+    if (!emailModalUser?.email) {
+      toast.error('البريد الإلكتروني للأستاذ غير متوفر');
+      return;
+    }
+    const recipient = emailModalUser.email;
+    navigator.clipboard.writeText(emailBody);
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipient)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+    toast.success(`تم فتح Gmail بنجاح مع محتوى الرسالة للأستاذ: ${recipient} 🚀`);
+  };
+
+  // Action: Open in Outlook / Hotmail Web directly
+  const handleSendViaOutlook = () => {
+    if (!emailModalUser?.email) {
+      toast.error('البريد الإلكتروني للأستاذ غير متوفر');
+      return;
+    }
+    const recipient = emailModalUser.email;
+    navigator.clipboard.writeText(emailBody);
+
+    const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(recipient)}&subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.open(outlookUrl, '_blank', 'noopener,noreferrer');
+    toast.success(`تم فتح صفحة الإرسال في Outlook مع نص الرسالة`);
+  };
+
+  // Action: Send Email via standard mailto
+  const handleSendViaMailto = () => {
+    if (!emailModalUser?.email) {
+      toast.error('البريد الإلكتروني للأستاذ غير متوفر');
+      return;
+    }
+
+    const recipient = emailModalUser.email;
+    const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    
+    const a = document.createElement('a');
+    a.href = mailtoUrl;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    toast.success(`تم تشغيل تطبيق البريد مع نص الرسالة إلى: ${recipient}`);
+  };
+
+  // Action: Send directly via Server API (SMTP)
+  const handleSendViaServer = async () => {
+    if (!emailModalUser?.email) {
+      toast.error('البريد الإلكتروني للأستاذ غير متوفر');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    setEmailSendStatus(null);
+
+    try {
+      const response = await fetch('/api/admin/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: emailModalUser.email,
+          subject: emailSubject,
+          body: emailBody
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(`✅ تم إرسال البريد الإلكتروني بنجاح إلى ${emailModalUser.email}`);
+        setEmailSendStatus('success');
+      } else if (data.mode === 'webmail_fallback') {
+        // SMTP not configured on server yet, automatically open Gmail Web directly
+        toast.info('جاري فتح شاشة الإرسال المباشرة في Gmail...');
+        handleSendViaGmail();
+      } else {
+        toast.error(data.error || 'تعذر الإرسال التلقائي، جاري الفتح عبر Gmail');
+        handleSendViaGmail();
+      }
+    } catch (err: any) {
+      console.warn('Server email dispatch fallback to Gmail:', err);
+      toast.info('جاري فتح شاشة الإرسال المباشرة في Gmail...');
+      handleSendViaGmail();
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  // Action: Copy Email Text & Subject
+  const handleCopyEmailContent = () => {
+    const fullText = `الموضوع: ${emailSubject}\n\n${emailBody}`;
+    navigator.clipboard.writeText(fullText);
+    toast.success('تم نسخ نص وموضوع الرسالة بالكامل إلى الحافظة');
+  };
+
+  // Action: Send via WhatsApp
+  const handleSendViaWhatsApp = () => {
+    const teacherName = emailModalUser?.displayName || emailModalUser?.profInfo?.name || 'أستاذنا الفاضل';
+    const text = encodeURIComponent(`تحية طيبة أستاذنا الفاضل ${teacherName}،\n\nبخصوص ترقية حسابكم في منصة الاجتماعيات الذكية:\n\n${emailBody}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+  };
+
+  // ==========================================
+  // BULK EMAIL OUTREACH CAMPAIGN HANDLERS
+  // ==========================================
+  const getBulkRecipients = (audience?: string): string[] => {
+    const targetAudience = typeof audience === 'string' ? audience : bulkAudience;
+    if (!Array.isArray(users)) return [];
+    let list = users.filter(u => u?.email && typeof u.email === 'string' && u.email.includes('@'));
+    if (targetAudience === 'free_only') {
+      list = list.filter(u => !u.subscriptionTier || u.subscriptionTier === 'free');
+    } else if (targetAudience === 'limit_reached') {
+      list = list.filter(u => (!u.subscriptionTier || u.subscriptionTier === 'free') && (u.downloadCount || 0) >= 5);
+    } else if (targetAudience === 'near_limit') {
+      list = list.filter(u => (!u.subscriptionTier || u.subscriptionTier === 'free') && (u.downloadCount || 0) >= 3);
+    }
+    // Extract unique valid trimmed emails
+    const unique = Array.from(new Set(list.map(u => String(u.email).trim()))).filter(Boolean);
+    return unique;
+  };
+
+  const handleOpenBulkEmailModal = (
+    template: 'promo_general' | 'vip_unlimited' | 'special_discount' = 'promo_general',
+    audience: 'all' | 'free_only' | 'limit_reached' | 'near_limit' = 'all'
+  ) => {
+    setBulkAudience(audience);
+    setBulkTemplate(template);
+    setShowBulkEmailModal(true);
+
+    if (template === 'promo_general') {
+      setBulkSubject(`📢 عرض ترويجي خاص لترقية واشتراك حسابكم في منصة الاجتماعيات الذكية 🌟`);
+      setBulkBody(`السلام عليكم ورحمة الله وبركاته،
+أستاذنا الفاضل / أستاذتنا الفاضلة،
+
+يسر فريق منصة الاجتماعيات الذكية (المنصة المتخصصة الشاملة لمدرسي مادة الاجتماعيات بالمغرب) أن يقدم لكم عرضاً استثنائياً وخاصاً لترقية حسابكم والاستفادة من كافة مزايا وإمكانيات المنصة:
+
+🌟 أبرز مزايا الاشتراك والترقية الكاملة:
+• توليد وتحميل غير محدود (Word و PDF) لكافة الجذاذات التربوية المحينة وفق التوجيهات الرسمية 2025/2026.
+• المنظومة المتكاملة للفروض المحروسة والامتحانات الإشهادية مع عناصر الإجابة وشبكات التنقيط المفصلة.
+• روائز وشبكات التقويم التشخيصي وأنشطة الدعم والمعالجة المندمجة مع استيراد نقط مسار بضغطة زر.
+• وثائق إعداديات الريادة والعروض التفاعلية الرقمية المرفقة بالوسائط والخرائط عالية الجودة.
+
+🎁 عرض خاص وحصري لكافة المسجلين:
+استفيدوا الآن من خصم تشجيعي مميز على باقات الاشتراك السنوية والدورية مع التفعيل المباشر والفوري لحسابكم عبر كود ترقية.
+
+📲 للاستفادة من العرض واستلام كود التفعيل الفوري:
+• التواصل المباشر عبر واتساب: 0646662690
+• رابط واتساب المباشر: https://wa.me/212646662690
+• أو الرد المباشر على هذه الرسالة البريدية.
+
+مع خالص متمنياتنا لكم بموسم دراسي مليء بالتميز والنجاح والعطاء التربوي.
+فريق منصة الاجتماعيات الذكية`);
+    } else if (template === 'vip_unlimited') {
+      setBulkSubject(`👑 دعوة خاصة للانضمام إلى باقة VIP غير المحدودة - منصة الاجتماعيات الذكية`);
+      setBulkBody(`تحية تربوية خالصة أستاذنا الفاضل / أستاذتنا الفاضلة،
+
+يسعدنا دعوتكم للانضمام إلى باقة VIP غير المحدودة في منصة الاجتماعيات الذكية للاستفادة من تحضير رقمي فائق السلاسة:
+
+✨ لماذا يفضل الأساتذة باقة VIP؟
+- توفير أكثر من 80% من وقت التحضير والتخطيط الأسبوعي.
+- وثائق ديداكتيكية جاهزة ومطابقة 100% للتوجيهات والكتب المدرسية المعتمدة (منار / في رحاب / الجديد / الفضاء / النجاح / المسار).
+- تصدير فوري لملفات Word منسقة وقابلة للتعديل والطباعة مع شبكات التنقيط.
+- دعم ومرافقة مستمرة طيلة الموسم الدراسي.
+
+🚀 لتفعيل حسابكم فوراً:
+تواصلوا معنا عبر واتساب: 0646662690 (https://wa.me/212646662690)
+
+مع فائق التقدير والاحترام،
+إدارة منصة الاجتماعيات الذكية`);
+    } else if (template === 'special_discount') {
+      setBulkSubject(`⚡ كود تخفيض استثنائي للاشتراك في منصة الاجتماعيات الذكية`);
+      setBulkBody(`السلام عليكم ورحمة الله وبركاته،
+
+أستاذنا العزيز، تقديراً لانضمامكم للمنصة وثقتكم، يسعدنا تقديم كود خصم حصري لتفعيل اشتراككم في باقة المنصة الشاملة (باقة VIP أو باقة الدورة).
+
+للحصول على كود التخفيض الفوري وتفعيل الحساب:
+واتساب: 0646662690 (https://wa.me/212646662690)
+
+منصة الاجتماعيات الذكية - رفيقكم الرقمي للتميز الديداكتيكي.`);
+    }
+  };
+
+  const handleChangeBulkTemplate = (template: 'promo_general' | 'vip_unlimited' | 'special_discount') => {
+    handleOpenBulkEmailModal(template, bulkAudience);
+  };
+
+  // 1-Click Gmail BCC Bulk Compose (Guaranteed with pre-filled body text)
+  const handleSendBulkViaGmail = (customEmails?: any) => {
+    const emails: string[] = Array.isArray(customEmails) ? customEmails : getBulkRecipients();
+    if (!Array.isArray(emails) || emails.length === 0) {
+      toast.error('لا توجد عناوين بريد إلكتروني صالحة في الفئة المحددة');
+      return;
+    }
+
+    navigator.clipboard.writeText(bulkBody);
+
+    const encodedSubject = encodeURIComponent(bulkSubject);
+    const encodedBody = encodeURIComponent(bulkBody);
+
+    // If recipient list is up to 15, put all in BCC with full text
+    if (emails.length <= 15) {
+      const bccList = emails.join(',');
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(bccList)}&su=${encodedSubject}&body=${encodedBody}`;
+      window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+      toast.success(`✅ تم فتح Gmail بنجاح مع إدراج نص الرسالة والموضوع و ${emails.length} أستاذ في (BCC)! 🚀`);
+    } else {
+      // For larger lists, put first 15 in BCC with full text and copy all emails to clipboard
+      const primaryChunk = emails.slice(0, 15).join(',');
+      const fullList = emails.join(', ');
+      navigator.clipboard.writeText(fullList);
+
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(primaryChunk)}&su=${encodedSubject}&body=${encodedBody}`;
+      window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+      toast.success(
+        `✅ تم فتح Gmail مع إدراج نص الرسالة كاملاً و أول 15 أستاذ في BCC! (تم نسخ كافة الـ ${emails.length} إيميل للحافظة)`,
+        { duration: 8000 }
+      );
+    }
+  };
+
+  // 1-Click Outlook Web BCC Bulk Compose
+  const handleSendBulkViaOutlook = (customEmails?: any) => {
+    const emails: string[] = Array.isArray(customEmails) ? customEmails : getBulkRecipients();
+    if (!Array.isArray(emails) || emails.length === 0) {
+      toast.error('لا توجد عناوين بريد إلكتروني صالحة');
+      return;
+    }
+    navigator.clipboard.writeText(bulkBody);
+    const primaryList = emails.slice(0, 15).join(';');
+    const encodedSubject = encodeURIComponent(bulkSubject);
+    const encodedBody = encodeURIComponent(bulkBody);
+
+    const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?bcc=${encodeURIComponent(primaryList)}&subject=${encodedSubject}&body=${encodedBody}`;
+    window.open(outlookUrl, '_blank', 'noopener,noreferrer');
+    toast.success(`تم فتح Outlook مع نص الرسالة ووضع ${Math.min(emails.length, 15)} أستاذ في (BCC)`);
+  };
+
+  // 1-Click Mailto App
+  const handleSendBulkViaMailto = (customEmails?: any) => {
+    const emails: string[] = Array.isArray(customEmails) ? customEmails : getBulkRecipients();
+    if (!Array.isArray(emails) || emails.length === 0) {
+      toast.error('لا توجد عناوين بريد إلكتروني');
+      return;
+    }
+    navigator.clipboard.writeText(bulkBody);
+    const bccList = emails.slice(0, 25).join(',');
+    const encodedSubject = encodeURIComponent(bulkSubject);
+    const encodedBody = encodeURIComponent(bulkBody);
+
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(bccList)}&subject=${encodedSubject}&body=${encodedBody}`;
+    const a = document.createElement('a');
+    a.href = mailtoUrl;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast.success(`تم فتح تطبيق البريد مع إدراج نص الرسالة والموضوع`);
+  };
+
+  // Automated Server Batch Dispatch
+  const handleSendBulkViaServer = async () => {
+    const emails = getBulkRecipients();
+    if (!Array.isArray(emails) || emails.length === 0) {
+      toast.error('لا توجد عناوين بريد إلكتروني');
+      return;
+    }
+
+    setIsSendingBulk(true);
+    try {
+      const response = await fetch('/api/admin/send-bulk-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipients: emails,
+          subject: bulkSubject,
+          body: bulkBody
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`✅ تم إرسال الحملة الترويجية بنجاح إلى ${emails.length} أستاذ(ة) عبر الخادم`);
+      } else if (data.mode === 'webmail_fallback') {
+        toast.info(`جاري فتح شاشة الإرسال الجماعية في Gmail (BCC) لـ ${emails.length} أستاذ(ة)...`);
+        handleSendBulkViaGmail();
+      } else {
+        toast.error(data.error || 'تعذر الإرسال التلقائي، جاري الفتح عبر Gmail');
+        handleSendBulkViaGmail();
+      }
+    } catch (err: any) {
+      console.warn('Server bulk email fallback to Gmail:', err);
+      toast.info('جاري فتح شاشة الإرسال الجماعية في Gmail (BCC)...');
+      handleSendBulkViaGmail();
+    } finally {
+      setIsSendingBulk(false);
+    }
+  };
+
+  // Copy All Recipient Emails
+  const handleCopyBulkEmails = () => {
+    const emails = getBulkRecipients();
+    if (!Array.isArray(emails) || emails.length === 0) {
+      toast.error('لا توجد عناوين بريد للنسخ');
+      return;
+    }
+    navigator.clipboard.writeText(emails.join(', '));
+    toast.success(`تم نسخ ${emails.length} عنوان بريد إلكتروني إلى الحافظة بنجاح 📋`);
+  };
+
+  // Copy Bulk Email Text & Subject
+  const handleCopyBulkContent = () => {
+    const fullText = `الموضوع: ${bulkSubject}\n\n${bulkBody}`;
+    navigator.clipboard.writeText(fullText);
+    toast.success('تم نسخ نص وموضوع الحملة الترويجية بالكامل إلى الحافظة');
+  };
+
 
   // Action: Copy text
   const copyToClipboard = (text: string) => {
@@ -396,7 +826,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         </div>
 
         {/* Global Executive Stats Bar */}
-        <div className="bg-indigo-900/5 px-4 sm:px-6 py-3 border-b border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+        <div className="bg-indigo-900/5 px-4 sm:px-6 py-3 border-b border-slate-200/80 grid grid-cols-2 sm:grid-cols-5 gap-3 shrink-0">
           <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
               <Users size={18} />
@@ -407,13 +837,42 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             </div>
           </div>
 
+          {/* Limit reached quick card / filter */}
+          <button 
+            onClick={() => {
+              setActiveTab('users');
+              setTierFilter('limit_reached');
+            }}
+            className={`p-3 rounded-2xl border transition-all text-right flex items-center gap-3 ${
+              tierFilter === 'limit_reached' 
+                ? 'bg-red-600 text-white border-red-700 shadow-sm' 
+                : 'bg-red-50 hover:bg-red-100/80 border-red-200 text-red-900 shadow-2xs'
+            }`}
+            title="انقر لفلترة وعرض الأساتذة الذين وصلوا للحد الأقصى ومراسلتهم"
+          >
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+              tierFilter === 'limit_reached' ? 'bg-white/20 text-white' : 'bg-red-200/80 text-red-700'
+            }`}>
+              <AlertTriangle size={18} />
+            </div>
+            <div>
+              <p className={`text-[11px] font-bold ${tierFilter === 'limit_reached' ? 'text-red-100' : 'text-red-600'}`}>
+                بلغوا الحد (5/5)
+              </p>
+              <p className="text-base font-black flex items-center gap-1">
+                <span>{limitReachedUsersCount}</span>
+                <span className="text-[10px] font-medium opacity-90">مراسلة 📧</span>
+              </p>
+            </div>
+          </button>
+
           <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
               <Zap size={18} />
             </div>
             <div>
-              <p className="text-[11px] text-slate-500 font-bold">إجمالي الاستعمالات</p>
-              <p className="text-base font-black text-indigo-700">{totalPlatformUsage} عملية</p>
+              <p className="text-[11px] text-slate-500 font-bold">إجمالي العمليات</p>
+              <p className="text-base font-black text-indigo-700">{totalPlatformUsage}</p>
             </div>
           </div>
 
@@ -432,8 +891,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               <Award size={18} />
             </div>
             <div>
-              <p className="text-[11px] text-slate-500 font-bold">الحسابات المفعّلة</p>
-              <p className="text-base font-black text-amber-800">{premiumUsersCount} مشترك VIP</p>
+              <p className="text-[11px] text-slate-500 font-bold">المشتركون</p>
+              <p className="text-base font-black text-amber-800">{premiumUsersCount} VIP</p>
             </div>
           </div>
         </div>
@@ -477,11 +936,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     onChange={(e) => setTierFilter(e.target.value)}
                     className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-hidden focus:border-indigo-500"
                   >
-                    <option value="all">كل الباقات ({users.length})</option>
-                    <option value="free">المجاني ({users.filter(u => !u.subscriptionTier || u.subscriptionTier === 'free').length})</option>
+                    <option value="all">كل الحسابات ({users.length})</option>
+                    <option value="limit_reached">⚠️ وصلوا للحد المجاني 5/5 ({limitReachedUsersCount})</option>
+                    <option value="near_limit">⚡ أوشكوا على بلوغ الحد (≥3) ({users.filter(u => (!u.subscriptionTier || u.subscriptionTier === 'free') && (u.downloadCount || 0) >= 3).length})</option>
+                    <option value="free">المجاني العام ({users.filter(u => !u.subscriptionTier || u.subscriptionTier === 'free').length})</option>
                     <option value="basic">البسيط ({users.filter(u => u.subscriptionTier === 'basic').length})</option>
-                    <option value="advanced">المتقدم ({users.filter(u => u.subscriptionTier === 'advanced').length})</option>
-                    <option value="unlimited">غير المحدود ({users.filter(u => u.subscriptionTier === 'unlimited').length})</option>
+                    <option value="semester">الدورة ({users.filter(u => u.subscriptionTier === 'semester').length})</option>
+                    <option value="unlimited">VIP غير المحدود ({users.filter(u => u.subscriptionTier === 'unlimited').length})</option>
                   </select>
 
                   {/* Sort criteria */}
@@ -513,6 +974,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <FileSpreadsheet size={14} />
                     <span>تصدير Excel/CSV</span>
                   </button>
+
+                  {/* Bulk Promotional Campaign Button */}
+                  <button
+                    onClick={() => handleOpenBulkEmailModal('promo_general', 'all')}
+                    className="px-3.5 py-2 bg-linear-to-r from-red-600 via-rose-600 to-amber-600 text-white rounded-xl text-xs font-black hover:from-red-700 hover:to-amber-700 transition-all flex items-center gap-1.5 shadow-xs hover:shadow-md cursor-pointer"
+                    title="إرسال رسائل ترويجية جماعية لكل المسجلين في المنصة للاشتراك والترقية"
+                  >
+                    <Megaphone size={14} className="animate-pulse" />
+                    <span>حملة ترويجية جماعية ({getBulkRecipients('all').length} أستاذ) 📢</span>
+                  </button>
                 </div>
               </div>
 
@@ -523,8 +994,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <thead className="bg-slate-100/90 text-slate-700 font-black border-b border-slate-200">
                       <tr>
                         <th className="p-3.5 text-center w-12">#</th>
-                        <th className="p-3.5 min-w-[200px]">الأستاذ(ة) والحساب</th>
-                        <th className="p-3.5 min-w-[170px]">المؤسسة والمديرية</th>
+                        <th className="p-3.5 min-w-[220px]">الأستاذ(ة) والحساب</th>
                         <th className="p-3.5 text-center min-w-[130px]">
                           <span className="inline-flex items-center gap-1 text-indigo-900">
                             <Zap size={13} className="text-amber-500" />
@@ -535,13 +1005,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <th className="p-3.5 text-center min-w-[180px]">توزيع الاستعمال بالأدوات</th>
                         <th className="p-3.5 text-center min-w-[120px]">آخر نشاط</th>
                         <th className="p-3.5 text-center min-w-[140px]">الباقة الحالية</th>
-                        <th className="p-3.5 text-center w-24">إجراءات</th>
+                        <th className="p-3.5 text-center w-28">إجراءات</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="p-12 text-center text-slate-400 font-bold">
+                          <td colSpan={8} className="p-12 text-center text-slate-400 font-bold">
                             <Users size={32} className="mx-auto mb-2 opacity-40 text-slate-400" />
                             لا توجد نتائج مطابقة لخيارات البحث أو الفلترة
                           </td>
@@ -576,23 +1046,6 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                     <p className="text-[11px] text-slate-400 font-mono truncate">{u?.email}</p>
                                   </div>
                                 </div>
-                              </td>
-
-                              {/* School & Directorate */}
-                              <td className="p-3 text-slate-600">
-                                {u?.profInfo?.school ? (
-                                  <div>
-                                    <p className="font-bold text-slate-800 text-[11px] flex items-center gap-1">
-                                      <Building2 size={12} className="text-slate-400 shrink-0" />
-                                      <span className="truncate">{u.profInfo.school}</span>
-                                    </p>
-                                    <p className="text-[10px] text-slate-400">
-                                      {u.profInfo.directorate || u.profInfo.academy || 'المغرب'}
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <span className="text-slate-400 text-[11px] italic">لم تُحدد المؤسسة بعد</span>
-                                )}
                               </td>
 
                               {/* Usage Count (Highlight KPI) */}
@@ -666,15 +1119,34 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                 </select>
                               </td>
 
-                              {/* Actions Button */}
+                              {/* Actions Buttons */}
                               <td className="p-3 text-center">
-                                <button
-                                  onClick={() => setSelectedUser(u)}
-                                  className="p-2 bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 rounded-xl transition-colors font-bold text-xs"
-                                  title="عرض تفاصيل الأستاذ وسجل استعمالاته"
-                                >
-                                  تفاصيل
-                                </button>
+                                <div className="flex items-center justify-center gap-1.5">
+                                  {/* Email button (Highlighted if reached or close to limit) */}
+                                  <button
+                                    onClick={() => handleOpenEmailComposer(u, tier === 'free' && downloads >= tierLimit ? 'limit_reached' : 'special_offer')}
+                                    className={`p-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1 ${
+                                      tier === 'free' && downloads >= tierLimit
+                                        ? 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white border border-red-200'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-indigo-600 hover:text-white'
+                                    }`}
+                                    title={
+                                      tier === 'free' && downloads >= tierLimit
+                                        ? 'مراسلة الأستاذ عبر البريد لترقية الحساب بعد بلوغ الحد (5/5)'
+                                        : 'مراسلة الأستاذ عبر البريد الإلكتروني'
+                                    }
+                                  >
+                                    <Mail size={14} />
+                                  </button>
+
+                                  <button
+                                    onClick={() => setSelectedUser(u)}
+                                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-700 rounded-xl transition-colors font-bold text-xs"
+                                    title="عرض تفاصيل الأستاذ وسجل استعمالاته"
+                                  >
+                                    تفاصيل
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -957,6 +1429,23 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               {/* Quick Manage Actions */}
               <div className="space-y-2 text-xs pt-1">
                 <h5 className="font-bold text-slate-700">إجراءات سريعة على الحساب:</h5>
+                
+                {/* Email Outreach for user */}
+                <button
+                  onClick={() => {
+                    const isLimitReached = (selectedUser.subscriptionTier === 'free' || !selectedUser.subscriptionTier) && (selectedUser.downloadCount || 0) >= 5;
+                    handleOpenEmailComposer(selectedUser, isLimitReached ? 'limit_reached' : 'special_offer');
+                  }}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <Mail size={15} />
+                  <span>
+                    {(selectedUser.subscriptionTier === 'free' || !selectedUser.subscriptionTier) && (selectedUser.downloadCount || 0) >= 5
+                      ? 'مراسلة الأستاذ عبر البريد لترقية الحساب (بلغ الحد 5/5)'
+                      : 'مراسلة الأستاذ عبر البريد الإلكتروني'}
+                  </span>
+                </button>
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
@@ -993,6 +1482,538 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* ======================================================== */}
+      {/* EMAIL OUTREACH / UPGRADE PROMOTION COMPOSER MODAL */}
+      {/* ======================================================== */}
+      <AnimatePresence>
+        {emailModalUser && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs font-sans text-right" dir="rtl">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Email Modal Header */}
+              <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-r from-indigo-50/70 via-white to-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-100">
+                    <Mail size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black text-slate-900">مراسلة الأستاذ(ة) عبر البريد الإلكتروني</h4>
+                    <p className="text-xs text-slate-500 font-medium">
+                      إرسال رسالة مباشرة لتشجيع الأستاذ على ترقية الحساب والاستفادة من الباقات
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setEmailModalUser(null)}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Email Content Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs">
+                {/* Teacher Info Snapshot */}
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <p className="font-black text-slate-900 text-sm">
+                      {emailModalUser.displayName || emailModalUser.profInfo?.name || 'أستاذ(ة)'}
+                    </p>
+                    <p className="text-slate-500 font-mono text-xs">{emailModalUser.email}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="bg-white px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-700">
+                      التحميلات: {emailModalUser.downloadCount || 0} / {TIER_LIMITS[emailModalUser.subscriptionTier || 'free'] || 5}
+                    </span>
+                    {(emailModalUser.subscriptionTier === 'free' || !emailModalUser.subscriptionTier) && (emailModalUser.downloadCount || 0) >= 5 && (
+                      <span className="bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1">
+                        <AlertTriangle size={12} />
+                        <span>بلغ الحد الأقصى</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Templates Selector */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700 block">اختر نموذج الرسالة الجاهزة:</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleChangeEmailTemplate('limit_reached')}
+                      className={`p-2.5 rounded-xl border text-right transition-all ${
+                        emailTemplateType === 'limit_reached'
+                          ? 'bg-red-50 border-red-300 text-red-900 font-black shadow-2xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
+                      }`}
+                    >
+                      <p className="text-xs font-black">⚠️ وصول للحد الأقصى</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">تنبيه بالـ 5 تحميلات وعرض VIP</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleChangeEmailTemplate('special_offer')}
+                      className={`p-2.5 rounded-xl border text-right transition-all ${
+                        emailTemplateType === 'special_offer'
+                          ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-black shadow-2xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
+                      }`}
+                    >
+                      <p className="text-xs font-black">🎁 عرض ترقية استثنائي</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">خصم الموسم والتفعيل الفوري</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleChangeEmailTemplate('vip_invitation')}
+                      className={`p-2.5 rounded-xl border text-right transition-all ${
+                        emailTemplateType === 'vip_invitation'
+                          ? 'bg-amber-50 border-amber-300 text-amber-900 font-black shadow-2xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-bold'
+                      }`}
+                    >
+                      <p className="text-xs font-black">👑 دعوة لنخبة VIP</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">دعوة للانضمام للشبكة المتميزة</p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Email Subject Input */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700 block">عنوان / موضوع البريد (Subject):</label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:border-indigo-500"
+                    placeholder="موضوع الرسالة..."
+                  />
+                </div>
+
+                {/* Email Body Textarea */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-700">محتوى ونص الرسالة (يمكنك التعديل والإضافة):</label>
+                    <span className="text-[10px] text-slate-400">يدعم الروابط والتنسيق المباشر</span>
+                  </div>
+                  <textarea
+                    rows={8}
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 leading-relaxed focus:outline-hidden focus:border-indigo-500 font-sans"
+                    placeholder="اكتب نص الرسالة هنا..."
+                  />
+                </div>
+              </div>
+
+              {/* Email Modal Footer Buttons */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex flex-col gap-3">
+                {/* Primary Fast Send Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    {/* Direct Gmail Web Compose Button */}
+                    <button
+                      type="button"
+                      onClick={handleSendViaGmail}
+                      className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-xs flex items-center gap-1.5 transition-all shadow-xs hover:shadow-md"
+                      title="فتح صفحة إنشاء الرسالة مباشرة في Gmail مع العنوان والمحتوى الجاهز بنقرة واحدة"
+                    >
+                      <Mail size={15} />
+                      <span>فتح في Gmail 🚀</span>
+                    </button>
+
+                    {/* Direct Outlook Web Compose Button */}
+                    <button
+                      type="button"
+                      onClick={handleSendViaOutlook}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                      title="فتح صفحة إنشاء الرسالة في Outlook / Hotmail"
+                    >
+                      <ExternalLink size={13} />
+                      <span>Outlook Web</span>
+                    </button>
+
+                    {/* Standard Mail App (mailto) */}
+                    <button
+                      type="button"
+                      onClick={handleSendViaMailto}
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                      title="فتح تطبيق البريد الافتراضي على الحاسوب أو الهاتف"
+                    >
+                      <Send size={13} />
+                      <span>تطبيق البريد</span>
+                    </button>
+
+                    {/* Server Automated Dispatch */}
+                    <button
+                      type="button"
+                      onClick={handleSendViaServer}
+                      disabled={isSendingEmail}
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
+                      title="إرسال مباشر من الخادم عبر SMTP"
+                    >
+                      {isSendingEmail ? <RefreshCw size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                      <span>إرسال تلقائي عبر الخادم</span>
+                    </button>
+                  </div>
+
+                  {/* Cancel */}
+                  <button
+                    type="button"
+                    onClick={() => setEmailModalUser(null)}
+                    className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+
+                {/* Secondary Copy and WhatsApp options */}
+                <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between text-[11px] text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyEmailContent}
+                      className="px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg font-bold flex items-center gap-1 transition-colors"
+                      title="نسخ نص الرسالة والموضوع لإرساله يدوياً عبر أي وسيلة"
+                    >
+                      <Copy size={12} />
+                      <span>نسخ النص كاملاً</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSendViaWhatsApp}
+                      className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 hover:bg-emerald-600 hover:text-white text-emerald-800 rounded-lg font-bold flex items-center gap-1 transition-colors"
+                      title="إرسال نص العرض كرسالة عبر واتساب"
+                    >
+                      <MessageSquare size={12} />
+                      <span>إرسال عبر واتساب</span>
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400">
+                    💡 انقر «فتح في Gmail» ليتم فتح الرسالة فوراً في حسابك ببريد المعني والمحتوى معبأين تلقائياً.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {/* ======================================================== */}
+        {/* MODAL 3: BULK PROMOTIONAL EMAIL CAMPAIGN MODAL           */}
+        {/* ======================================================== */}
+        {showBulkEmailModal && (
+          <div className="fixed inset-0 z-[180] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs font-sans text-right" dir="rtl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+            >
+              {/* Bulk Header */}
+              <div className="p-4 sm:p-5 border-b border-slate-100 bg-linear-to-r from-red-900/10 via-rose-900/5 to-amber-900/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-linear-to-tr from-red-600 to-rose-500 text-white flex items-center justify-center shadow-md shadow-red-200 shrink-0">
+                    <Megaphone size={22} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
+                      <span>إطلاق حملة ترويجية جماعية لكافة المسجلين</span>
+                      <span className="bg-red-100 text-red-700 text-[11px] font-black px-2.5 py-0.5 rounded-full">
+                        {getBulkRecipients(bulkAudience).length} مستلم
+                      </span>
+                    </h4>
+                    <p className="text-xs text-slate-500 font-medium">
+                      إرسال عروض الاشتراك والترقية لجميع الأساتذة بنقرة واحدة عبر البريد كنسخة مخفية (BCC)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowBulkEmailModal(false)}
+                  className="w-9 h-9 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Bulk Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+                {/* Audience Filter Pills */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-2">
+                    🎯 الفئة المستهدفة من الأساتذة المسجلين:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBulkAudience('all')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                        bulkAudience === 'all'
+                          ? 'bg-red-600 text-white border-red-700 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span>كل المسجلين بالمنصة</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                        {getBulkRecipients('all').length} أستاذ
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBulkAudience('free_only')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                        bulkAudience === 'free_only'
+                          ? 'bg-red-600 text-white border-red-700 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span>الباقة المجانية فقط</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'free_only' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                        {getBulkRecipients('free_only').length} أستاذ
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBulkAudience('limit_reached')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                        bulkAudience === 'limit_reached'
+                          ? 'bg-red-600 text-white border-red-700 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span>وصلوا للحد (5/5)</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'limit_reached' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                        {getBulkRecipients('limit_reached').length} أستاذ
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBulkAudience('near_limit')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                        bulkAudience === 'near_limit'
+                          ? 'bg-red-600 text-white border-red-700 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span>قاربوا الحد (≥3)</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'near_limit' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                        {getBulkRecipients('near_limit').length} أستاذ
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Templates Selector */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-2">
+                    📑 اختيار نموذج العرض الترويجي:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleChangeBulkTemplate('promo_general')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 ${
+                        bulkTemplate === 'promo_general'
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span>🌟 عرض ترويجي شامل ومخفض</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleChangeBulkTemplate('vip_unlimited')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 ${
+                        bulkTemplate === 'vip_unlimited'
+                          ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span>👑 دعوة باقة VIP غير المحدودة</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleChangeBulkTemplate('special_discount')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 ${
+                        bulkTemplate === 'special_discount'
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span>⚡ كود تخفيض استثنائي</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Subject Line */}
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1.5">
+                    عنوان البريد الإلكتروني (الموضوع):
+                  </label>
+                  <input
+                    type="text"
+                    value={bulkSubject}
+                    onChange={(e) => setBulkSubject(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-hidden focus:border-red-500"
+                    placeholder="عنوان الرسالة الترويجية..."
+                  />
+                </div>
+
+                {/* Message Body */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-black text-slate-700">
+                      محتوى الرسالة الترويجية (يمكنك التعديل والإضافة بحرية):
+                    </label>
+                    <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      واتساب معتمد: 0646662690 ✅
+                    </span>
+                  </div>
+                  <textarea
+                    rows={9}
+                    value={bulkBody}
+                    onChange={(e) => setBulkBody(e.target.value)}
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 leading-relaxed focus:bg-white focus:outline-hidden focus:border-red-500 font-mono"
+                    placeholder="اكتب نص الرسالة الترويجية هنا..."
+                  />
+                </div>
+
+                {/* Info Note & Step-by-Step Guide */}
+                <div className="p-3.5 bg-linear-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 text-amber-950 text-xs space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={17} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-black text-amber-900 mb-0.5">
+                        طريقة الإرسال المباشرة والآمنة (BCC):
+                      </p>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        عند النقر على <strong>«فتح في Gmail»</strong>، يتم فتح نافذة إنشاء الرسالة مباشرة مع إدراج <strong>الموضوع ونص الرسالة بالكامل</strong> وقائمة المستلمين في <strong>النسخة المخفية (BCC)</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Batch Buttons if many recipients */}
+                  {getBulkRecipients(bulkAudience).length > 15 && (
+                    <div className="pt-2 border-t border-amber-200/60">
+                      <p className="text-[11px] font-bold text-amber-900 mb-1.5">
+                        📦 إرسال مقسم على دفعات سريعة (15 أستاذ بكل نقرة مع إدراج النص كاملاً):
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Array.from({ length: Math.ceil(getBulkRecipients(bulkAudience).length / 15) }).map((_, idx) => {
+                          const start = idx * 15;
+                          const chunk = getBulkRecipients(bulkAudience).slice(start, start + 15);
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => handleSendBulkViaGmail(chunk)}
+                              className="px-2.5 py-1 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                            >
+                              <span>دفعة {idx + 1} ({chunk.length} أستاذ)</span>
+                              <Mail size={11} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bulk Footer Actions */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    {/* Direct Gmail BCC Compose */}
+                    <button
+                      type="button"
+                      onClick={() => handleSendBulkViaGmail()}
+                      className="px-4 py-2.5 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-black text-xs flex items-center gap-2 transition-all shadow-md shadow-red-200 hover:shadow-lg cursor-pointer"
+                      title="فتح Gmail فوراً مع وضع كافة إيميلات المسجلين في خانة النسخة المخفية BCC"
+                    >
+                      <Mail size={16} />
+                      <span>فتح في Gmail لجميع المستهدفين (BCC) 🚀</span>
+                    </button>
+
+                    {/* Direct Outlook BCC Compose */}
+                    <button
+                      type="button"
+                      onClick={() => handleSendBulkViaOutlook()}
+                      className="px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                      title="فتح Outlook Web كنسخة مخفية"
+                    >
+                      <ExternalLink size={14} />
+                      <span>Outlook Web</span>
+                    </button>
+
+                    {/* Server Automated Dispatch */}
+                    <button
+                      type="button"
+                      onClick={() => handleSendBulkViaServer()}
+                      disabled={isSendingBulk}
+                      className="px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
+                      title="إرسال دفعة أوتوماتيكية عبر الخادم"
+                    >
+                      {isSendingBulk ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      <span>إرسال أوتوماتيكي عبر الخادم</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkEmailModal(false)}
+                    className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+
+                {/* Secondary tools: Copy emails, copy text */}
+                <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyBulkEmails()}
+                      className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-800 rounded-xl font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+                      title="نسخ قائمة عناوين البريد مفصولة بفواصل"
+                    >
+                      <Copy size={13} />
+                      <span>نسخ قائمة كافة الإيميلات ({getBulkRecipients(bulkAudience).length})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyBulkContent()}
+                      className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-800 rounded-xl font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+                      title="نسخ نص الرسالة والموضوع بالكامل"
+                    >
+                      <FileText size={13} />
+                      <span>نسخ نص الرسالة</span>
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400">
+                    💡 يمكنك أيضاً نسخ قائمة الإيميلات واستخدامها في أي برنامج نشرات أو بريد خارجي.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
+

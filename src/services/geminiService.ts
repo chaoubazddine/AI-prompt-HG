@@ -1,6 +1,6 @@
 import { JadhaData } from "../components/TableJadha";
-import { GoogleGenAI } from "@google/genai";
 import { safeJsonParse } from "../utils/jsonCleaner";
+import { generateAIContent } from "./aiClient";
 
 export const generateJadha = async (lessonTitle: string, level: string, curriculum: string): Promise<JadhaData> => {
   const prompt = `
@@ -71,44 +71,14 @@ export const generateJadha = async (lessonTitle: string, level: string, curricul
   let retries = 3;
   while (retries > 0) {
     try {
-      // Access the API key from various sources
-      // 1. Check localStorage for a manually entered key (external users)
-      // 2. Check process.env.API_KEY (AI Studio selected key)
-      // 3. Check process.env.GEMINI_API_KEY (Environment secret)
-      // 4. Fallback to the hardcoded key
-      const manualKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_key') : null;
-      const apiKey = manualKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
-      
-      if (!apiKey || apiKey === "YOUR_API_KEY" || apiKey.trim() === "" || apiKey.includes("TODO")) {
-        throw new Error("مفتاح API غير صالح أو مفقود. يرجى الضغط على زر 'تفعيل المفتاح' في الأعلى.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest'];
-      let responseText = '';
-      let lastErr: any = null;
-
-      for (const modelName of modelsToTry) {
-        try {
-          const res = await ai.models.generateContent({
-            model: modelName,
-            contents: prompt,
-            config: {
-              responseMimeType: "application/json",
-            },
-          });
-          if (res.text) {
-            responseText = res.text;
-            break;
-          }
-        } catch (e) {
-          console.warn(`Model ${modelName} failed in generateJadha, trying fallback...`, e);
-          lastErr = e;
-        }
-      }
+      const responseText = await generateAIContent({
+        prompt,
+        responseMimeType: "application/json",
+        preferredModel: "gemini-3.6-flash",
+      });
 
       if (!responseText) {
-        throw lastErr || new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
+        throw new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
       }
 
       return safeJsonParse<JadhaData>(responseText);
@@ -118,7 +88,6 @@ export const generateJadha = async (lessonTitle: string, level: string, curricul
       if (retries === 0) {
         throw new Error(error.message || "فشل في توليد المحتوى. يرجى المحاولة مرة أخرى لاحقاً.");
       }
-      // Wait a bit before retrying
       await new Promise(resolve => setTimeout(resolve, 1500));
     }
   }

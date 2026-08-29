@@ -1,6 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
 import { LessonSummaryData } from "../types/summary";
 import { safeJsonParse } from "../utils/jsonCleaner";
+import { generateAIContent } from "./aiClient";
 
 export const generateLessonSummary = async (
   lessonTitle: string,
@@ -92,39 +92,14 @@ export const generateLessonSummary = async (
   let retries = 3;
   while (retries > 0) {
     try {
-      const manualKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_key') : null;
-      const apiKey = manualKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
-
-      if (!apiKey || apiKey === "YOUR_API_KEY" || apiKey.trim() === "" || apiKey.includes("TODO")) {
-        throw new Error("مفتاح API غير صالح أو مفقود. يرجى تفعيل المفتاح في الإعدادات.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest'];
-      let responseText = '';
-      let lastErr: any = null;
-
-      for (const modelName of modelsToTry) {
-        try {
-          const res = await ai.models.generateContent({
-            model: modelName,
-            contents: prompt,
-            config: {
-              responseMimeType: "application/json",
-            },
-          });
-          if (res.text) {
-            responseText = res.text;
-            break;
-          }
-        } catch (e) {
-          console.warn(`Model ${modelName} failed in generateLessonSummary, trying fallback...`, e);
-          lastErr = e;
-        }
-      }
+      const responseText = await generateAIContent({
+        prompt,
+        responseMimeType: "application/json",
+        preferredModel: "gemini-3.6-flash",
+      });
 
       if (!responseText) {
-        throw lastErr || new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
+        throw new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
       }
 
       return safeJsonParse<LessonSummaryData>(responseText);

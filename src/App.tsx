@@ -45,13 +45,17 @@ import {
   Zap,
   Bot,
   FileCheck2,
-  ClipboardCheck
+  ClipboardCheck,
+  Menu,
+  ChevronDown,
+  Presentation as PresentationIcon
 } from 'lucide-react';
 import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha } from './services/geminiService';
 import { CYCLES, DOC_TYPES, LESSONS_DATA, CYCLE_LEVELS, TEXTBOOKS } from './constants';
 import { downloadWord } from './utils/wordExport';
 import { LessonSummaryGenerator } from './components/LessonSummary/LessonSummaryGenerator';
+import { PresentationGenerator } from './components/Presentation/PresentationGenerator';
 import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
 import { RayadaPioneerHub } from './components/Rayada/RayadaPioneerHub';
 import { DiagnosticHub } from './components/Diagnostic/DiagnosticHub';
@@ -158,7 +162,7 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator' | 'rayada' | 'diagnostic'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator' | 'rayada' | 'diagnostic' | 'presentation'>('landing');
   const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -181,6 +185,8 @@ function JadhaApp() {
   const [adminCodes, setAdminCodes] = useState<any[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [dashboardTab, setDashboardTab] = useState<'overview' | 'history' | 'profile'>('profile');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const LOADING_TIPS = [
     'جاري تحضير الوثائق والدعامات الديداكتيكية المعتمدة...',
@@ -775,81 +781,36 @@ function JadhaApp() {
       <Toaster position="top-center" richColors closeButton />
       
       {/* Top Header Navigation */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-3 sm:px-6 py-2.5 shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 px-3 sm:px-5 py-2 shadow-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           
-          {/* Logo & Social Links */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <div 
-              onClick={() => setStep(user ? 'dashboard' : 'landing')}
-              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group"
-            >
-              <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-1.5 sm:p-2 rounded-xl sm:rounded-2xl text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-                <BookOpen size={18} className="sm:w-[20px] sm:h-[20px]" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900">منصة الاجتماعيات الذكية</h1>
-                  <span className="hidden md:inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
-                    المغرب 🇲🇦
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-500 font-medium hidden lg:block">المنظومة البيداغوجية الشاملة بالذكاء الاصطناعي</p>
+          {/* Logo */}
+          <div 
+            onClick={() => setStep(user ? 'dashboard' : 'landing')}
+            className="flex items-center gap-2 cursor-pointer group shrink-0"
+          >
+            <div className="bg-gradient-to-tr from-[#4F46E5] to-indigo-600 p-1.5 sm:p-2 rounded-xl text-white shadow-xs group-hover:scale-105 transition-transform">
+              <BookOpen size={18} className="sm:w-[20px] sm:h-[20px]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900">منصة الاجتماعيات</h1>
+                <span className="hidden sm:inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+                  المغرب 🇲🇦
+                </span>
               </div>
             </div>
-
-            <HeaderSocialLinks />
           </div>
 
-          {/* Center Navigation Tabs (Pill style container, streamlined & compact) */}
+          {/* Center Navigation Tabs (Compact & Responsive for Desktop) */}
           {user && (
-            <nav className="hidden md:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 text-xs font-bold">
+            <nav className="hidden lg:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 text-xs font-bold">
               <button 
                 onClick={() => setStep('dashboard')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 <Layout size={14} />
                 <span>فضاء الأستاذ</span>
-              </button>
-
-              <button 
-                onClick={() => setStep('rayada')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
-                  step === 'rayada'
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-xs'
-                    : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                }`}
-              >
-                <Sparkles size={14} className="text-amber-500" />
-                <span>إعداديات الريادة 🌟</span>
-              </button>
-
-              <button 
-                onClick={() => setStep('diagnostic')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
-                  step === 'diagnostic' 
-                    ? 'bg-indigo-600 text-white shadow-xs' 
-                    : 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100'
-                }`}
-              >
-                <ClipboardCheck size={14} className="text-indigo-600" />
-                <span>التقويم التشخيصي</span>
-              </button>
-
-              <button 
-                onClick={() => setStep('lesson-summary')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'lesson-summary' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                <FileText size={14} />
-                <span>الملخصات</span>
-              </button>
-
-              <button 
-                onClick={() => setStep('exam-generator')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'exam-generator' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                <FileCheck2 size={14} />
-                <span>الامتحانات</span>
               </button>
 
               <button 
@@ -857,139 +818,231 @@ function JadhaApp() {
                   setStep('form');
                   setFormStep(1);
                 }}
-                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${step === 'form' ? 'bg-[#4F46E5] text-white shadow-xs' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${step === 'form' ? 'bg-[#4F46E5] text-white shadow-xs' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
               >
                 <Plus size={14} />
                 <span>جذاذة جديدة</span>
               </button>
+
+              <button 
+                onClick={() => setStep('presentation')}
+                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
+                  step === 'presentation'
+                    ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-xs'
+                    : 'text-teal-700 bg-teal-50 hover:bg-teal-100'
+                }`}
+              >
+                <PresentationIcon size={14} className="text-teal-600" />
+                <span>عروض PPT</span>
+              </button>
+
+              <button 
+                onClick={() => setStep('exam-generator')}
+                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'exam-generator' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <FileCheck2 size={14} />
+                <span>الامتحانات</span>
+              </button>
+
+              <button 
+                onClick={() => setStep('lesson-summary')}
+                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'lesson-summary' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                <FileText size={14} />
+                <span>الملخصات</span>
+              </button>
+
+              <button 
+                onClick={() => setStep('rayada')}
+                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
+                  step === 'rayada'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-amber-700 hover:bg-amber-50'
+                }`}
+              >
+                <Sparkles size={14} className="text-amber-500" />
+                <span>الريادة</span>
+              </button>
+
+              <button 
+                onClick={() => setStep('diagnostic')}
+                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
+                  step === 'diagnostic' 
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'text-indigo-700 hover:bg-indigo-50'
+                }`}
+              >
+                <ClipboardCheck size={14} />
+                <span>التقويم</span>
+              </button>
             </nav>
           )}
 
-          {/* User Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* User Controls & Mobile Menu */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {user ? (
               <>
-                {/* Mobile Navigation Icons */}
-                <div className="flex md:hidden items-center gap-1">
+                {/* Direct Admin Access Button if Admin */}
+                {isAdmin && (
                   <button 
-                    onClick={() => setStep('dashboard')}
-                    className={`p-2 rounded-xl text-xs font-bold ${step === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
-                    title="فضاء الأستاذ"
+                    onClick={() => setShowAdminPanel(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-800 rounded-xl text-xs font-black transition-all border border-red-200 shadow-2xs"
+                    title="لوحة تحكم الإدارة ومراسلة الأساتذة"
                   >
-                    <Layout size={16} />
+                    <ShieldCheck size={14} className="text-red-600" />
+                    <span>لوحة الإدارة 👑</span>
                   </button>
-                  <button 
-                    onClick={() => setStep('rayada')}
-                    className={`p-2 rounded-xl text-xs font-bold ${step === 'rayada' ? 'bg-amber-100 text-amber-900' : 'text-amber-700'}`}
-                    title="إعداديات الريادة"
-                  >
-                    <Sparkles size={16} className="text-amber-600" />
-                  </button>
-                  <button 
-                    onClick={() => setStep('diagnostic')}
-                    className={`p-2 rounded-xl text-xs font-bold ${step === 'diagnostic' ? 'bg-indigo-100 text-indigo-900' : 'text-indigo-700'}`}
-                    title="التقويم التشخيصي"
-                  >
-                    <ClipboardCheck size={16} className="text-indigo-600" />
-                  </button>
-                  <button 
-                    onClick={() => setStep('lesson-summary')}
-                    className={`p-2 rounded-xl text-xs font-bold ${step === 'lesson-summary' ? 'bg-amber-50 text-amber-700' : 'text-slate-600'}`}
-                    title="الملخصات"
-                  >
-                    <FileText size={16} />
-                  </button>
-                  <button 
-                    onClick={() => setStep('exam-generator')}
-                    className={`p-2 rounded-xl text-xs font-bold ${step === 'exam-generator' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
-                    title="الامتحانات"
-                  >
-                    <FileCheck2 size={16} />
-                  </button>
-                  <button 
-                    onClick={() => { setStep('form'); setFormStep(1); }}
-                    className="bg-[#4F46E5] text-white p-2 rounded-xl text-xs font-bold shadow-xs"
-                    title="جذاذة جديدة"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
+                )}
 
-                {/* User Badge & Actions */}
-                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/80 p-1 rounded-2xl">
-                  <button 
-                    onClick={() => setShowPricingModal(true)}
-                    className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100 shadow-2xs"
-                    title="عرض باقات الاشتراك والأسعار"
-                  >
-                    <Sparkles size={14} className="text-amber-500" />
-                    <span>الاشتراكات</span>
-                  </button>
-
-                  <div 
-                    onClick={() => setShowPricingModal(true)}
-                    className="hidden lg:flex items-center gap-2 px-2.5 py-1 cursor-pointer hover:bg-slate-100/80 rounded-xl transition-all"
-                    title="انقر لترقية الباقة أو عرض خطط الاشتراك"
-                  >
-                    <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs">
-                      {user.displayName ? user.displayName.charAt(0) : 'أ'}
-                    </div>
-                    <span className="text-xs font-bold text-slate-800 truncate max-w-[100px]">
-                      {user.displayName || 'الأستاذ'}
-                    </span>
-                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
-                      {TIER_NAMES[subscriptionTier]}
-                    </span>
-                  </div>
-
-                  {isAdmin && (
-                    <button 
-                      onClick={() => setShowAdminPanel(true)}
-                      className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
-                      title="لوحة الإدارة"
-                    >
-                      <ShieldCheck size={16} />
-                    </button>
-                  )}
-
-                  <button 
-                    onClick={() => setShowKeyHelp(true)}
-                    className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                    title="الإعدادات والمفتاح"
-                  >
-                    <Settings size={16} />
-                  </button>
-
-                  <button 
-                    onClick={handleLogout}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                    title="تسجيل الخروج"
-                  >
-                    <LogOut size={16} />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
+                {/* Desktop Subscription Button */}
                 <button 
                   onClick={() => setShowPricingModal(true)}
-                  className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs"
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-bold transition-all border border-amber-200/80 shadow-2xs"
+                  title="عرض باقات الاشتراك والأسعار"
                 >
                   <Sparkles size={14} className="text-amber-600" />
-                  <span>خطط الاشتراك</span>
+                  <span>الاشتراكات</span>
                 </button>
+
+                {/* Quick Add Jadha on Medium/Small screens */}
                 <button 
-                  onClick={() => setShowPremiumModal(true)}
-                  className="text-slate-600 hover:text-indigo-600 px-3 py-2 text-xs font-bold transition-colors hidden sm:block"
+                  onClick={() => {
+                    setStep('form');
+                    setFormStep(1);
+                  }}
+                  className="lg:hidden flex items-center gap-1 bg-[#4F46E5] text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-xs"
+                  title="جذاذة جديدة"
                 >
-                  تفعيل كود
+                  <Plus size={15} />
+                  <span className="hidden sm:inline">جذاذة جديدة</span>
+                </button>
+
+                {/* User Dropdown / Profile Pill */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 bg-slate-100/90 hover:bg-slate-200/80 rounded-xl border border-slate-200/80 transition-all text-xs font-bold text-slate-800"
+                    title="حساب الأستاذ والإعدادات"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs shrink-0">
+                      {user.displayName ? user.displayName.charAt(0) : 'أ'}
+                    </div>
+                    <span className="hidden md:inline-block max-w-[85px] truncate">
+                      {user.displayName || 'الأستاذ'}
+                    </span>
+                    <span className="hidden xl:inline-block text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                      {subscriptionTier === 'unlimited' ? 'VIP' : (subscriptionTier === 'free' ? 'مجاني' : 'مشترك')}
+                    </span>
+                    <ChevronDown size={14} className="text-slate-500" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {userMenuOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setUserMenuOpen(false)}
+                      />
+                      <div className="absolute left-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-2 z-50 space-y-1 text-right">
+                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 mb-1">
+                          <p className="text-xs font-black text-slate-900 truncate">{user.displayName || 'الأستاذ'}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+                          <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                            <span className="font-bold text-slate-600">الباقة الحالية:</span>
+                            <span className="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                              {TIER_NAMES[subscriptionTier]}
+                            </span>
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            setShowPricingModal(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 rounded-xl transition-colors"
+                        >
+                          <Sparkles size={15} className="text-amber-600" />
+                          <span>ترقية وباقات الاشتراك</span>
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            setShowPremiumModal(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                        >
+                          <Award size={15} className="text-indigo-600" />
+                          <span>تفعيل كود الوصول</span>
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            setShowKeyHelp(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                        >
+                          <Settings size={15} className="text-slate-500" />
+                          <span>إعدادات المفتاح (API)</span>
+                        </button>
+
+                        {isAdmin && (
+                          <button 
+                            onClick={() => {
+                              setUserMenuOpen(false);
+                              setShowAdminPanel(true);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-amber-700 bg-amber-50/60 hover:bg-amber-100 rounded-xl transition-colors"
+                          >
+                            <ShieldCheck size={15} className="text-amber-600" />
+                            <span>لوحة تحكم الإدارة</span>
+                          </button>
+                        )}
+
+                        <div className="pt-1 border-t border-slate-100">
+                          <button 
+                            onClick={() => {
+                              setUserMenuOpen(false);
+                              handleLogout();
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                          >
+                            <LogOut size={15} />
+                            <span>تسجيل الخروج</span>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Mobile Menu Drawer Toggle Button */}
+                <button 
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="lg:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors"
+                  aria-label="القائمة الرئيسية"
+                >
+                  <Menu size={18} />
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button 
+                  onClick={() => setShowPricingModal(true)}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Sparkles size={14} className="text-amber-600" />
+                  <span className="hidden sm:inline">خطط الاشتراك</span>
+                  <span className="sm:hidden">الأسعار</span>
                 </button>
                 <button 
                   onClick={handleLogin}
-                  className="bg-[#4F46E5] text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center gap-2"
+                  className="bg-[#4F46E5] text-white px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center gap-1.5"
                 >
-                  <LogIn size={16} />
-                  دخول الأستاذ
+                  <LogIn size={15} />
+                  <span>دخول الأستاذ</span>
                 </button>
               </div>
             )}
@@ -997,6 +1050,239 @@ function JadhaApp() {
 
         </div>
       </header>
+
+      {/* Mobile Slide-Over Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 lg:hidden"
+            />
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 280 }}
+              className="fixed top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-white z-50 shadow-2xl p-5 flex flex-col justify-between overflow-y-auto lg:hidden"
+              dir="rtl"
+            >
+              <div className="space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-indigo-600 p-2 rounded-xl text-white">
+                      <BookOpen size={18} />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-black text-slate-900">منصة الاجتماعيات</h2>
+                      <p className="text-[10px] text-slate-500 font-medium">المنظومة البيداغوجية الذكية</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* User Info on Mobile */}
+                {user && (
+                  <div className="bg-indigo-50/60 p-3 rounded-2xl border border-indigo-100/80">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
+                        {user.displayName ? user.displayName.charAt(0) : 'أ'}
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-xs font-black text-slate-900 truncate">{user.displayName || 'الأستاذ'}</p>
+                        <p className="text-[10px] text-indigo-700 font-bold">{TIER_NAMES[subscriptionTier]}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation Tools List */}
+                <div className="space-y-1">
+                  <p className="text-[11px] font-bold text-slate-400 px-2 mb-1">أدوات المنصة البيداغوجية</p>
+                  
+                  <button 
+                    onClick={() => {
+                      setStep('dashboard');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      step === 'dashboard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Layout size={16} />
+                    <span>فضاء الأستاذ (الرئيسية)</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setStep('form');
+                      setFormStep(1);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      step === 'form' ? 'bg-indigo-600 text-white shadow-xs' : 'text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100'
+                    }`}
+                  >
+                    <Plus size={16} />
+                    <span>توليد جذاذة جديدة 📝</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setStep('presentation');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      step === 'presentation' ? 'bg-teal-600 text-white shadow-xs' : 'text-teal-700 bg-teal-50/70 hover:bg-teal-100'
+                    }`}
+                  >
+                    <PresentationIcon size={16} />
+                    <span>عروض PPT التفاعلية 📊</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setStep('exam-generator');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      step === 'exam-generator' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 bg-emerald-50/70 hover:bg-emerald-100'
+                    }`}
+                  >
+                    <FileCheck2 size={16} />
+                    <span>توليد الامتحانات والفروض 📋</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setStep('lesson-summary');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      step === 'lesson-summary' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-800 bg-amber-50/70 hover:bg-amber-100'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    <span>ملخصات وخطاطات الدروس 📖</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setStep('rayada');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      step === 'rayada' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-amber-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    <Sparkles size={16} className="text-amber-500" />
+                    <span>إعداديات الريادة 🌟</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setStep('diagnostic');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      step === 'diagnostic' ? 'bg-indigo-600 text-white shadow-xs' : 'text-indigo-700 hover:bg-indigo-50'
+                    }`}
+                  >
+                    <ClipboardCheck size={16} />
+                    <span>التقويم التشخيصي والدعم 🩺</span>
+                  </button>
+                </div>
+
+                {/* Account & Settings Options */}
+                <div className="space-y-1 pt-3 border-t border-slate-100">
+                  <p className="text-[11px] font-bold text-slate-400 px-2 mb-1">الحساب والاشتراك</p>
+
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowPricingModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100"
+                  >
+                    <Sparkles size={16} className="text-amber-600" />
+                    <span>باقات الاشتراك والأسعار</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowPremiumModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Award size={16} className="text-indigo-600" />
+                    <span>تفعيل كود الوصول</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowKeyHelp(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Settings size={16} className="text-slate-500" />
+                    <span>إعدادات المفتاح (API Key)</span>
+                  </button>
+
+                  {isAdmin && (
+                    <button 
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setShowAdminPanel(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100"
+                    >
+                      <ShieldCheck size={16} className="text-amber-600" />
+                      <span>لوحة تحكم الإدارة</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Actions */}
+              <div className="pt-4 border-t border-slate-100">
+                {user ? (
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                  >
+                    <LogOut size={16} />
+                    <span>تسجيل الخروج</span>
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogin();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-xs"
+                  >
+                    <LogIn size={16} />
+                    <span>تسجيل دخول الأستاذ</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Main Container */}
       <main className="max-w-6xl mx-auto px-4 py-6 w-full flex-1">
@@ -1078,7 +1364,7 @@ function JadhaApp() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   {/* Tool 1: Lesson Plans */}
                   <div className="bg-white p-5 rounded-3xl border border-indigo-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden">
                     <div className="space-y-3">
@@ -1305,6 +1591,53 @@ function JadhaApp() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Tool 6: PowerPoint Presentations */}
+                  <div className="bg-gradient-to-b from-teal-50/60 via-white to-emerald-50/30 p-5 rounded-3xl border-2 border-teal-200 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-teal-400 transition-all group relative overflow-hidden">
+                    <div className="absolute top-2 left-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                      جديد 📊
+                    </div>
+                    <div className="space-y-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-200 group-hover:scale-105 transition-transform">
+                        <PresentationIcon size={22} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-teal-800 bg-teal-100 px-2.5 py-0.5 rounded-md border border-teal-200">
+                          عروض رقمية تفاعلية 16:9
+                        </span>
+                        <h3 className="text-base font-black text-slate-900 pt-1">عروض PowerPoint</h3>
+                      </div>
+                      <p className="text-slate-600 text-xs leading-relaxed">
+                        توليد وتصدير عروض تقديمية PPTX للدروس متضمنة الأهداف، التمهيد، الدعامات، والتقويمات.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
+                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-teal-600 shrink-0" />
+                          <span>تحميل ملف .pptx للتعديل</span>
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle size={13} className="text-teal-600 shrink-0" />
+                          <span>وضع العرض التفاعلي الكامل</span>
+                        </li>
+                      </ul>
+                      <button 
+                        onClick={() => {
+                          if (user) {
+                            setStep('presentation');
+                          } else {
+                            handleLogin();
+                          }
+                        }}
+                        className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Sparkles size={14} />
+                        <span>توليد عرض PPT</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1442,7 +1775,7 @@ function JadhaApp() {
                   <span className="text-xs text-slate-500 font-medium">اختر الأداة للبدء فوراً</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   {/* Tool 1: Lesson Plan */}
                   <div className="bg-gradient-to-br from-indigo-50/80 via-white to-indigo-50/30 p-5 rounded-3xl border border-indigo-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                     <div className="space-y-2">
@@ -1573,6 +1906,32 @@ function JadhaApp() {
                     >
                       <Sparkles size={15} />
                       <span>إعداد ملخص</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 6: PowerPoint Presentations */}
+                  <div className="bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/30 p-5 rounded-3xl border-2 border-teal-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-teal-400 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-2xl shadow-xs">
+                          <PresentationIcon size={20} />
+                        </div>
+                        <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-full border border-teal-200">
+                          عروض PPT 📊
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">عروض PowerPoint</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        توليد عروض 16:9 تفاعلية مع أنشطة ودعامات وتحميل .pptx.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setStep('presentation')}
+                      className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <Sparkles size={15} />
+                      <span>توليد عرض PPT</span>
                     </button>
                   </div>
                 </div>
@@ -2273,6 +2632,18 @@ function JadhaApp() {
               exit={{ opacity: 0, y: -10 }}
             >
               <ExamGenerator />
+            </motion.div>
+          )}
+
+          {/* POWERPOINT PRESENTATIONS STEP */}
+          {step === 'presentation' && (
+            <motion.div
+              key="presentation"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <PresentationGenerator />
             </motion.div>
           )}
         </AnimatePresence>

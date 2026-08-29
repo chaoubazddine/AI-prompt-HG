@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import { 
   LessonSetupData, 
   TeacherVision, 
@@ -17,40 +16,9 @@ import {
 import { KnowledgeRetrievalService } from './knowledgeBase/retrievalService';
 import { LessonPlanQualityEvaluator } from './knowledgeBase/qualityEvaluator';
 import { safeJsonParse } from '../utils/jsonCleaner';
+import { generateAIContent } from './aiClient';
 
-const getGenAIClient = (): GoogleGenAI => {
-  const manualKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_key') : null;
-  const apiKey = manualKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
 
-  if (!apiKey || apiKey === "YOUR_API_KEY" || apiKey.trim() === "" || apiKey.includes("TODO")) {
-    throw new Error("مفتاح API غير صالح أو مفقود. يرجى التأكد من ضبط المفتاح في الإعدادات.");
-  }
-
-  return new GoogleGenAI({ apiKey });
-};
-
-const generateWithModelFallback = async (ai: GoogleGenAI, prompt: string): Promise<string> => {
-  const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest'];
-  let lastError: any = null;
-
-  for (const modelName of modelsToTry) {
-    try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
-      });
-      if (response.text) return response.text;
-    } catch (e) {
-      console.warn(`Model ${modelName} failed or unavailable, trying fallback model...`, e);
-      lastError = e;
-    }
-  }
-
-  throw lastError || new Error('تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.');
-};
 
 /**
  * Stage 1 & 2: Generate Didactic Concept Proposal (التصور الديداكتيكي المقترح)
@@ -218,8 +186,11 @@ ${curriculumBlock || 'الاعتماد على المرجعية التربوية 
 }
 `;
 
-  const ai = getGenAIClient();
-  const rawText = await generateWithModelFallback(ai, prompt);
+  const rawText = await generateAIContent({
+    prompt,
+    responseMimeType: 'application/json',
+    preferredModel: 'gemini-3.6-flash',
+  });
   const concept = safeJsonParse<DidacticConcept>(rawText);
 
   concept.id = `concept-${Date.now()}`;
@@ -273,8 +244,11 @@ ${JSON.stringify(concept, null, 2)}
 أرجع كائن JSON حصرياً مطابقاً لنفس هيكل DidacticConcept دون تغيير الحقول.
 `;
 
-  const ai = getGenAIClient();
-  const rawText = await generateWithModelFallback(ai, prompt);
+  const rawText = await generateAIContent({
+    prompt,
+    responseMimeType: 'application/json',
+    preferredModel: 'gemini-3.6-flash',
+  });
   const updated = safeJsonParse<DidacticConcept>(rawText);
 
   updated.qualityAssessment = LessonPlanQualityEvaluator.evaluateConcept(updated, {
@@ -459,8 +433,11 @@ ${JSON.stringify(concept, null, 2)}
 }
 `;
 
-  const ai = getGenAIClient();
-  const rawText = await generateWithModelFallback(ai, prompt);
+  const rawText = await generateAIContent({
+    prompt,
+    responseMimeType: 'application/json',
+    preferredModel: 'gemini-3.6-flash',
+  });
   const plan = safeJsonParse<StructuredLessonPlan>(rawText);
 
   plan.id = `plan-${Date.now()}`;
@@ -549,8 +526,11 @@ ${JSON.stringify(currentValue, null, 2)}
 }
 `;
 
-  const ai = getGenAIClient();
-  const rawText = await generateWithModelFallback(ai, prompt);
+  const rawText = await generateAIContent({
+    prompt,
+    responseMimeType: 'application/json',
+    preferredModel: 'gemini-3.6-flash',
+  });
 
   const parsed = safeJsonParse(rawText);
   return parsed.proposedValue;
@@ -581,8 +561,11 @@ ${JSON.stringify(currentPlan, null, 2)}
 }
 `;
 
-  const ai = getGenAIClient();
-  const rawText = await generateWithModelFallback(ai, prompt);
+  const rawText = await generateAIContent({
+    prompt,
+    responseMimeType: 'application/json',
+    preferredModel: 'gemini-3.6-flash',
+  });
 
   const parsed = safeJsonParse(rawText);
   return {

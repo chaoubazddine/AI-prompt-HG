@@ -1,15 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
 import { RayadaJadhaData, RayadaExamData, RayadaTarlTest } from "../types/rayada";
 import { safeJsonParse } from "../utils/jsonCleaner";
-
-const getApiKey = (): string => {
-  const manualKey = typeof window !== 'undefined' ? localStorage.getItem('user_gemini_key') : null;
-  const apiKey = manualKey || process.env.API_KEY || process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "YOUR_API_KEY" || apiKey.trim() === "" || apiKey.includes("TODO")) {
-    throw new Error("مفتاح API غير صالح أو مفقود. يرجى الضغط على زر 'تفعيل المفتاح' في الأعلى.");
-  }
-  return apiKey;
-};
+import { generateAIContent } from "./aiClient";
 
 /**
  * توليد جذاذة وفق نموذج "التدريس الصريح" المعتمد في إعداديات الريادة بالمغرب
@@ -21,9 +12,6 @@ export const generateRayadaJadha = async (
   textbook: string = "كراسة الأنشطة لريادة الاجتماعيات + الكتاب المدرسي",
   term: 'الدورة الأولى' | 'الدورة الثانية' = 'الدورة الأولى'
 ): Promise<RayadaJadhaData> => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
-
   const prompt = `
 أنت خبير بيداغوجي ومفتش تربوي متخصص في منهاج "إعداديات الريادة (Collèges Pionniers)" ومقاربة "التدريس الصريح (Enseignement Explicite)" في مادة الاجتماعيات بالتعليم الثانوي الإعدادي بالمملكة المغربية.
 
@@ -146,33 +134,21 @@ export const generateRayadaJadha = async (
 }
 `;
 
-  const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest'];
-  let lastErr: any = null;
+  const responseText = await generateAIContent({
+    prompt,
+    responseMimeType: "application/json",
+    temperature: 0.2,
+    preferredModel: "gemini-3.6-flash",
+  });
 
-  for (const modelName of modelsToTry) {
-    try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-      });
-
-      if (response.text) {
-        const parsed = safeJsonParse<RayadaJadhaData>(response.text);
-        if (parsed && parsed.title && parsed.steps && parsed.steps.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (err: any) {
-      console.warn(`Attempt with ${modelName} failed:`, err);
-      lastErr = err;
+  if (responseText) {
+    const parsed = safeJsonParse<RayadaJadhaData>(responseText);
+    if (parsed && parsed.title && parsed.steps && parsed.steps.length > 0) {
+      return parsed;
     }
   }
 
-  throw new Error(`فشل توليد جذاذة الريادة: ${lastErr?.message || "يرجى المحاولة مرة أخرى."}`);
+  throw new Error("فشل توليد جذاذة الريادة: يرجى المحاولة مرة أخرى.");
 };
 
 /**
@@ -199,9 +175,6 @@ export const generateRayadaExam = async (
     directorate?: string;
   }
 ): Promise<RayadaExamData> => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
-
   const lessonsText = selectedLessons.length > 0 ? selectedLessons.join("، ") : "دروس الدورة الرسمية المقررة لمؤسسات الريادة";
 
   const prompt = `
@@ -389,36 +362,24 @@ export const generateRayadaExam = async (
 }
 `;
 
-  const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest'];
-  let lastErr: any = null;
+  const responseText = await generateAIContent({
+    prompt,
+    responseMimeType: "application/json",
+    temperature: 0.2,
+    preferredModel: "gemini-3.6-flash",
+  });
 
-  for (const modelName of modelsToTry) {
-    try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-      });
-
-      if (response.text) {
-        const parsed = safeJsonParse<RayadaExamData>(response.text);
-        if (parsed && parsed.situation1 && parsed.situation2 && parsed.situation3) {
-          if (teacherInfo) {
-            parsed.teacherInfo = teacherInfo;
-          }
-          return parsed;
-        }
+  if (responseText) {
+    const parsed = safeJsonParse<RayadaExamData>(responseText);
+    if (parsed && parsed.situation1 && parsed.situation2 && parsed.situation3) {
+      if (teacherInfo) {
+        parsed.teacherInfo = teacherInfo;
       }
-    } catch (err: any) {
-      console.warn(`Exam generation with ${modelName} failed:`, err);
-      lastErr = err;
+      return parsed;
     }
   }
 
-  throw new Error(`فشل توليد فرض الريادة: ${lastErr?.message || "يرجى المحاولة مرة أخرى."}`);
+  throw new Error("فشل توليد فرض الريادة: يرجى المحاولة مرة أخرى.");
 };
 
 /**
@@ -429,9 +390,6 @@ export const generateRayadaTarlDiagnostic = async (
   subject: 'التاريخ' | 'الجغرافيا' | 'التربية على المواطنة' = 'التاريخ',
   domain: string = "قراءة الوثائق وتوطين المعطيات الجغرافية والتاريخية"
 ): Promise<RayadaTarlTest> => {
-  const apiKey = getApiKey();
-  const ai = new GoogleGenAI({ apiKey });
-
   const prompt = `
 أنت خبير في تطبيق مقاربة TaRL (Teaching at the Right Level) المعتمدة بمؤسسات وإعداديات الريادة بالمغرب في مادة الاجتماعيات.
 مهمتك إعداد "رائز موضعة تشخيصي لمهارات الاجتماعيات (Test de Positionnement TaRL)" لمستوى: "${level}"، في مكون: "${subject}"، مجال: "${domain}".
@@ -492,31 +450,19 @@ export const generateRayadaTarlDiagnostic = async (
 }
 `;
 
-  const modelsToTry = ['gemini-3.6-flash', 'gemini-3.1-pro-preview'];
-  let lastErr: any = null;
+  const responseText = await generateAIContent({
+    prompt,
+    responseMimeType: "application/json",
+    temperature: 0.2,
+    preferredModel: "gemini-3.6-flash",
+  });
 
-  for (const modelName of modelsToTry) {
-    try {
-      const response = await ai.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-      });
-
-      if (response.text) {
-        const parsed = safeJsonParse<RayadaTarlTest>(response.text);
-        if (parsed && parsed.diagnosticLevels && parsed.diagnosticLevels.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (err: any) {
-      console.warn(`TaRL test generation with ${modelName} failed:`, err);
-      lastErr = err;
+  if (responseText) {
+    const parsed = safeJsonParse<RayadaTarlTest>(responseText);
+    if (parsed && parsed.diagnosticLevels && parsed.diagnosticLevels.length > 0) {
+      return parsed;
     }
   }
 
-  throw new Error(`فشل توليد رائز TaRL: ${lastErr?.message || "يرجى المحاولة مرة أخرى."}`);
+  throw new Error("فشل توليد رائز TaRL: يرجى المحاولة مرة أخرى.");
 };
