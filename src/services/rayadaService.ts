@@ -5,6 +5,394 @@ import { generateAIContent } from "./aiClient";
 /**
  * توليد جذاذة وفق نموذج "التدريس الصريح" المعتمد في إعداديات الريادة بالمغرب
  */
+export const generateFallbackRayadaJadha = (
+  lessonTitle: string,
+  level: string = "الأولى إعدادي",
+  subject: 'التاريخ' | 'الجغرافيا' | 'التربية على المواطنة' = 'التاريخ',
+  textbook: string = "كراسة الأنشطة لريادة الاجتماعيات + الكتاب المدرسي",
+  term: 'الدورة الأولى' | 'الدورة الثانية' = 'الدورة الأولى'
+): RayadaJadhaData => {
+  return {
+    title: lessonTitle,
+    level,
+    subject,
+    term,
+    duration: "ساعتان (حصتان)",
+    academicYear: "2025/2026",
+    references: textbook,
+    targetCompetency: `التمكن من خطوات النهج الديداكتيكي لمكون ${subject} وبناء المفاهيم واستثمار الوثائق المعيارية.`,
+    explicitObjectives: [
+      `التعرف على المفاهيم والوقائع الأساسية المرتبطة بدرس "${lessonTitle}".`,
+      `تطبيق خطوات النهج (الوصف، التفسير، والتركيب) على الوثائق والدعامات.`,
+      `استخلاص النتائج وصياغة خلاصات تركيبية في كراسة الأنشطة والدفتر.`
+    ],
+    pedagogicalTools: {
+      digitalSupport: "المسلاط الضوئي والعرض الرقمي التفاعلي لكراسة الريادة",
+      individualTools: "الألواح الفردية، كراسة أنشطة الريادة، الدفتر، الأقلام الملونة",
+      didacticMaterials: "خرائط جغرافية، نصوص تاريخية، جداول إحصائية، خطوط زمنية"
+    },
+    reactivation: {
+      duration: "5 دقائق",
+      questions: [
+        "ما هي أهم المكتسبات التي توصلنا إليها في الدرس السابق؟",
+        "حدد المفهوم المركزي المرتبط بهذا المحور."
+      ],
+      activationMechanism: "رفع الألواح الفردية لتأكيد استيعاب المكتسبات القبلية",
+      expectedAnswers: [
+        "استحضار المفاهيم والأحداث المحورية للدرس السابق",
+        "الإجابة المباشرة المحددة"
+      ],
+      linkToNewLesson: `الربط بين المكتسبات القبلية وموضوع الدرس الجديد: "${lessonTitle}"`
+    },
+    explicitGoalStatement: `في نهاية حصتنا اليوم، ستكونون قادرين على فهم وتفسير أبعاد "${lessonTitle}" واستثمار الدعامات المرافقة بدقة.`,
+    steps: [
+      {
+        title: `المقطع الأول: تشخيص وتحديد الإطار العام لـ (${lessonTitle})`,
+        targetSkill: "تحديد المفاهيم واستقراء المعطيات من الدعامة",
+        document: {
+          title: `وثيقة مؤطرة لـ ${lessonTitle}`,
+          type: subject === 'الجغرافيا' ? 'خريطة' : 'نص تاريخي',
+          reference: "الوثيقة 1 ص. كراسة الريادة",
+          contentSnippet: `مقتطف يبرز المفاهيم الأساسية والأبعاد الرئيسية لـ ${lessonTitle}.`
+        },
+        modelage: {
+          teacherSpeech: "أنا الآن سأريكم كيف نقوم باستقراء الوثيقة: أبدأ أولاً بقراءة العنوان ثم المفتاح واستخراج الفكرة الأساسية...",
+          demonstrationSteps: [
+            "الخطوة الأولى: تحديد موضوع الوثيقة وإطارها العام",
+            "الخطوة الثانية: تفكيك المعطيات الأساسية ورصد المؤشرات",
+            "الخطوة الثالثة: استخلاص النتيجة والتعليل المنطقي"
+          ],
+          workedExample: "نموذج محلول يوضح استخراج الفكرة الأساسية وتصنيف المعطيات بدقة."
+        },
+        guidedPractice: {
+          studentTask: "الآن سنقوم معاً بتطبيق نفس الخطوات على الوثيقة المجاورة وتدوين الإجابات على الألواح.",
+          collaborationType: "عمل تفاعلي جماعي بالألواح",
+          checkpoints: [
+            "هل تم تحديد موضوع الوثيقة بشكل صحيح؟",
+            "هل تم استخراج المعطى المطلوب بدقة؟"
+          ],
+          feedbackProtocol: "في حال وجود خطأ في الألواح، يعيد الأستاذ توجيه الانتباه إلى الكلمات المفاتيح فوراً."
+        },
+        independentPractice: {
+          taskDescription: "أنجزوا فردياً في كراسة الأنشطة النشاط التطبيقي المحدد.",
+          successCriteria: "الإجابة الصحيحة وتحديد العناصر بدقة وفي الوقت المحدد.",
+          timeAllocation: "6 دقائق"
+        },
+        synthesis: {
+          keyTakeaway: `خلاصة المقطع الأول: تحديد المعالم والمفاهيم المحورية لـ ${lessonTitle}.`,
+          coreConcepts: ["المفهوم الأول", "المفهوم الثاني"]
+        }
+      },
+      {
+        title: `المقطع الثاني: التحليل والتفسير واستخلاص النتائج`,
+        targetSkill: "التفسير والربط بين الأسباب والنتائج",
+        document: {
+          title: "جدول / نص تحليلي",
+          type: "دعامة تفسيرية",
+          reference: "الوثيقة 2 ص. كراسة الريادة",
+          contentSnippet: "معطيات تفسيرية حول العوامل والآثار المترتبة."
+        },
+        modelage: {
+          teacherSpeech: "أنا الآن سأريكم كيف نعلل ونفسر الظاهرة بربط الأسباب بالنتائج...",
+          demonstrationSteps: [
+            "تحديد عناصر المقارنة والتفسير",
+            "تصنيف العوامل المتدخلة",
+            "استنتاج الأثر والامتداد"
+          ],
+          workedExample: "تحليل نموذجي يبرز ترتيب العوامل من الأكثر تأثيراً إلى الأقل."
+        },
+        guidedPractice: {
+          studentTask: "تطبيق خطوات التفسير على وضعية مقارنة في مجموعات ثنائية.",
+          collaborationType: "عمل ثنائي",
+          checkpoints: ["التفسير السليم", "الاستدلال بالحجج"],
+          feedbackProtocol: "تصحيح فوري وتغذية راجعة بناءة."
+        },
+        independentPractice: {
+          taskDescription: "كتابة فقرة تفسيرية موجزة في الدفتر.",
+          successCriteria: "سلامة اللغة والترتيب المنطقي للأفكار.",
+          timeAllocation: "7 دقائق"
+        },
+        synthesis: {
+          keyTakeaway: "خلاصة المقطع الثاني: رصد وتفسير مجموع العوامل والمؤشرات الموجهة للموضوع.",
+          coreConcepts: ["عامل التفسير", "الأثر والنتيجة"]
+        }
+      }
+    ],
+    closure: {
+      duration: "5 دقائق",
+      bilanQuestion: `سؤال تذكرة الخروج: استخلص في جملة واحدة الأهمية المركزية لدرس "${lessonTitle}".`,
+      exitTicketTechnique: "كتابة الجواب على اللوحة الفردية ورفعها في وقت واحد",
+      successThreshold: "تحكم ما لا يقل عن 80% من المتعلمين"
+    },
+    remediationHints: {
+      commonMisconceptions: ["الخلط بين المفاهيم والمؤشرات الدالة"],
+      immediateFix: "إعادة التذكير بالقاعدة المميزة بأمثلة ملموسة"
+    }
+  };
+};
+
+export const generateFallbackRayadaExam = (
+  level: string = "الأولى إعدادي",
+  term: 'الدورة الأولى' | 'الدورة الثانية' = 'الدورة الأولى',
+  examTitle: string = "الفرض الكتابي المحروس رقم 1 - إعداديات الريادة",
+  selectedLessons: string[] = [],
+  situationComponents: {
+    situation1: 'التاريخ' | 'الجغرافيا' | 'التربية على المواطنة';
+    situation2: 'التاريخ' | 'الجغرافيا' | 'التربية على المواطنة';
+    situation3: 'التاريخ' | 'الجغرافيا' | 'التربية على المواطنة';
+  } = {
+    situation1: 'التربية على المواطنة',
+    situation2: 'التاريخ',
+    situation3: 'الجغرافيا'
+  },
+  teacherInfo?: {
+    teacherName?: string;
+    schoolName?: string;
+    academy?: string;
+    directorate?: string;
+  }
+): RayadaExamData => {
+  return {
+    title: examTitle,
+    level,
+    term,
+    duration: "ساعة واحدة",
+    academicYear: "2025/2026",
+    lessonsIncluded: selectedLessons.length > 0 ? selectedLessons : ["دروس الدورة الرسمية المقررة لمؤسسات الريادة"],
+    teacherInfo: {
+      teacherName: teacherInfo?.teacherName || "أستاذ المادة",
+      schoolName: teacherInfo?.schoolName || "المؤسسة التعليمية",
+      academy: teacherInfo?.academy || "الأكاديمية الجهوية للتربية والتكوين",
+      directorate: teacherInfo?.directorate || "المديرية الإقليمية"
+    },
+    situation1: {
+      component: situationComponents.situation1,
+      title: `I. مكون ${situationComponents.situation1}: أسئلة المفاهيم والتطبيقات الموضوعية (6 نقط)`,
+      totalPoints: 6,
+      tasks: [
+        {
+          type: "شرح مفاهيم",
+          question: "عرّف بدقة المصطلحات والمفاهيم الأساسية المقررة.",
+          points: 2
+        },
+        {
+          type: "صحيح/خطأ مع التعليل",
+          question: "أجب بـ (صحيح) أو (خطأ) مع تصحيح العبارة الخاطئة إن وجدت.",
+          points: 2
+        },
+        {
+          type: "ملء فراغات أو جدول",
+          question: "صنف العناصر المعطاة في جدول ملائم وفق معايير التصنيف المحددة.",
+          points: 2
+        }
+      ]
+    },
+    situation2: {
+      component: situationComponents.situation2,
+      title: `II. مكون ${situationComponents.situation2}: الاشتغال على وثيقة (7 نقط)`,
+      totalPoints: 7,
+      document: {
+        title: `وثيقة منطلق لمكون ${situationComponents.situation2}`,
+        docType: situationComponents.situation2 === 'الجغرافيا' ? 'خريطة' : 'نص تاريخي',
+        source: "كراسة الريادة / الكتاب المدرسي المعتمد",
+        content: `نص ودعامة ديداكتيكية تتناول المعالم الأساسية للموضوع وتقدم معطيات ومؤشرات كافية للإجابة عن الأسئلة المتدرجة.`
+      },
+      questions: [
+        {
+          questionNumber: 1,
+          questionText: "حدد نوع الوثيقة ومصدرها وسياقها العام.",
+          skillTarget: "تأطير الوثيقة واستخراج الهوية المنهجية",
+          points: 1.5
+        },
+        {
+          questionNumber: 2,
+          questionText: "استخرج من الوثيقة المعطيات والمؤشرات الأساسية المحددة في السؤال.",
+          skillTarget: "الاستخراج المباشر للمعطيات من الدعامة",
+          points: 2
+        },
+        {
+          questionNumber: 3,
+          questionText: "فسر الظاهرة أو الحدث الوارد في الوثيقة مبيناً الأسباب والعوامل المفسرة.",
+          skillTarget: "التفسير والتعليل العلمي",
+          points: 2
+        },
+        {
+          questionNumber: 4,
+          questionText: "استخلص الفكرة الأساسية أو النتيجة المركبة التي تنتهي إليها الوثيقة.",
+          skillTarget: "التركيب والاستنتاج",
+          points: 1.5
+        }
+      ]
+    },
+    situation3: {
+      component: situationComponents.situation3,
+      title: `III. مكون ${situationComponents.situation3}: سؤال إنتاجي / تحرير فقرة موجهة (7 نقط)`,
+      totalPoints: 7,
+      contextText: `يشكل موضوع ${situationComponents.situation3} محطة أساسية لاستثمار المعارف والمهارات المكتسبة وتوظيفها في معالجة إشكالية ذات راهنية.`,
+      guidelines: [
+        "تحديد الإطار العام للموضوع في مقدمة مناسبة وطرح التساؤل الموجه.",
+        "معالجة المحاور المطلوبة في العرض بترتيب منطقي واستعمال سليم للمفاهيم.",
+        "صياغة خاتمة تبرز استنتاجاً عاماً أو موقفاً معللاً."
+      ],
+      formatRequirement: "مقدمة وعرض وخاتمة مع سلامة اللغة ووضوح الخط (نقطتان للجانب الشكلي والمنهجي + 5 نقط للمضامين)"
+    },
+    answerKey: {
+      situation1Answers: [
+        {
+          question: "شرح المفاهيم",
+          answer: "تعريف شامل ومضبوط للمفاهيم وفق التوجيهات الرسمية لكراسة الريادة.",
+          points: 2
+        },
+        {
+          question: "صحيح / خطأ مع التعليل",
+          answer: "تحديد الإجابات الصحيحة والخاطئة مع التصحيح الدقيق والتعليل السليم.",
+          points: 2
+        },
+        {
+          question: "ملء الجدول",
+          answer: "تعبئة الجدول بالعناصر المصنفة وفق المعايير بدقة تامة.",
+          points: 2
+        }
+      ],
+      situation2Answers: [
+        {
+          questionNumber: 1,
+          answer: "تحديد سليم للنوع والمصدر والسياق العام للوثيقة.",
+          points: 1.5
+        },
+        {
+          questionNumber: 2,
+          answer: "استخراج المؤشرات والمعطيات من النص/الدعامة كما هي واردة.",
+          points: 2
+        },
+        {
+          questionNumber: 3,
+          answer: "تفسير متكامل يربط بين العوامل المتدخلة والظاهرة المعالجة.",
+          points: 2
+        },
+        {
+          questionNumber: 4,
+          answer: "استخلاص الفكرة المركبة في عبارة دقيقة ومركزة.",
+          points: 1.5
+        }
+      ],
+      situation3AnswerGuide: {
+        methodologicalPoints: 2,
+        methodologicalNotes: "مقدمة ملائمة (0.5ن) + وضوح التصميم والربط (1ن) + خاتمة مناسبة (0.5ن)",
+        knowledgeContent: [
+          "تغطية كافة العناصر المطلوبة في نص الموضوع بدقة واستعمال سليم للمفاهيم",
+          "سلامة التعبير والربط المنطقي بين الأفكار"
+        ],
+        totalPoints: 7
+      }
+    },
+    rubric: [
+      {
+        criterion: "معيار الملاءمة",
+        subSkill: "فهم التعليمات وتغطية عناصر الموضوع",
+        maxPoints: 4,
+        masteryIndicators: {
+          acquired: "إنجاز كافة المهام المطلوبة بدقة والتزام تام بالموضوع",
+          inProgress: "إنجاز جزئي للمهام مع بعض الاستطراد أو النقص",
+          notAcquired: "خروج عن الموضوع أو عدم إنجاز المهمة المطلوبة"
+        }
+      },
+      {
+        criterion: "الاستعمال السليم لأدوات المادة",
+        subSkill: "المفاهيم والنهج واستثمار الوثائق",
+        maxPoints: 10,
+        masteryIndicators: {
+          acquired: "توظيف دقيق للمفاهيم وخطوات النهج واستثمار الوثائق ببراعة",
+          inProgress: "توظيف جزئي للمفاهيم مع بعض الأخطاء في قراءة الوثائق",
+          notAcquired: "أخطاء مفاهيمية جسيمة وعجز عن استثمار الدعامات"
+        }
+      },
+      {
+        criterion: "معيار الانسجام والتركيب واللغة",
+        subSkill: "التنظيم والربط واللغة السليمة",
+        maxPoints: 6,
+        masteryIndicators: {
+          acquired: "لغة سليمة وتنظيم محكم وتسلسل منطقي واضح للأفكار",
+          inProgress: "لغة مقبولة مع بعض الصعوبات في الربط والتركيب",
+          notAcquired: "ضعف تركيبي ولغوي يعيق فهم الإجابة"
+        }
+      }
+    ],
+    remediationPlan: [
+      {
+        difficultyArea: "استقراء الوثائق واستخراج المعطيات",
+        observedDeficit: "صعوبة في تحديد واستخراج المعطيات من الوثيقة",
+        remedialActivity: "تطبيق خطوات القراءة الصريحة بالنمذجة والممارسة الموجهة على وثائق مماثلة",
+        activityFormat: "فردي مدعم"
+      },
+      {
+        difficultyArea: "الإنتاج الكتابي والتحرير المهيكل",
+        observedDeficit: "خلط في كتابة الفقرة وغياب الربط المنطقي",
+        remedialActivity: "استعمال شبكة معيارية للتحرير والتدرب على روابط السببية والاستنتاج",
+        activityFormat: "ورشة علاجية مصغرة"
+      }
+    ]
+  };
+};
+
+export const generateFallbackRayadaTarl = (
+  level: string = "الأولى إعدادي",
+  subject: 'التاريخ' | 'الجغرافيا' | 'التربية على المواطنة' = 'التاريخ',
+  domain: string = "قراءة الوثائق وتوطين المعطيات الجغرافية والتاريخية"
+): RayadaTarlTest => {
+  return {
+    level,
+    subject,
+    domain,
+    diagnosticLevels: [
+      {
+        levelName: "مبتدئ (Debutant)",
+        testItem: "التعرف على نوع الوثيقة (خريطة، نص، جدول) والتمييز بين عناصرها الأساسية.",
+        instruction: "يطلب الأستاذ من التلميذ الإشارة إلى عنوان الوثيقة ومفتاحها.",
+        passCriteria: "تسمية نوع الوثيقة وتحديد عنصرين من عناصرها بنجاح."
+      },
+      {
+        levelName: "كلمة/مفهوم (Mot/Concept)",
+        testItem: "استخراج مصطلح أو كلمة مفتاحية من النص وشرح معناها البسيط.",
+        instruction: "اقرأ السطر المحدد واستخرج الكلمة الدالة على الموضوع.",
+        passCriteria: "استخراج المفهوم الصحيح في أقل من دقيقة."
+      },
+      {
+        levelName: "فقرة/تحليل (Paragraphe)",
+        testItem: "قراءة فقرة واستخراج السبب والنتيجة المباشرين.",
+        instruction: "اقرأ الفقرة واجب عن السؤال: لماذا حدث هذا الأمر؟",
+        passCriteria: "تحديد العلاقة السببية بشكل صحيح."
+      },
+      {
+        levelName: "قصة/تركيب متقدم (Avance)",
+        testItem: "إبداء رأي معلل أو صياغة استنتاج مركب من وثيقتين.",
+        instruction: "قارن بين المعطيين وصغ خلاصة موجزة في سطرين.",
+        passCriteria: "صياغة استنتاج تركيبي دقيق ومتماسك."
+      }
+    ],
+    levelingGrid: [
+      {
+        studentProfile: "فئة غير المتمكنين من المفاهيم الأساسية (مستوى مبتدئ)",
+        identifiedNeed: "صعوبة في تمييز المفاهيم والمصطلحات المرجعية",
+        targetedIntervention: "حصص دعم مبنية على ألعاب المفاهيم والبطاقات المصورة والألواح"
+      },
+      {
+        studentProfile: "فئة المتعثرين في استقراء الوثائق (مستوى كلمة/فقرة)",
+        identifiedNeed: "عدم القدرة على قراءة الخريطة أو الخط الزمني بدقة",
+        targetedIntervention: "ورشات تطبيقية لخطوات القراءة الصريحة خطوة بخطوة"
+      },
+      {
+        studentProfile: "فئة المتحكمين جزئياً في التحرير والتركيب (مستوى متقدم)",
+        identifiedNeed: "ضعف الربط المنطقي بين الأفكار في التعبير الكتابي",
+        targetedIntervention: "تمارين النمذجة الموجهة لروابط السببية والتعليل وصياغة الخلاصات"
+      }
+    ]
+  };
+};
+
+/**
+ * توليد جذاذة وفق نموذج "التدريس الصريح" المعتمد في إعداديات الريادة بالمغرب
+ */
 export const generateRayadaJadha = async (
   lessonTitle: string,
   level: string = "الأولى إعدادي",
@@ -134,21 +522,25 @@ export const generateRayadaJadha = async (
 }
 `;
 
-  const responseText = await generateAIContent({
-    prompt,
-    responseMimeType: "application/json",
-    temperature: 0.2,
-    preferredModel: "gemini-3.6-flash",
-  });
+  try {
+    const responseText = await generateAIContent({
+      prompt,
+      responseMimeType: "application/json",
+      temperature: 0.2,
+      preferredModel: "gemini-3.7-flash",
+    });
 
-  if (responseText) {
-    const parsed = safeJsonParse<RayadaJadhaData>(responseText);
-    if (parsed && parsed.title && parsed.steps && parsed.steps.length > 0) {
-      return parsed;
+    if (responseText) {
+      const parsed = safeJsonParse<RayadaJadhaData>(responseText);
+      if (parsed && parsed.title && parsed.steps && parsed.steps.length > 0) {
+        return parsed;
+      }
     }
+  } catch (error) {
+    console.warn("generateRayadaJadha error, fallback triggered:", error);
   }
 
-  throw new Error("فشل توليد جذاذة الريادة: يرجى المحاولة مرة أخرى.");
+  return generateFallbackRayadaJadha(lessonTitle, level, subject, textbook, term);
 };
 
 /**
@@ -366,20 +758,38 @@ export const generateRayadaExam = async (
     prompt,
     responseMimeType: "application/json",
     temperature: 0.2,
-    preferredModel: "gemini-3.6-flash",
+    preferredModel: "gemini-3.7-flash",
   });
 
-  if (responseText) {
-    const parsed = safeJsonParse<RayadaExamData>(responseText);
-    if (parsed && parsed.situation1 && parsed.situation2 && parsed.situation3) {
-      if (teacherInfo) {
-        parsed.teacherInfo = teacherInfo;
+  try {
+    const responseText = await generateAIContent({
+      prompt,
+      responseMimeType: "application/json",
+      temperature: 0.2,
+      preferredModel: "gemini-3.7-flash",
+    });
+
+    if (responseText) {
+      const parsed = safeJsonParse<RayadaExamData>(responseText);
+      if (parsed && parsed.situation1 && parsed.situation2 && parsed.situation3) {
+        if (teacherInfo) {
+          parsed.teacherInfo = teacherInfo;
+        }
+        return parsed;
       }
-      return parsed;
     }
+  } catch (error) {
+    console.warn("generateRayadaExam error, fallback triggered:", error);
   }
 
-  throw new Error("فشل توليد فرض الريادة: يرجى المحاولة مرة أخرى.");
+  return generateFallbackRayadaExam(
+    level,
+    term,
+    examTitle,
+    selectedLessons,
+    situationComponents,
+    teacherInfo
+  );
 };
 
 /**
@@ -450,19 +860,23 @@ export const generateRayadaTarlDiagnostic = async (
 }
 `;
 
-  const responseText = await generateAIContent({
-    prompt,
-    responseMimeType: "application/json",
-    temperature: 0.2,
-    preferredModel: "gemini-3.6-flash",
-  });
+  try {
+    const responseText = await generateAIContent({
+      prompt,
+      responseMimeType: "application/json",
+      temperature: 0.2,
+      preferredModel: "gemini-3.7-flash",
+    });
 
-  if (responseText) {
-    const parsed = safeJsonParse<RayadaTarlTest>(responseText);
-    if (parsed && parsed.diagnosticLevels && parsed.diagnosticLevels.length > 0) {
-      return parsed;
+    if (responseText) {
+      const parsed = safeJsonParse<RayadaTarlTest>(responseText);
+      if (parsed && parsed.diagnosticLevels && parsed.diagnosticLevels.length > 0) {
+        return parsed;
+      }
     }
+  } catch (error) {
+    console.warn("generateRayadaTarlDiagnostic error, fallback triggered:", error);
   }
 
-  throw new Error("فشل توليد رائز TaRL: يرجى المحاولة مرة أخرى.");
+  return generateFallbackRayadaTarl(level, subject, domain);
 };

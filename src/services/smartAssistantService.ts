@@ -20,11 +20,124 @@ import { generateAIContent } from './aiClient';
 
 
 
-/**
- * Stage 1 & 2: Generate Didactic Concept Proposal (التصور الديداكتيكي المقترح)
- * Precedes full lesson plan generation, providing deep pedagogical thinking,
- * subject-specific approach, grounded references, and decision rationales.
- */
+export const generateFallbackDidacticConcept = (
+  setup: LessonSetup,
+  choices: PedagogicalChoices,
+  profInfo: { name: string; school: string; academy: string; directorate: string; year: string }
+): DidacticConcept => {
+  const isHistory = setup.component === 'التاريخ';
+  const isGeo = setup.component === 'الجغرافيا';
+
+  return {
+    id: `concept-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    lessonTitle: setup.lessonTitle,
+    subject: setup.subject,
+    level: setup.level,
+    cycle: setup.cycle,
+    component: setup.component,
+    duration: setup.duration || 'ساعتان',
+    textbook: setup.textbook || 'الكتاب المدرسي المعتمد',
+    centralGoal: `تمكين المتعلم من استيعاب المفاهيم والمضامين الأساسية لدرس "${setup.lessonTitle}" وتطبيق مهارات النهج الديداكتيكي لمكون ${setup.component}.`,
+    prerequisites: [
+      `المكتسبات القبلية المرتبطة بـ ${setup.component} ومفاهيم السلك الدراسي`,
+      'القدرة المنهجية على قراءة واستثمار الوثائق والدعامات الديداكتيكية',
+      'مهارات التعبير والتحليل والربط بين الأسباب والنتائج'
+    ],
+    keyConcepts: [
+      {
+        term: setup.lessonTitle,
+        definition: `المفهوم المحوري المؤطر للدرس في منهاج مادة ${setup.component}.`
+      },
+      {
+        term: 'النهج الديداكتيكي',
+        definition: isHistory
+          ? 'النهج التاريخي المرتكز على التعريف والتفسير والتركيب.'
+          : isGeo
+          ? 'النهج الجغرافي المرتكز على الوصف والتفسير والتعميم.'
+          : 'النهج المواطني المرتكز على الاكتشاف ورد الفعل والفعل.'
+      }
+    ],
+    problematic: {
+      situation: `يشكل موضوع "${setup.lessonTitle}" محطة ديداكتيكية أساسية تثير إشكالية التفاعل بين العوامل والنتائج في سياق ${setup.component}.`,
+      mainQuestions: [
+        `ما هو السياق والإطار العام المؤطر لـ "${setup.lessonTitle}"؟`,
+        'ما هي أبرز العوامل والأسباب المفسرة لتطور الظاهرة؟',
+        'ما هي النتائج والامتدادات المترتبة عنها؟'
+      ],
+      justification: 'وضعية دالة تستنفر المكتسبات القبلية وتخلق دافعية للتعلم والبحث المنهجي.'
+    },
+    proposedResources: [
+      {
+        id: 'res-1',
+        title: `دعامة مؤطرة لـ (${setup.lessonTitle})`,
+        type: isGeo ? 'خريطة' : 'نص تاريخي',
+        source: setup.textbook || 'الكتاب المدرسي المعتمد',
+        description: 'دعامة انطلاق لبناء المفاهيم واستخراج المعطيات الأساسية.',
+        justification: 'ملاءمة الدعامة لمستوى المتعلمين ومطابقتها للتوجيهات الرسمية.'
+      }
+    ],
+    learningPhases: [
+      {
+        id: 'phase-1',
+        phaseTitle: `المقطع الأول: تشخيص وتحديد الإطار العام لـ (${setup.lessonTitle})`,
+        phaseGoal: 'تعريف الظاهرة وتوطينها الزمني والمجالي بدقة علمية',
+        duration: '25 دقيقة',
+        activities: [
+          {
+            id: 'act-1-1',
+            title: 'استكشاف المفاهيم الأساسية ومعالجة الدعامة المنطلق',
+            targetObjective: 'استقراء أولي وتحديد المفاهيم المهيكلة',
+            teacherRoleSummary: 'توجيه المتعلمين لقراءة الدعامة واستخراج المعطيات الأساسية ورصد المؤشرات الدالة.',
+            learnerRoleSummary: 'قراءة الوثيقة واستخراج الأفكار والمفاهيم وتدوين الملاحظات المركزية.',
+            keyQuestions: ['ما هو موضوع الوثيقة وسياقها العام؟', 'ما هي المؤشرات الأساسية المستخلصة؟'],
+            expectedOutput: `خلاصة المقطع الأول: تحديد المعالم الأساسية والمفاهيم المحورية لـ (${setup.lessonTitle}).`,
+            justification: 'تمكين المتعلم من بناء المفهوم ذاتياً من خلال دعامة ديداكتيكية مناسبة.'
+          }
+        ]
+      },
+      {
+        id: 'phase-2',
+        phaseTitle: `المقطع الثاني: التحليل والتفسير واستخلاص العوامل`,
+        phaseGoal: 'تحليل وتفسير أبعاد الظاهرة والعوامل المتدخلة فيها',
+        duration: '25 دقيقة',
+        activities: [
+          {
+            id: 'act-2-1',
+            title: 'تحليل العوامل وتصنيف المؤشرات السببية',
+            targetObjective: 'تطبيق خطوات التفسير والمقارنة',
+            teacherRoleSummary: 'طرح أسئلة مركبة تدفع المتعلمين إلى التفسير والمقارنة والربط بين الأسباب والنتائج.',
+            learnerRoleSummary: 'المشاركة الفعالة في الإجابة والتحليل وتصنيف العوامل بشكل منظم.',
+            keyQuestions: ['ما هي العوامل المفسرة للظاهرة؟', 'كيف تتفاعل هذه العوامل فيما بينها؟'],
+            expectedOutput: 'خلاصة المقطع الثاني: رصد وتفسير مجموع العوامل والمؤشرات الموجهة للموضوع.',
+            justification: 'إعمال الفكر النقدي وتدريب المتعلمين على التحليل السببي.'
+          }
+        ]
+      }
+    ],
+    formativeEvaluation: [
+      `بين المفاهيم الأساسية التي تم تناولها في المقطع الأول من درس "${setup.lessonTitle}".`,
+      'فسر أهم العوامل المفسرة للظاهرة ورتبها حسب الأهمية.'
+    ],
+    finalEvaluation: [
+      `عرف بالمفاهيم المركزية لدرس "${setup.lessonTitle}".`,
+      'استخلص أهم النتائج والآثار المترتبة عنها.',
+      'حرر فقرة تركيبية موجزة تلخص فيها محاور التعلم.'
+    ],
+    remediation: 'أنشطة دعم فردية موجهة تركز على معالجة التعثرات في قراءة الوثائق وبناء المفاهيم.',
+    pedagogicalJustifications: {
+      subjectApproach: `خطوات النهج الديداكتيكي لمكون ${setup.component}`,
+      approachExplanation: isHistory
+        ? 'النهج التاريخي: التعريف بالتطورات والمفاهيم، التفسير بالوقائع والعوامل التاريخية، والتركيب واستخلاص الأثر.'
+        : isGeo
+        ? 'النهج الجغرافي: الوصف المورفولوجي والتوطين، التفسير بالعوامل الطبيعية والبشرية، والتعميم وصياغة الخلاصات.'
+        : 'النهج الحقوقي والمواطناتي: الاكتشاف، رد الفعل والتحليل القيمي، والفعل والممارسة الإيجابية.',
+      situationReasoning: 'تم اختيار وضعية انطلاق واقعية تثير دافعية المتعلمين وتربط التعلم بالمحيط.',
+      resourcesReasoning: 'اعتماد وثائق متنوعة تغطي مختلف المهارات المستهدفة.',
+      evaluationReasoning: 'تقويم مندمج وتكويني يواكب مختلف مراحل بناء الدرس.'
+    }
+  };
+};
 export const generateDidacticConcept = async (
   setup: LessonSetup,
   choices: PedagogicalChoices,
@@ -186,39 +299,45 @@ ${curriculumBlock || 'الاعتماد على المرجعية التربوية 
 }
 `;
 
-  const rawText = await generateAIContent({
-    prompt,
-    responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.6-flash',
-  });
-  const concept = safeJsonParse<DidacticConcept>(rawText);
+  try {
+    const rawText = await generateAIContent({
+      prompt,
+      responseMimeType: 'application/json',
+      preferredModel: 'gemini-3.7-flash',
+    });
+    const concept = safeJsonParse<DidacticConcept>(rawText);
 
-  concept.id = `concept-${Date.now()}`;
-  concept.createdAt = new Date().toISOString();
+    if (concept && concept.learningPhases && concept.learningPhases.length > 0) {
+      concept.id = `concept-${Date.now()}`;
+      concept.createdAt = new Date().toISOString();
 
-  if (mode === 'GROUNDED' && groundedContext) {
-    concept.sourcesUsed = groundedContext.sources.map((s, idx) => ({
-      id: `${s.documentId}-${idx}`,
-      title: s.title,
-      source: s.title,
-      url: s.sourceUrl,
-      type: 'official',
-      subject: setup.subject,
-      level: setup.level,
-      component: setup.component,
-      lesson: setup.lessonTitle,
-      reliability: s.authorityLevel === 'OFFICIAL_MOROCCAN' ? 1.0 : 0.85,
-      snippet: s.title,
-      documentId: s.documentId,
-      authorityLevel: s.authorityLevel,
-      pageNumber: s.pageNumber
-    }));
+      if (mode === 'GROUNDED' && groundedContext) {
+        concept.sourcesUsed = groundedContext.sources.map((s, idx) => ({
+          id: `${s.documentId}-${idx}`,
+          title: s.title,
+          source: s.title,
+          url: s.sourceUrl,
+          type: 'official',
+          subject: setup.subject,
+          level: setup.level,
+          component: setup.component,
+          lesson: setup.lessonTitle,
+          reliability: s.authorityLevel === 'OFFICIAL_MOROCCAN' ? 1.0 : 0.85,
+          snippet: s.title,
+          documentId: s.documentId,
+          authorityLevel: s.authorityLevel,
+          pageNumber: s.pageNumber
+        }));
+      }
+
+      concept.qualityAssessment = LessonPlanQualityEvaluator.evaluateConcept(concept, setup);
+      return concept;
+    }
+  } catch (error) {
+    console.warn("generateDidacticConcept AI error, falling back:", error);
   }
 
-  // Quality check assessment
-  concept.qualityAssessment = LessonPlanQualityEvaluator.evaluateConcept(concept, setup);
-
-  return concept;
+  return generateFallbackDidacticConcept(setup, choices, profInfo);
 };
 
 /**
@@ -247,7 +366,7 @@ ${JSON.stringify(concept, null, 2)}
   const rawText = await generateAIContent({
     prompt,
     responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.6-flash',
+    preferredModel: 'gemini-3.7-flash',
   });
   const updated = safeJsonParse<DidacticConcept>(rawText);
 
@@ -433,18 +552,135 @@ ${JSON.stringify(concept, null, 2)}
 }
 `;
 
-  const rawText = await generateAIContent({
-    prompt,
-    responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.6-flash',
-  });
-  const plan = safeJsonParse<StructuredLessonPlan>(rawText);
+  try {
+    const rawText = await generateAIContent({
+      prompt,
+      responseMimeType: 'application/json',
+      preferredModel: 'gemini-3.7-flash',
+    });
+    const plan = safeJsonParse<StructuredLessonPlan>(rawText);
 
-  plan.id = `plan-${Date.now()}`;
-  plan.status = 'approved';
-  plan.sources = concept.sourcesUsed || [];
+    if (plan && plan.phases && plan.phases.length > 0) {
+      plan.id = `plan-${Date.now()}`;
+      plan.status = 'approved';
+      plan.sources = concept.sourcesUsed || [];
+      return plan;
+    }
+  } catch (error) {
+    console.warn("generateFinalPlanFromConcept error, fallback:", error);
+  }
 
-  return plan;
+  // Deterministic complete fallback plan from concept
+  const fallbackPlan: StructuredLessonPlan = {
+    id: `plan-${Date.now()}`,
+    status: 'approved',
+    title: concept.lessonTitle,
+    subject: setupData.subject,
+    level: setupData.level,
+    cycle: setupData.cycle || 'السلك الثانوي الإعدادي',
+    component: setupData.component,
+    unit: setupData.unit,
+    duration: setupData.duration || 'ساعتان',
+    references: setupData.textbook || 'الكتاب المدرسي المعتمد',
+    teacherName: profInfo.name || "أستاذ مادة الاجتماعيات",
+    school: profInfo.school || "المؤسسة التعليمية",
+    directorate: profInfo.directorate || "المديرية الإقليمية",
+    academy: profInfo.academy || "الأكاديمية الجهوية",
+    year: profInfo.year || "2025/2026",
+    competencies: [
+      `التمكن من خطوات النهج الديداكتيكي لمكون ${setupData.component}`,
+      'استثمار الوثائق والدعامات الديداكتيكية في بناء التعلمات',
+      'التعبير والتحليل واستخلاص النتائج والامتدادات'
+    ],
+    capabilities: [
+      'القدرة على استقراء وتفكيك النصوص والخرائط والجداول',
+      'القدرة على صياغة خلاصات تركيبية وإبداء الرأي'
+    ],
+    objectives: {
+      cognitive: [`التعرف على المفاهيم والوقائع الأساسية لـ ${concept.lessonTitle}`],
+      skill: ['تطبيق مهارات الوصف والتفسير والتركيب'],
+      affective: ['استشعار الأبعاد والقيم المواطنية والوعي بالمسؤولية']
+    },
+    prerequisites: concept.prerequisites || ['المكتسبات القبلية ذات الصلة'],
+    problemSituation: `يعتبر درس "${concept.lessonTitle}" محطة ديداكتيكية مركزية في منهاج مادة الاجتماعيات.`,
+    resourcesList: [`الكتاب المدرسي (${setupData.textbook || 'المقرر'})`, 'السبورة', 'وثائق ودعامات ديداكتيكية'],
+    introductionSteps: [
+      {
+        id: "intro-1",
+        phaseName: "مراجعة الدرس السابق",
+        subPhase: "ربط المكتسبات",
+        duration: "5 دقائق",
+        resources: "الذاكرة الدراسية",
+        teacherActivity: "تذكير بالمكتسبات السابقة عبر أسئلة سريعة.",
+        learnerActivity: "استحضار المكتسبات والربط مع الموضوع الجديد.",
+        workForm: "عمل جماعي حواري"
+      },
+      {
+        id: "intro-2",
+        phaseName: "تقديم عنوان الدرس",
+        subPhase: "تأطير الموضوع",
+        duration: "2 دقائق",
+        resources: "السبورة المدرسية",
+        teacherActivity: `كتابة عنوان الدرس [${concept.lessonTitle}] على السبورة.`,
+        learnerActivity: "تدوين العنوان في الدفاتر.",
+        workForm: "عمل موجه ومؤطر"
+      },
+      {
+        id: "intro-3",
+        phaseName: "التمهيد والإشكالية",
+        subPhase: "طرح الإشكالية",
+        duration: "8 دقائق",
+        resources: "دعامة الانطلاق",
+        teacherActivity: "طرح الوضعية المشكلة واستدراج المتعلمين لصياغة التساؤلات.",
+        learnerActivity: "صياغة الأسئلة الإشكالية الموجهة للدرس.",
+        workForm: "عمل جماعي حواري"
+      }
+    ],
+    phases: [
+      {
+        id: "step-h-1",
+        phaseName: `المقطع التعلمي الأول: تشخيص الإطار العام لـ (${concept.lessonTitle})`,
+        subPhase: "محور أول",
+        duration: "25 دقيقة",
+        resources: "الكتاب المدرسي، وثائق نصية/جغرافية",
+        teacherActivity: "توجيه المتعلمين لقراءة واستثمار الوثائق واستخراج المفاهيم.",
+        learnerActivity: "استخراج المعطيات وتدوين الملاحظات والمشاركة في التحليل.",
+        workForm: "عمل فردي",
+        isHeader: true
+      },
+      {
+        id: "step-a-1",
+        phaseName: "النشاط 1",
+        subPhase: "استكشاف وتحديد المفاهيم",
+        duration: "20 دقيقة",
+        resources: "دعامة ديداكتيكية",
+        teacherActivity: "طرح أسئلة موجهة لتفكيك الوثيقة.",
+        learnerActivity: "الإجابة عن الأسئلة وصياغة الفكرة الأساس.",
+        workForm: "عمل جماعي حواري"
+      },
+      {
+        id: "step-s-1",
+        phaseName: "وضعية تركيبية",
+        subPhase: "خلاصة المقطع",
+        duration: "5 دقائق",
+        resources: "السبورة ودفاتر الدروس",
+        teacherActivity: "تجميع الخلاصات وتدوين الملخص السبوري.",
+        learnerActivity: "تدوين الملخص في الدفاتر.",
+        workForm: "عمل جماعي حواري",
+        isSynthesis: true
+      }
+    ],
+    finalEvaluation: [
+      `عرف بالمفاهيم الأساسية لدرس "${concept.lessonTitle}".`,
+      'استخلص أهم العوامل والنتائج.',
+      'حرر فقرة تركيبية موجزة.'
+    ],
+    remediation: "أنشطة دعم فردية موجهة لمعالجة الصعوبات المرصودة.",
+    extension: "ربط الدرس بالوحدة الموالية وتعميق البحث المستقل.",
+    sources: concept.sourcesUsed || []
+  };
+
+  return fallbackPlan;
 };
 
 /**
@@ -529,7 +765,7 @@ ${JSON.stringify(currentValue, null, 2)}
   const rawText = await generateAIContent({
     prompt,
     responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.6-flash',
+    preferredModel: 'gemini-3.7-flash',
   });
 
   const parsed = safeJsonParse(rawText);
@@ -564,7 +800,7 @@ ${JSON.stringify(currentPlan, null, 2)}
   const rawText = await generateAIContent({
     prompt,
     responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.6-flash',
+    preferredModel: 'gemini-3.7-flash',
   });
 
   const parsed = safeJsonParse(rawText);

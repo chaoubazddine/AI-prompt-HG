@@ -535,7 +535,7 @@ ${disciplinaryRules}
       const responseText = await generateAIContent({
         prompt,
         responseMimeType: "application/json",
-        preferredModel: "gemini-3.6-flash",
+        preferredModel: "gemini-3.7-flash",
       });
 
       if (!responseText) {
@@ -596,16 +596,172 @@ ${disciplinaryRules}
 
       return parsed;
     } catch (error: any) {
-      console.error(`API Error in presentation generation (Attempts left: ${retries - 1}):`, error);
+      console.warn(`API Error in presentation generation (Attempts left: ${retries - 1}):`, error);
       retries--;
       if (retries === 0) {
-        throw new Error(error.message || "حدث خطأ أثناء إعداد عرض PowerPoint. يرجى المحاولة ثانية.");
+        return generateFallbackPresentation(lessonTitle, subject, level, term);
       }
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 
-  throw new Error("فشل توليد عرض PowerPoint بعد عدة محاولات.");
+  return generateFallbackPresentation(lessonTitle, subject, level, term);
+};
+
+export const generateFallbackPresentation = (
+  lessonTitle: string,
+  subject: string,
+  level: string,
+  term: 'الدورة الأولى' | 'الدورة الثانية' = 'الدورة الأولى'
+): PresentationData => {
+  return {
+    title: lessonTitle,
+    subject: subject,
+    level: level,
+    term: term,
+    module: "المجزوءة الأولى",
+    duration: "ساعتان",
+    targetCompetency: `تنمية مهارات التفكير التاريخي/الجغرافي والوعي الإيجابي بموضوع (${lessonTitle}).`,
+    templateModel: "simple_sequential",
+    themeStyle: "simple_clean",
+    axes: [
+      `المقطع الأول: سياق ومظاهر ${lessonTitle}`,
+      `المقطع الثاني: العوامل المفسرة للظاهرة`,
+      `المقطع الثالث: النتائج والامتدادات`
+    ],
+    slides: [
+      {
+        id: "slide-1",
+        slideNumber: 1,
+        type: "title",
+        title: lessonTitle,
+        subtitle: `مادة ${subject} - مستوى ${level} (${term})`,
+        badge: "التقديم البيداغوجي",
+        bulletPoints: [
+          `المكون الدراسي: ${subject}`,
+          `المستوى المستهدف: ${level}`,
+          `الغلاف الزمني المخصص: ساعتان`,
+          `المرجع: التوجيهات التربوية الرسمية لمادة الاجتماعيات`
+        ]
+      },
+      {
+        id: "slide-2",
+        slideNumber: 2,
+        type: "objectives",
+        title: "الأهداف والكفايات المسطرة للدرس",
+        subtitle: "مسار بناء التعلمات",
+        badge: "أهداف التعلم",
+        bulletPoints: [
+          `الهدف المعرفي: تعرف الإطار العام ومفاهيم درس "${lessonTitle}".`,
+          "الهدف المهاري: استثمار الوثائق والدعامات الديداكتيكية وفق النهج المعتمد.",
+          "الهدف الوجداني: إدراك أهمية الموضوع وترسيخ قيم المواطنة والتفكير النقدي."
+        ]
+      },
+      {
+        id: "slide-3",
+        slideNumber: 3,
+        type: "activity",
+        title: "النشاط 1: تعريف الظاهرة وتحديد سياقها ومفاهيمها",
+        sectionTitle: `المقطع التعلمي الأول: السياق العام ومظاهر (${lessonTitle})`,
+        activityTitle: "النشاط 1: تعريف الظاهرة وتحديد سياقها ومفاهيمها",
+        badge: "المقطع 1 - النشاط 1",
+        bulletPoints: [
+          `تحديد الإطار المكاني والزماني لموضوع (${lessonTitle}).`,
+          "استخراج المفاهيم المركزية من الوثائق والدعامات المعتمدة.",
+          "رصد أولى المظاهر والخصائص المميزة للظاهرة."
+        ],
+        highlightBox: "يشكل ضبط السياق والمفاهيم الأساسية المدخل الضروري لبناء التعلم."
+      },
+      {
+        id: "slide-4",
+        slideNumber: 4,
+        type: "synthesis",
+        sectionTitle: `المقطع التعلمي الأول`,
+        title: "تركيب تعلمات المقطع الأول",
+        badge: "تركيب المقطع 1",
+        synthesisGuidance: "توجيه المتعلمين لصياغة خلاصة تركيبية مركزة لما تم التوصل إليه في أنشطة المقطع الأول وتدوينها بالدفاتر.",
+        bulletPoints: [
+          "تحديد المحاور الأساسية والمفاهيم المهيكلة للمقطع.",
+          "تلخيص المظاهر البارزة للظاهرة في نقاط متناسقة."
+        ]
+      },
+      {
+        id: "slide-5",
+        slideNumber: 5,
+        type: "formative_eval",
+        sectionTitle: `المقطع الأول`,
+        title: "التقويم المرحلي للمقطع الأول",
+        badge: "تقويم فوري",
+        bulletPoints: [
+          "الإجابة عن السؤال التفاعلي لاختبار مدى استيعاب المفاهيم والمظاهر المدروسة."
+        ],
+        interactiveQuestion: {
+          question: `ما هو المفهوم المركزي والمظهر الأساسي المؤطر لموضوع (${lessonTitle})؟`,
+          options: [
+            "التعريف الديداكتيكي وتحديد السياق العام للظاهرة (الخيار الصحيح)",
+            "إغفال الأسباب والقفز مباشرة نحو الخاتمة",
+            "الاقتصار على السرد دون تحليل للوثائق"
+          ],
+          correctAnswer: "التعريف الديداكتيكي وتحديد السياق العام للظاهرة (الخيار الصحيح)",
+          explanation: "الانطلاق من التحديد الدقيق للمفاهيم والسياق يضمن فهماً سليماً للتعلمات."
+        }
+      },
+      {
+        id: "slide-6",
+        slideNumber: 6,
+        type: "activity",
+        title: "النشاط 2: تحليل العوامل والأسباب المباشرة والعميقة",
+        sectionTitle: `المقطع التعلمي الثاني: العوامل المفسرة لـ (${lessonTitle})`,
+        activityTitle: "النشاط 2: تحليل العوامل والأسباب المباشرة والعميقة",
+        badge: "المقطع 2 - النشاط 1",
+        bulletPoints: [
+          "إبراز العوامل البنيوية والداخلية المؤثرة في الظاهرة.",
+          "تحليل تفاعل العوامل وتكاملها في صياغة النتائج.",
+          "استقراء العلاقات السببية استناداً إلى الوثائق والخرائط."
+        ],
+        highlightBox: "تعتمد خطوة التفسير على كشف الأسباب والروابط المنطقية بين مختلف المؤشرات."
+      },
+      {
+        id: "slide-7",
+        slideNumber: 7,
+        type: "synthesis",
+        sectionTitle: `المقطع التعلمي الثاني`,
+        title: "تركيب تعلمات المقطع الثاني",
+        badge: "تركيب المقطع 2",
+        synthesisGuidance: "إرشاد المتعلمين لبناء خطاطة تفسيرية تختزل العوامل المتدخلة وتدوينها في دفاتر الدروس.",
+        bulletPoints: [
+          "تجميع العوامل المفسرة في خطاطة بيداغوجية تركيبية.",
+          "إبراز الأوزان النسبية لكل عامل من العوامل المدروسة."
+        ]
+      },
+      {
+        id: "slide-8",
+        slideNumber: 8,
+        type: "evaluation",
+        title: "التركيب الإجمالي لحصيلة الدرس",
+        subtitle: "الربط الشامل بين مقاطع الدرس",
+        badge: "الحصيلة الإجمالية",
+        bulletPoints: [
+          `تكامل خطوات النهج الديداكتيكي في دراسة موضوع "${lessonTitle}".`,
+          "الربط المحكم بين المظاهر المشخصة والعوامل المفسرة والنتائج المترتبة.",
+          "ترسيخ المكتسبات المعرفية والمهارية المستهدفة."
+        ]
+      },
+      {
+        id: "slide-9",
+        slideNumber: 9,
+        type: "conclusion",
+        title: "خاتمة الدرس والامتدادات",
+        subtitle: "الأفق المعرفي والامتدادات المرتقبة",
+        badge: "الخاتمة والامتداد",
+        bulletPoints: [
+          `خلاصة استنتاجية ختامية لأهمية درس "${lessonTitle}".`,
+          "تثمين المجهود التفاعلي للمتعلمين خلال مختلف المحطات البيداغوجية."
+        ],
+        highlightBox: "كيف تشكل مخرجات هذا الدرس منطلقاً لاستيعاب مواضيع الدروس اللاحقة؟"
+      }
+    ]
+  };
 };
 
 export const enrichSlideWithAI = async (
@@ -634,7 +790,7 @@ ${JSON.stringify(slide, null, 2)}
     const responseText = await generateAIContent({
       prompt,
       responseMimeType: "application/json",
-      preferredModel: "gemini-3.6-flash",
+      preferredModel: "gemini-3.7-flash",
     });
 
     if (!responseText) throw new Error("لم نتمكن من الحصول على إثراء من الذكاء الاصطناعي.");

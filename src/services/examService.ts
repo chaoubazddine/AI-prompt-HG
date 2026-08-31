@@ -1,407 +1,432 @@
-import { ExamData, SubjectComponent } from "../types/exam";
 import { safeJsonParse } from "../utils/jsonCleaner";
 import { generateAIContent } from "./aiClient";
+import { 
+  ExamData, 
+  SubjectComponent, 
+  Situation1_Objective, 
+  Situation2_Documents, 
+  Situation3_Essay, 
+  ExamAnswerKey 
+} from "../types/exam";
 
-export const generateMiddleSchoolExam = async (
-  level: string = "الثالثة إعدادي",
-  term: string = "الدورة الأولى",
-  examTitle: string = "الفرض الكتابي المحروس رقم 1",
-  selectedLessons: string[] = [],
-  situationComponents: {
+export const generateFallbackMiddleSchoolExam = (
+  level: string,
+  term: 'الدورة الأولى' | 'الدورة الثانية',
+  examTitle: string,
+  selectedLessons: {
+    history: string[];
+    geography: string[];
+    civics: string[];
+  },
+  framework: {
     situation1: SubjectComponent;
     situation2: SubjectComponent;
     situation3: SubjectComponent;
-  } = {
-    situation1: 'التربية على المواطنة',
-    situation2: 'التاريخ',
-    situation3: 'الجغرافيا'
+  },
+  teacherInfo?: {
+    teacherName?: string;
+    schoolName?: string;
+  }
+): ExamData => {
+  const isHighSchool = level.includes('باك') || level.includes('الجذع');
+  const histLesson = selectedLessons.history[0] || "المغرب في مطلع العصر الحديث";
+  const geoLesson = selectedLessons.geography[0] || "المغرب: موقع استراتيجي";
+  const civLesson = selectedLessons.civics[0] || "الكرامة وحقوق الإنسان";
+
+  const allLessons = [
+    ...selectedLessons.history,
+    ...selectedLessons.geography,
+    ...selectedLessons.civics
+  ].filter(Boolean);
+
+  const s1Component = framework.situation1;
+  const s2Component = framework.situation2;
+  const s3Component = framework.situation3;
+
+  // Situation 1: Objective Questions (6 pts in Middle School, or omitted in 10/10 High School)
+  const situation1: Situation1_Objective = {
+    component: s1Component,
+    title: `الوضعية الاختبارية الأولى: مادة ${s1Component} - الاشتغال على المفاهيم والأسئلة الموضوعية (6 ن)`,
+    totalPoints: 6,
+    termsToDefine: [
+      {
+        term: s1Component === 'التاريخ' ? "الدولة الحديثة" : s1Component === 'الجغرافيا' ? "الموقع الاستراتيجي" : "المواطنة الإيجابية",
+        definitionHint: "عرف المفهوم اصطلاحياً وسياقياً بدقة وفق المقرر الدراسي.",
+        points: 2
+      },
+      {
+        term: s1Component === 'التاريخ' ? "النهضة الأوربية" : s1Component === 'الجغرافيا' ? "المجال المغربي" : "الكرامة الإنسانية",
+        definitionHint: "بين الدلالة الحقوقية والتربوية للمفهوم.",
+        points: 2
+      }
+    ],
+    objectiveQuestions: [
+      {
+        type: "true_false",
+        questionText: `ضع علامة (✓) في الخانة المناسبة (صحيح أو خطأ) بالنسبة للموضوع المرتبط بـ (${s1Component === 'التاريخ' ? histLesson : s1Component === 'الجغرافيا' ? geoLesson : civLesson}):`,
+        optionsOrMatches: [
+          { left: "يشكل الانفتاح الاقتصادي رافعة أساسية للتنمية المجالية المندمجة.", right: "صحيح" },
+          { left: "تقتصر حقوق المواطنة على الواجبات الفردية دون التزامات متبادلة.", right: "خطأ" }
+        ],
+        points: 2
+      }
+    ]
+  };
+
+  // Situation 2: Documents (7 pts Middle School / 10 pts High School)
+  const situation2: Situation2_Documents = {
+    component: s2Component,
+    title: `الوضعية الاختبارية ${isHighSchool ? 'الأولى' : 'الثانية'}: مادة ${s2Component} - الاشتغال على الوثائق (${isHighSchool ? '10 ن' : '7 ن'})`,
+    totalPoints: isHighSchool ? 10 : 7,
+    documents: [
+      {
+        docNumber: 1,
+        docType: "نص جغرافي/تاريخي",
+        title: `وثيقة نصية مؤطرة لدرس (${s2Component === 'التاريخ' ? histLesson : s2Component === 'الجغرافيا' ? geoLesson : civLesson})`,
+        content: `«تعتبر هذه المحطة البيداغوجية مجالا لتشخيص العوامل المتدخلة في توجيه التطورات وتحقيق التوازن الهيكلي، حيث تتكامل الإمكانات الطبيعية والبشرية لصياغة نموذج تنموي واعد قادر على مواجهة الرهانات التنافسية والإكراهات التدبيرية المعاصرة...»`,
+        source: "المرجع التربوي المعتمد لمادة الاجتماعيات - التوجيهات الرسمية"
+      },
+      {
+        docNumber: 2,
+        docType: "جدول معطيات",
+        title: "جدول إحصائي تركيبي للمؤشرات الأساسية",
+        content: "جدول يبرز التوزيع النسبي للقطاعات والمؤشرات المعتمدة في التحليل الديداكتيكي.",
+        tableData: {
+          headers: ["المؤشر / القطاع", "النسبة المئوية (%)", "الملاحظات الديداكتيكية"],
+          rows: [
+            ["القطاع الأول (الإنتاجي)", "42%", "نمو إيجابي مستمر وتحديث في أساليب العمل"],
+            ["القطاع الثاني (التحويلي)", "31%", "تطور ملحوظ ودينامية استثمارية واعدة"],
+            ["قطاع الخدمات والتجارة", "27%", "انفتاح واسع على المحيط الخارجي"]
+          ]
+        },
+        source: "معطيات إحصائية تركيبية للتقويم التربوي"
+      }
+    ],
+    questions: [
+      {
+        questionNumber: 1,
+        questionText: s2Component === 'التاريخ' 
+          ? "حدد(ي) السياق التاريخي العام للوثيقتين (الزمان، المكان، الموضوع)."
+          : "حدد(ي) الفكرة الأساس أو موضوع الوثيقتين بدقة.",
+        points: isHighSchool ? 2 : 1
+      },
+      {
+        questionNumber: 2,
+        questionText: "استخرج(ي) من الوثيقة 1 العوامل والآليات المبرزة في النص.",
+        points: isHighSchool ? 3 : 2
+      },
+      {
+        questionNumber: 3,
+        questionText: "استقرئ(ي) من الوثيقة 2 الجدول الإحصائي ورتب المؤشرات حسب الأهمية.",
+        points: isHighSchool ? 2 : 2
+      },
+      {
+        questionNumber: 4,
+        questionText: "حرر(ي) فقرة موجزة من مكتسباتك تبرز فيها آفاق التطور والحلول المقترحة لتجاوز الإكراهات.",
+        points: isHighSchool ? 3 : 2
+      }
+    ]
+  };
+
+  // Situation 3: Essay (7 pts Middle School / 10 pts High School)
+  const situation3: Situation3_Essay = {
+    component: s3Component,
+    title: `الوضعية الاختبارية ${isHighSchool ? 'الثانية' : 'الثالثة'}: مادة ${s3Component} - إنتاج موضوع مقالي (${isHighSchool ? '10 ن' : '7 ن'})`,
+    totalPoints: isHighSchool ? 10 : 7,
+    choiceInstruction: "اكتب(ي) حسب اختيارك في أحد الموضوعين المقاليين الآتيين مستحضراً(ة) النهج المعتمد والخطوات المنهجية (مقدمة، عرض، خاتمة):",
+    topics: [
+      {
+        topicNumber: 1,
+        title: `الموضوع الأول (${s3Component})`,
+        contextText: `شكل موضوع (${s3Component === 'التاريخ' ? histLesson : s3Component === 'الجغرافيا' ? geoLesson : civLesson}) محطة بارزة كشفت عن تداخل العوامل والنتائج في رسم ملامح المشهد العام.`,
+        instructions: [
+          "تحديد الإطار والسياق العام والمفاهيم المهيكلة للموضوع في مقدمة مناسبة وطرح الإشكالية.",
+          "إبراز أهم المظاهر والخصائص المميزة للظاهرة في العرض.",
+          "تحليل العوامل المفسرة والنتائج المترتبة عنها مع خاتمة تركيبية متوازنة."
+        ]
+      },
+      {
+        topicNumber: 2,
+        title: `الموضوع الثاني (${s3Component})`,
+        contextText: `تفرض التحديات التنموية والمجالية المعاصرة تضافر الجهود لبلورة حلول دقيقة تحقق العدالة المجالية والاجتماعية.`,
+        instructions: [
+          "مقدمة تبرز أهمية الموضوع وتطرح إشكالية واضحة وأسئلة موجهة.",
+          "عرض مفصل يحلل التدابير المتخذة ورصد التحديات المعترضة.",
+          "خاتمة تركيبية تقدم استنتاجاً عاماً وأفقاً مفتوحاً للموضوع."
+        ]
+      }
+    ],
+    methodologicalNotes: isHighSchool 
+      ? "توزيع النقط: الجانب المنهجي (2ن) + الجانب المعرفي (7ن) + الجانب الشكلي وسلامة اللغة (1ن) = 10ن."
+      : "توزيع النقط: الجانب المنهجي (1ن) + الجانب المعرفي (5ن) + الجانب الشكلي وسلامة التعبير (1ن) = 7ن."
+  };
+
+  // Answer Key
+  const answerKey: ExamAnswerKey = {
+    situation1Answers: [
+      "1. التعاريف والمفاهيم: تقبل كل صياغة سليمة ومستوفية للشروط الاصطلاحية المعتمدة في المنهاج (نقطتان لكل مفهوم).",
+      "2. الأسئلة الموضوعية: العبارة 1: صحيح (1ن) | العبارة 2: خطأ (1ن)."
+    ],
+    situation2Answers: [
+      {
+        questionNumber: 1,
+        answer: "تحديد دقيق للموضوع والإطار العام/السياق التاريخي (الزمان، المكان، الموضوع).",
+        points: isHighSchool ? 2 : 1
+      },
+      {
+        questionNumber: 2,
+        answer: "استخراج العناصر المباشرة من الوثيقة 1 وتصنيفها بشكل منهجي واضح.",
+        points: isHighSchool ? 3 : 2
+      },
+      {
+        questionNumber: 3,
+        answer: "قراءة وتحليل معطيات الجدول الإحصائي مع ترتيب المؤشرات وتفسير التباينات.",
+        points: isHighSchool ? 2 : 2
+      },
+      {
+        questionNumber: 4,
+        answer: "صياغة فقرة ربط دقيقة تركز على الحلول والامتدادات المكتسبة مع سلامة اللغة والأسلوب.",
+        points: isHighSchool ? 3 : 2
+      }
+    ],
+    situation3AnswerGuides: [
+      {
+        topicNumber: 1,
+        topicTitle: `عناصر إجابة الموضوع المقالي الأول (${s3Component})`,
+        introduction: "مقدمة مؤطرة للموضوع (سياق عام + إبراز الأهمية) مع طرح الإشكالية وتفريعاتها التساؤلية الدقيقة (1ن - 2ن).",
+        development: [
+          "الفقرة الأولى: رصد المظاهر والتشخيص الأولي للظاهرة بدقة.",
+          "الفقرة الثانية: تحليل وتفسير العوامل والأسباب الداخلية والخارجية.",
+          "الفقرة الثالثة: استخلاص الحصيلة والنتائج والانعكاسات المترتبة."
+        ],
+        conclusion: "خاتمة تركيبية تلخص النتائج وتفتح أفقاً جديداً للتفكير والتساؤل.",
+        scoringBreakdown: [
+          { item: "الجانب المنهجي (مقدمة، وضوح التصميم، خاتمة)", points: isHighSchool ? 2 : 1 },
+          { item: "الجانب المعرفي (صحة المعلومات وتناسق الأفكار)", points: isHighSchool ? 7 : 5 },
+          { item: "الجانب الشكلي (سلامة التعبير ونظافة الورقة)", points: 1 }
+        ]
+      },
+      {
+        topicNumber: 2,
+        topicTitle: `عناصر إجابة الموضوع المقالي الثاني (${s3Component})`,
+        introduction: "مقدمة منهجية تبرز الإشكالية التنموية والمجالية وتطرح الأسئلة الموجهة للعرض.",
+        development: [
+          "الفقرة الأولى: تشخيص الإكراهات والتحديات المطروحة.",
+          "الفقرة الثانية: تحليل المبادرات والتدابير المتخذة لرفع الرهانات.",
+          "الفقرة الثالثة: تقييم المخرجات وأثرها على التنمية المستدامة."
+        ],
+        conclusion: "خلاصة تركيبية موجزة تثمن المجهودات وتطرح تساؤلاً امتدادياً.",
+        scoringBreakdown: [
+          { item: "الجانب المنهجي", points: isHighSchool ? 2 : 1 },
+          { item: "الجانب المعرفي", points: isHighSchool ? 7 : 5 },
+          { item: "الجانب الشكلي", points: 1 }
+        ]
+      }
+    ]
+  };
+
+  return {
+    title: examTitle || `الفرض الكتابي المحروس - ${term}`,
+    cycle: isHighSchool ? "التعليم الثانوي التأهيلي" : "التعليم الثانوي الإعدادي",
+    level: level,
+    term: term,
+    duration: isHighSchool ? "ساعتان" : "ساعة واحدة",
+    teacherName: teacherInfo?.teacherName || "ذ. عبد السلام الحاضي",
+    schoolName: teacherInfo?.schoolName || "المؤسسة التعليمية",
+    lessonsIncluded: allLessons.length > 0 ? allLessons : [histLesson, geoLesson, civLesson],
+    situation1: isHighSchool ? undefined : situation1,
+    situation2: situation2,
+    situation3: situation3,
+    answerKey: answerKey
+  };
+};
+
+export const generateMiddleSchoolExam = async (
+  level: string,
+  term: 'الدورة الأولى' | 'الدورة الثانية',
+  examTitle: string,
+  selectedLessons: {
+    history: string[];
+    geography: string[];
+    civics: string[];
+  },
+  framework: {
+    situation1: SubjectComponent;
+    situation2: SubjectComponent;
+    situation3: SubjectComponent;
   },
   teacherInfo?: {
     teacherName?: string;
     schoolName?: string;
   }
 ): Promise<ExamData> => {
-  const lessonsText = selectedLessons.length > 0 
-    ? selectedLessons.join("، ") 
-    : "دروس الدورة الرسمية المقررة";
+  const isHighSchool = level.includes('باك') || level.includes('الجذع');
+  
+  const prompt = `أنت خبير ومفتش تربوي تخصص مادة الاجتماعيات بالمنظومة التعليمية المغربية.
+المطلوب صياغة موضوع امتحان/فرض كتابي محروس رسمي متكامل بدقة بيداغوجية وفق الأطر المرجعية المغربية المحينة.
 
-  const isPrep = level.includes('إعدادي');
-  const isHighSchool = level.includes('باك') || level.includes('بكالوريا') || level.includes('جذع') || level.includes('مشترك') || level.includes('تأهيلي');
-  const cycleName = isHighSchool ? "التعليم الثانوي التأهيلي" : "التعليم الثانوي الإعدادي";
+بيانات الامتحان:
+- السلك: ${isHighSchool ? 'التعليم الثانوي التأهيلي' : 'التعليم الثانوي الإعدادي'}
+- المستوى: ${level}
+- الدورة: ${term}
+- العنوان: ${examTitle}
+- الدروس المدرجة:
+  * التاريخ: ${selectedLessons.history.join(', ') || 'دروس المقرر'}
+  * الجغرافيا: ${selectedLessons.geography.join(', ') || 'دروس المقرر'}
+  * التربية على المواطنة: ${selectedLessons.civics.join(', ') || 'دروس المقرر'}
 
-  let prompt = '';
+التوزيع الديداكتيكي للوضعيات:
+${!isHighSchool ? `1. الوضعية الأولى (6 ن): مادة ${framework.situation1} -> استعمال المفاهيم والمصطلحات والأسئلة الموضوعية.` : ''}
+2. الوضعية ${isHighSchool ? 'الأولى (10 ن)' : 'الثانية (7 ن)'}: مادة ${framework.situation2} -> الاشتغال على الوثائق (نصوص، جداول، خطوط زمنية).
+3. الوضعية ${isHighSchool ? 'الثانية (10 ن)' : 'الثالثة (7 ن)'}: مادة ${framework.situation3} -> إنتاج موضوع مقالي (موضوعان اختياريان).
 
-  if (isHighSchool) {
-    // High School Exam Framework: 2 Test Situations (10pts + 10pts = 20pts)
-    prompt = `
-أنت مفتش ممتاز وخبير في تقويم مادة الاجتماعيات بالسلك الثانوي التأهيلي بالمنهاج المغربي.
-مهمتك هي إعداد "فرض كتابي محروس نموذج حقيقي للسلك الثانوي التأهيلي" وفق الأطر المرجعية المحينة للامتحانات بالتعليم الثانوي بالمغرب.
-
-**معلومات التقويم**:
-- المستوى الدراسي: ${level}
-- الدورة الدراسية: ${term}
-- الدروس المستهدفة: ${lessonsText}
-- عنوان الفرض: ${examTitle}
-
-**شروط وقواعد صارمة لا تقبل الاستثناء للسلك الثانوي التأهيلي**:
-1. **اللغة العربية الفصحى حصراً 100%**:
-   - يمنع منعاً باتاً كتابة أي مصطلح أو كلمة باللغة الإنجليزية.
-2. **التقويم في السلك التأهيلي يتكون حصراً من وضعيتين اختباريتين فقط (10ن + 10ن = 20ن)**:
-   - **الوضعية الأولى: الاشتغال على الوثائق (10 نقط)** في مكون **${situationComponents.situation2}**.
-   - **الوضعية الثانية: تحرير موضوع مقالي (10 نقط)** في مكون **${situationComponents.situation3}**.
-   - لا توجد وضعية أسئلة موضوعية في السلك التأهيلي.
-
-3. **تفاصيل الوضعية الأولى: الاشتغال على الوثائق في مكون ${situationComponents.situation2} (10 نقط)**:
-   - **توفير ثلاث (3) وثائق متنوعة إجبارياً ومختلفة الأنماط والتصنيفات**:
-     * يجب تعبئة الخاصيات الهيكلية المخصصة لكل نوع لترسم كأشكال حقيقية كاملاً دون اختصار: (جدول معطيات إحصائية tableData / خط زمني timelineData / خطاطة مفاهيمية diagramData / نص تحليلي content).
-     * **ملاحظة هامّة بخصوص الخطاطة المفاهيمية (diagramData)**: يجب تعبئة كائن diagramData بـ centralConcept واضح مع 3 إلى 4 فروع رئيسية (branches)، وكل فرع يحتوي قائمة مفصلة ومكتملة من العناصر (items). يمنع استخدام النقاط المتقطعة (...) في نص الوثائق أو الخطاطات!
-   - **صياغة أسئلة ديداكتيكية متدرجة على الوثائق بمجموع 10 نقط بالتمام**:
-     * **السؤال 1 (1.5 نقطة)**: تحديد السياق التاريخي/الجغرافي للوثائق أو الفكرة العامة المؤطرة لها.
-     * **السؤال 2 (2 نقطة)**: الشرح التاريخي/الجغرافي لمفهومين أو مصطلحين تحتهما خط في الوثائق (1ن لكل مفهوم).
-     * **السؤال 3 (2.5 نقطة)**: استخراج معطيات وحقائق مباشرة من الوثائق المرفقة.
-     * **السؤال 4 (2 نقطة)**: التفسير/التعليل والربط بين المعطيات الواردة في الوثائق.
-     * **السؤال 5 (2 نقطة - سؤال تركيبي معرفي)**: "اعتماداً على تعلماتك ورصيدك المعرفي، أكتب فقرة موجزة تبرز فيها..."
-   - مجموع النقاط: (1.5ن + 2ن + 2.5ن + 2ن + 2ن = 10ن).
-
-4. **تفاصيل الوضعية الثانية: تحرير موضوع مقالي في مكون ${situationComponents.situation3} (10 نقط)**:
-   - **قاعدة إجبارية وفق الأطر المرجعية**: يجب تقديم **موضوعين مقاليين اختياريين** (الموضوع الأول و الموضوع الثاني) ليتيح للمتعلم حرية الاختيار بينهما!
-   - لكل موضوع:
-     * **نص انطلاق وسياق إشكالي موضوعاتي مكتمل** يطرح القضية أو الظاهرة المدرسية.
-     * **توجيهات ومحاور محددة للمطلوب** (أكتب موضوعاً مقالياً من مقدمة وعرض وخاتمة تتناول فيه ما يلي: 1. ... 2. ...).
-   - **توزيع النقاط الإجباري**:
-     * تخصص **(2 نقطتان)** للجانب المنهجي والشكلي (مقدمة إشكالية، تصميم منطقي، خاتمة تركيبية، وضوح الخط وسلامة اللغة).
-     * تخصص **(8 نقط)** للجانب المعرفي الموزع على عناصر العرض.
-   - مجموع النقاط: 10ن.
-
-5. **عناصر الإجابة وسُلم التنقيط (ExamAnswerKey)**:
-   - عناصر إجابة دقيقة ومفصلة وشاملة لكل وضعية.
-   - بالنسبة للموضوع المقالي: تقديم دليل إجابة مفصل لكل من **الموضوع الأول** و **الموضوع الثاني** في مصفوفة "situation3AnswerGuides".
-
-يرجى إرجاع النتيجة حصراً بتنسيق JSON الهيكلي التالي:
-
+أجب بصيغة JSON تطابق الحقول التالية تماماً بدون نصوص إضافية خارج الـ JSON:
 {
   "title": "${examTitle}",
-  "cycle": "${cycleName}",
+  "cycle": "${isHighSchool ? 'التعليم الثانوي التأهيلي' : 'التعليم الثانوي الإعدادي'}",
   "level": "${level}",
   "term": "${term}",
-  "duration": "ساعة واحدة",
-  "lessonsIncluded": [${selectedLessons.map(l => `"${l}"`).join(', ')}],
-  "situation2": {
-    "component": "${situationComponents.situation2}",
-    "title": "I. مكون ${situationComponents.situation2}: الاشتغال على الوثائق (10 نقط)",
-    "documents": [
-      {
-        "docNumber": 1,
-        "docType": "نص تحليلي",
-        "title": "الوثيقة 1: نص تحليلي",
-        "content": "محتوى الوثيقة الأولى...",
-        "source": "مصدر الوثيقة..."
-      },
-      {
-        "docNumber": 2,
-        "docType": "جدول معطيات إحصائية",
-        "title": "الوثيقة 2: جدول إحصائي",
-        "content": "القطاع | القيمة",
-        "tableData": {
-          "headers": ["القطاع", "القيمة"],
-          "rows": [["الفلاحة", "150"], ["الصناعة", "280"]]
-        },
-        "source": "المصدر الإحصائي..."
-      },
-      {
-        "docNumber": 3,
-        "docType": "خطاطة مفاهيمية",
-        "title": "الوثيقة 3: خطاطة مفاهيمية",
-        "content": "الخطاطة الشارحة للمفهوم...",
-        "diagramData": {
-          "centralConcept": "المفهوم المحوري",
-          "branches": [
-            { "title": "العنصر الأول", "items": ["المؤشر 1", "المؤشر 2"] },
-            { "title": "العنصر الثاني", "items": ["المؤشر 1", "المؤشر 2"] },
-            { "title": "العنصر الثالث", "items": ["المؤشر 1", "المؤشر 2"] }
-          ]
-        },
-        "source": "المصدر..."
-      }
-    ],
-    "questions": [
-      { "questionNumber": 1, "questionText": "حدّد السياق التاريخي/الجغرافي للوثائق الثلاث.", "points": 1.5 },
-      { "questionNumber": 2, "questionText": "اشرح ما تحته خط في الوثائق شرحاً تاريخياً/جغرافياً...", "points": 2 },
-      { "questionNumber": 3, "questionText": "استخرج من الوثائق المعطيات التالية...", "points": 2.5 },
-      { "questionNumber": 4, "questionText": "فسّر العوامل والروابط بين المعطيات...", "points": 2 },
-      { "questionNumber": 5, "questionText": "اعتماداً على تعلماتك ورصيدك المعرفي، أكتب فقرة موجزة تبرز فيها...", "points": 2 }
-    ],
-    "totalPoints": 10
-  },
-  "situation3": {
-    "component": "${situationComponents.situation3}",
-    "title": "II. مكون ${situationComponents.situation3}: تحرير موضوع مقالي (10 نقط)",
-    "choiceInstruction": "اكتب(ي) في أحد الموضوعين التاليين حسب اختيارك:",
-    "topics": [
-      {
-        "topicNumber": 1,
-        "title": "الموضوع الأول",
-        "contextText": "السياق الإشكالي للموضوع المقالي الأول...",
-        "instructions": [
-          "أكتب موضوعاً مقالياً يتناول ما يلي:",
-          "1. المحور الأول المطلوب معالجته...",
-          "2. المحور الثاني المطلوب تحليله..."
-        ]
-      },
-      {
-        "topicNumber": 2,
-        "title": "الموضوع الثاني",
-        "contextText": "السياق الإشكالي للموضوع المقالي الثاني...",
-        "instructions": [
-          "أكتب موضوعاً مقالياً يتناول ما يلي:",
-          "1. المحور الأول المطلوب معالجته...",
-          "2. المحور الثاني المطلوب تحليله..."
-        ]
-      }
-    ],
-    "methodologicalNotes": "تخصص (2ن) للجانب المنهجي والشكلي (مقدمة، تصميم، خاتمة، سلامة التعبير والخط)، و(8ن) للجانب المعرفي.",
-    "totalPoints": 10
-  },
-  "answerKey": {
-    "situation2Answers": [
-      { "questionNumber": 1, "answer": "إجابة سؤال السياق...", "points": 1.5 },
-      { "questionNumber": 2, "answer": "شرح المصطلحات...", "points": 2 },
-      { "questionNumber": 3, "answer": "المعطيات المستخرجة...", "points": 2.5 },
-      { "questionNumber": 4, "answer": "التفسير والتعليل...", "points": 2 },
-      { "questionNumber": 5, "answer": "الفقرة التركيبية...", "points": 2 }
-    ],
-    "situation3AnswerGuides": [
-      {
-        "topicNumber": 1,
-        "topicTitle": "عناصر إجابة الموضوع الأول",
-        "introduction": "المقدمة والتأطير والتصميم للموضوع الأول (1.5ن)...",
-        "development": [
-          "عناصر العرض للمحور الأول (4ن)...",
-          "عناصر العرض للمحور الثاني (4ن)..."
-        ],
-        "conclusion": "الخاتمة والتركيب (0.5ن)...",
-        "scoringBreakdown": [
-          { "item": "الجانب المنهجي والشكلي", "points": 2 },
-          { "item": "الجانب المعرفي", "points": 8 }
-        ]
-      },
-      {
-        "topicNumber": 2,
-        "topicTitle": "عناصر إجابة الموضوع الثاني",
-        "introduction": "المقدمة والتأطير والتصميم للموضوع الثاني (1.5ن)...",
-        "development": [
-          "عناصر العرض للمحور الأول (4ن)...",
-          "عناصر العرض للمحور الثاني (4ن)..."
-        ],
-        "conclusion": "الخاتمة والتركيب (0.5ن)...",
-        "scoringBreakdown": [
-          { "item": "الجانب المنهجي والشكلي", "points": 2 },
-          { "item": "الجانب المعرفي", "points": 8 }
-        ]
-      }
-    ]
-  }
-}
-`;
-  } else {
-    // Middle School Exam Framework (3 Test Situations: 6pts + 7pts + 7pts = 20pts)
-    prompt = `
-أنت مفتش ممتاز وخبير في تقويم مادة الاجتماعيات بالسلك الثانوي الإعدادي بالمنهاج المغربي.
-مهمتك هي إعداد "فرض كتابي محروس نموذج حقيقي" وفق الأطر المرجعية المحينة للامتحانات بالتعليم الثانوي بالمغرب.
-
-**معلومات التقويم**:
-- المستوى الدراسي: ${level}
-- الدورة الدراسية: ${term}
-- الدروس المستهدفة: ${lessonsText}
-- عنوان الفرض: ${examTitle}
-
-**شروط وقواعد صارمة لا تقبل الاستثناء**:
-1. **اللغة العربية الفصحى حصراً 100%**:
-   - يمنع منعاً باتاً كتابة أي مصطلح أو كلمة أو حرف أو رمز باللغة الإنجليزية.
-2. **عدم تضمين الإجابات في ورقة أسئلة الامتحان**:
-   - الإجابات الصحيحة تخصص **فقط وحصراً** في قسم عناصر الإجابة وسُلم التنقيط (answerKey).
-
-3. **الوضعية الاختبارية الأولى: استعمال المفاهيم والمصطلحات والأسئلة الموضوعية (6 نقط)**
-   - المكون المخصص لهذه الوضعية: **${situationComponents.situation1}**
-   - وتتضمن:
-     * **تعريف مصطلحات/مفاهيم/أعلام**: تعريف مفهومين أو مصطلحين بـ (2ن إلى 3ن مجموعاً).
-     * **أسئلة موضوعية متنوعة بدقة وتفرع**: (مثل أجب بصحيح أو خطأ / صل بسهم / اختيار من متعدد).
-     * **تقسيم النقاط**: تتكون الأسئلة الموضوعية من 4 اقتراحات/عبارات فرعية مخصص لكل فرع منها **0.5ن** بالضبط (4 × 0.5ن = 2ن).
-
-4. **الوضعية الاختبارية الثانية: الاشتغال على الوثائق (7 نقط)**
-   - المكون المخصص لهذه الوضعية: **${situationComponents.situation2}**
-   - **توفير ثلاث (3) وثائق متنوعة إجبارياً ومختلفة الأنماط والتصنيفات ومصغرة رسمياً**:
-     * (جدول معطيات إحصائية tableData / خط زمني timelineData / خطاطة مفاهيمية diagramData / نص حقوقي أو تحليلي content).
-   - **صياغة ستة (6) أسئلة ديداكتيكية متنوعة ومتدرجة على الوثائق (مجموع 7ن)**:
-     - السؤال 1 (1 نقطة): تحديد السياق التاريخي/الجغرافي للوثائق.
-     - السؤال 2 (1 نقطة): الشرح التاريخي/الجغرافي لمفهومين أو مصطلحين.
-     - السؤال 3 (1 نقطة): استخراج معطيات وحقائق مباشرة من الوثيقة 1.
-     - السؤال 4 (1 نقطة): استخراج أو تحليل واستثمار معطيات إحصائية/بيانية من الوثيقة 2.
-     - السؤال 5 (1.5 نقطة): التفسير/التعليل والمقارنة والربط بين المعطيات الواردة في الوثائق.
-     - السؤال 6 (1.5 نقطة - سؤال تركيبي معرفي): "اعتماداً على تعلماتك ورصيدك المعرفي، أكتب فقرة موجزة..."
-
-5. **الوضعية الاختبارية الثالثة: كتابة موضوع مقالي (7 نقط)**
-   - المكون المخصص لهذه الوضعية: **${situationComponents.situation3}**
-   - **قاعدة إجبارية صارمة وفق الأطر المرجعية المحينة للسلك الإعدادي**: يجب تقديم **موضوع مقالي واحد فقط إجباري (مقترح واحد)** تنقيطه 7 نقط! (يمنع منعاً باتاً تقديم موضوعين اختياريين في السلك الإعدادي، خيار الموضوعين مخصص حصراً للسلك الثانوي التأهيلي).
-   - نص انطلاق وسياق إشكالي موضوعاتي مكتمل، توجيهات ومحاور محددة للمطلوب.
-   - **توزيع النقاط في الإعدادي**: (تخصص **1 نقطة واحدة** للجانب المنهجي والشكلي، و**6 نقط** للجانب المعرفي الموزع على المحاور).
-   - لا تضع أي حقل لـ "choiceInstruction" في الإعدادي لأنه موضوع واحد إجباري.
-
-6. **عناصر الإجابة وسلم التنقيط (ExamAnswerKey)**:
-   - عناصر إجابة دقيقة ومفصلة وشاملة لكل وضعية.
-   - في مصفوفة "situation3AnswerGuides": زوّد دليل إجابة مفصلاً للموضوع المقالي الواحد المذكور (عنصر واحد فقط في المصوفة).
-
-يرجى إرجاع النتيجة حصراً بتنسيق JSON الهيكلي التالي:
-
-{
-  "title": "${examTitle}",
-  "cycle": "${cycleName}",
-  "level": "${level}",
-  "term": "${term}",
-  "duration": "ساعة واحدة",
-  "lessonsIncluded": [${selectedLessons.map(l => `"${l}"`).join(', ')}],
+  "duration": "${isHighSchool ? 'ساعتان' : 'ساعة واحدة'}",
+  "lessonsIncluded": ${JSON.stringify([...selectedLessons.history, ...selectedLessons.geography, ...selectedLessons.civics])},
+  ${!isHighSchool ? `
   "situation1": {
-    "component": "${situationComponents.situation1}",
-    "title": "I. مكون ${situationComponents.situation1}: مصطلحات وأسئلة موضوعية (6ن)",
+    "component": "${framework.situation1}",
+    "title": "الوضعية الاختبارية الأولى: مادة ${framework.situation1} - استعمال المفاهيم والأسئلة الموضوعية (6 ن)",
+    "totalPoints": 6,
     "termsToDefine": [
-      { "term": "المفهوم أو المصطلح الأول", "definitionHint": "", "points": 1 },
-      { "term": "المفهوم أو المصطلح الثاني", "definitionHint": "", "points": 1 }
+      { "term": "المفهوم 1", "definitionHint": "توجيه", "points": 2 },
+      { "term": "المفهوم 2", "definitionHint": "توجيه", "points": 2 }
     ],
     "objectiveQuestions": [
       {
         "type": "true_false",
-        "questionText": "ضع علامة (x) في الخانة المناسبة (2ن):",
+        "questionText": "ضع علامة (✓) في الخانة المناسبة (صحيح أو خطأ):",
         "optionsOrMatches": [
-          { "left": "العبارة الأولى للتقويم...", "right": "" },
-          { "left": "العبارة الثانية للتقويم...", "right": "" },
-          { "left": "العبارة الثالثة للتقويم...", "right": "" },
-          { "left": "العبارة الرابعة للتقويم...", "right": "" }
-        ],
-        "points": 2
-      },
-      {
-        "type": "matching",
-        "questionText": "صل(ي) بين المفاهيم/العناصر ومعناها (2ن):",
-        "optionsOrMatches": [
-          { "left": "العنصر 1 في المجموعة (أ)", "right": "المعنى المقابل في المجموعة (ب)" },
-          { "left": "العنصر 2 في المجموعة (أ)", "right": "المعنى المقابل في المجموعة (ب)" },
-          { "left": "العنصر 3 في المجموعة (أ)", "right": "المعنى المقابل في المجموعة (ب)" },
-          { "left": "العنصر 4 في المجموعة (أ)", "right": "المعنى المقابل في المجموعة (ب)" }
+          { "left": "عبارة ديداكتيكية 1", "right": "صحيح" },
+          { "left": "عبارة ديداكتيكية 2", "right": "خطأ" }
         ],
         "points": 2
       }
-    ],
-    "totalPoints": 6
-  },
+    ]
+  },` : ''}
   "situation2": {
-    "component": "${situationComponents.situation2}",
-    "title": "II. مكون ${situationComponents.situation2}: الاشتغال على الوثائق (7ن)",
+    "component": "${framework.situation2}",
+    "title": "الوضعية الاختبارية ${isHighSchool ? 'الأولى' : 'الثانية'}: مادة ${framework.situation2} - الاشتغال على الوثائق (${isHighSchool ? '10 ن' : '7 ن'})",
+    "totalPoints": ${isHighSchool ? 10 : 7},
     "documents": [
       {
         "docNumber": 1,
-        "docType": "نص تحليلي",
-        "title": "الوثيقة 1: نص تحليلي",
-        "content": "محتوى الوثيقة الأولى...",
-        "source": "مصدر الوثيقة..."
+        "docType": "نص",
+        "title": "عنوان الوثيقة 1",
+        "content": "نص الوثيقة الكامل والدقيق...",
+        "source": "المصدر الرسمي"
       },
       {
         "docNumber": 2,
-        "docType": "جدول معطيات إحصائية",
-        "title": "الوثيقة 2: جدول معطيات إحصائية",
-        "content": "المؤشر | القيمة",
+        "docType": "جدول معطيات",
+        "title": "عنوان الجدول",
+        "content": "شرح الجدول",
         "tableData": {
-          "headers": ["المؤشر", "القيمة"],
-          "rows": [["القطاع 1", "150"], ["القطاع 2", "280"]]
-        },
-        "source": "المصدر الإحصائي..."
-      },
-      {
-        "docNumber": 3,
-        "docType": "خطاطة مفاهيمية",
-        "title": "الوثيقة 3: خطاطة مفاهيمية",
-        "content": "مفهوم وتفاصيل الخطاطة...",
-        "diagramData": {
-          "centralConcept": "المفهوم المحوري",
-          "branches": [
-            { "title": "العنصر الأول", "items": ["المؤشر 1", "المؤشر 2"] },
-            { "title": "العنصر الثاني", "items": ["المؤشر 1", "المؤشر 2"] }
+          "headers": ["العمود 1", "العمود 2", "العمود 3"],
+          "rows": [
+            ["معطى 1", "معطى 2", "معطى 3"],
+            ["معطى 4", "معطى 5", "معطى 6"]
           ]
         },
-        "source": "المصدر..."
+        "source": "المصدر"
       }
     ],
     "questions": [
-      { "questionNumber": 1, "questionText": "حدّد السياق التاريخي/الجغرافي للوثائق الثلاث.", "points": 1 },
-      { "questionNumber": 2, "questionText": "اشرح ما تحته خط في الوثائق شرحاً تاريخياً/جغرافياً...", "points": 1 },
-      { "questionNumber": 3, "questionText": "استخرج من الوثيقة (1) المعطيات التالية...", "points": 1 },
-      { "questionNumber": 4, "questionText": "استخرج من الوثيقة (2) المعطيات الإحصائية التالية...", "points": 1 },
-      { "questionNumber": 5, "questionText": "فسّر/قارن العلاقة بين المعطيات الواردة في الوثائق...", "points": 1.5 },
-      { "questionNumber": 6, "questionText": "اعتماداً على تعلماتك ورصيدك المعرفي، أكتب فقرة موجزة تبرز فيها...", "points": 1.5 }
-    ],
-    "totalPoints": 7
+      { "questionNumber": 1, "questionText": "حدد(ي) السياق / الفكرة الأساس...", "points": ${isHighSchool ? 2 : 1} },
+      { "questionNumber": 2, "questionText": "استخرج(ي) من الوثيقة 1...", "points": ${isHighSchool ? 3 : 2} },
+      { "questionNumber": 3, "questionText": "استقرئ(ي) من الوثيقة 2...", "points": ${isHighSchool ? 2 : 2} },
+      { "questionNumber": 4, "questionText": "حرر(ي) فقرة موجزة تبرز فيها...", "points": ${isHighSchool ? 3 : 2} }
+    ]
   },
   "situation3": {
-    "component": "${situationComponents.situation3}",
-    "title": "III. مكون ${situationComponents.situation3}: تحرير موضوع مقالي (7ن)",
+    "component": "${framework.situation3}",
+    "title": "الوضعية الاختبارية ${isHighSchool ? 'الثانية' : 'الثالثة'}: مادة ${framework.situation3} - إنتاج موضوع مقالي (${isHighSchool ? '10 ن' : '7 ن'})",
+    "totalPoints": ${isHighSchool ? 10 : 7},
+    "choiceInstruction": "اكتب(ي) في أحد الموضوعين المقاليين التاليين حسب اختيارك مستحضراً الخطوات المنهجية:",
     "topics": [
       {
         "topicNumber": 1,
-        "title": "الموضوع المقالي",
-        "contextText": "نص الانطلاق والسياق الإشكالي للموضوع المقالي...",
+        "title": "الموضوع الأول (${framework.situation3})",
+        "contextText": "نص الانطلاق للموضوع المقالي الأول...",
         "instructions": [
-          "أكتب موضوعاً مقالياً من مقدمة وعرض وخاتمة تتناول فيه ما يلي:",
-          "1. المحور الأول المطلوب معالجته...",
-          "2. المحور الثاني المطلوب تحليله..."
+          "مقدمة مناسبة وطرح الإشكالية والتساؤلات.",
+          "عرض تحليلي مفصل يجيب عن محاور الموضوع.",
+          "خاتمة تركيبية مناسبة."
+        ]
+      },
+      {
+        "topicNumber": 2,
+        "title": "الموضوع الثاني (${framework.situation3})",
+        "contextText": "نص الانطلاق للموضوع المقالي الثاني...",
+        "instructions": [
+          "مقدمة منهجية مع التساؤلات.",
+          "عرض تحليلي مقارن.",
+          "خاتمة تركيبية."
         ]
       }
     ],
-    "methodologicalNotes": "تخصص (1ن) للجانب المنهجي والشكلي و(6ن) للجانب المعرفي.",
-    "totalPoints": 7
+    "methodologicalNotes": "${isHighSchool ? 'الجانب المنهجي (2ن) + الجانب المعرفي (7ن) + الجانب الشكلي (1ن) = 10ن' : 'الجانب المنهجي (1ن) + الجانب المعرفي (5ن) + الجانب الشكلي (1ن) = 7ن'}"
   },
   "answerKey": {
     "situation1Answers": [
-      "1. تعريف المفهوم الأول: ... (1ن)",
-      "2. تعريف المفهوم الثاني: ... (1ن)",
-      "3. أُجوبة صحيح/خطأ مع تصحيح الخاطئة...",
-      "4. أجوبة صل بسهم..."
+      "تعاريف المفاهيم النموذجية...",
+      "أجوبة الأسئلة الموضوعية..."
     ],
     "situation2Answers": [
-      { "questionNumber": 1, "answer": "السياق التاريخي / الفكرة العامة للوثائق...", "points": 1 },
-      { "questionNumber": 2, "answer": "شرح المفاهيم والمصطلحات...", "points": 1 },
-      { "questionNumber": 3, "answer": "المعطيات المستخرجة المباشرة من الوثيقة 1...", "points": 1 },
-      { "questionNumber": 4, "answer": "المعطيات الإحصائية المحددة من الوثيقة 2...", "points": 1 },
-      { "questionNumber": 5, "answer": "التفسير والتعليل والمقارنة...", "points": 1.5 },
-      { "questionNumber": 6, "answer": "الفقرة التركيبية...", "points": 1.5 }
+      { "questionNumber": 1, "answer": "الإجابة النموذجية للسؤال 1", "points": ${isHighSchool ? 2 : 1} },
+      { "questionNumber": 2, "answer": "الإجابة النموذجية للسؤال 2", "points": ${isHighSchool ? 3 : 2} },
+      { "questionNumber": 3, "answer": "الإجابة النموذجية للسؤال 3", "points": ${isHighSchool ? 2 : 2} },
+      { "questionNumber": 4, "answer": "الإجابة النموذجية للسؤال 4", "points": ${isHighSchool ? 3 : 2} }
     ],
     "situation3AnswerGuides": [
       {
         "topicNumber": 1,
-        "topicTitle": "عناصر إجابة الموضوع المقالي",
-        "introduction": "صياغة المقدمة الإشكالية والتصميم (0.5ن)...",
+        "topicTitle": "عناصر إجابة الموضوع المقالي الأول",
+        "introduction": "مقدمة نموذجية...",
         "development": [
-          "عناصر العرض للمحور الأول (3ن)...",
-          "عناصر العرض للمحور الثاني (3ن)..."
+          "أفكار الفقرة الأولى...",
+          "أفكار الفقرة الثانية...",
+          "أفكار الفقرة الثالثة..."
         ],
-        "conclusion": "خاتمة نموذجية وتركيب عام (0.5ن)...",
+        "conclusion": "خاتمة نموذجية...",
         "scoringBreakdown": [
-          { "item": "الجانب المنهجي والشكلي", "points": 1 },
-          { "item": "الجانب المعرفي (المحور 1)", "points": 3 },
-          { "item": "الجانب المعرفي (المحور 2)", "points": 3 }
+          { "item": "الجانب المنهجي", "points": ${isHighSchool ? 2 : 1} },
+          { "item": "الجانب المعرفي", "points": ${isHighSchool ? 7 : 5} },
+          { "item": "الجانب الشكلي والتعبير", "points": 1 }
+        ]
+      },
+      {
+        "topicNumber": 2,
+        "topicTitle": "عناصر إجابة الموضوع المقالي الثاني",
+        "introduction": "مقدمة نموذجية...",
+        "development": [
+          "أفكار الفقرة الأولى...",
+          "أفكار الفقرة الثانية..."
+        ],
+        "conclusion": "خاتمة نموذجية...",
+        "scoringBreakdown": [
+          { "item": "الجانب المنهجي", "points": ${isHighSchool ? 2 : 1} },
+          { "item": "الجانب المعرفي", "points": ${isHighSchool ? 7 : 5} },
+          { "item": "الجانب الشكلي والتعبير", "points": 1 }
         ]
       }
     ]
   }
 }
 `;
-  }
 
-  let retries = 3;
+  let retries = 2;
   while (retries > 0) {
     try {
       const responseText = await generateAIContent({
         prompt,
         responseMimeType: "application/json",
-        preferredModel: "gemini-3.6-flash",
+        preferredModel: "gemini-3.7-flash",
       });
 
       if (!responseText) {
@@ -409,17 +434,25 @@ export const generateMiddleSchoolExam = async (
       }
 
       const parsed = safeJsonParse<ExamData>(responseText);
-      if (teacherInfo?.teacherName) parsed.teacherName = teacherInfo.teacherName;
-      if (teacherInfo?.schoolName) parsed.schoolName = teacherInfo.schoolName;
-      return parsed;
+      if (parsed && parsed.situation2 && parsed.situation3 && parsed.answerKey) {
+        if (teacherInfo?.teacherName) parsed.teacherName = teacherInfo.teacherName;
+        if (teacherInfo?.schoolName) parsed.schoolName = teacherInfo.schoolName;
+        return parsed;
+      }
+      throw new Error("بيانات الامتحان غير مكتملة.");
     } catch (error: any) {
-      console.error(`API Exam Error (Attempts remaining: ${retries - 1}):`, error);
+      console.warn(`API Exam Error (Attempts remaining: ${retries - 1}):`, error?.message || error);
       retries--;
       if (retries === 0) {
-        throw new Error(error.message || "فشل في توليد الامتحان. يرجى المحاولة مرة أخرى.");
+        return generateFallbackMiddleSchoolExam(level, term, examTitle, selectedLessons, framework, teacherInfo);
       }
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
-  throw new Error("فشل في توليد الامتحان بعد عدة محاولات.");
+
+  return generateFallbackMiddleSchoolExam(level, term, examTitle, selectedLessons, framework, teacherInfo);
 };
+
+// Aliases for compatibility
+export const generateExam = generateMiddleSchoolExam;
+export const generateFallbackExam = generateFallbackMiddleSchoolExam;

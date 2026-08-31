@@ -1,116 +1,162 @@
-import { LessonSummaryData } from "../types/summary";
 import { safeJsonParse } from "../utils/jsonCleaner";
 import { generateAIContent } from "./aiClient";
+import { LessonSummaryData, SummarySection, SummarySubsection } from "../types/summary";
+
+export { type LessonSummaryData, type SummarySection, type SummarySubsection };
+
+export const generateFallbackSummary = (
+  lessonTitle: string,
+  level: string,
+  subject: string = "التاريخ"
+): LessonSummaryData => {
+  return {
+    title: lessonTitle,
+    subject: subject || "الاجتماعيات",
+    level: level,
+    introduction: {
+      context: `يشكل درس "${lessonTitle}" أحد المحاور الأساسية في برنامج مادة ${subject} لمستوى ${level}، حيث يسلط الضوء على سياق الظاهرة، عواملها المؤثرة، والنتائج المترتبة عنها.`,
+      questions: [
+        "ما هو الإطار والسياق العام المؤطر لموضوع الدرس؟",
+        "ما هي أهم العوامل والأسباب المفسرة للظاهرة؟",
+        "ما هي أبرز النتائج والامتدادات المترتبة عنها؟"
+      ]
+    },
+    sections: [
+      {
+        mainTitle: "أولاً: السياق العام ومظاهر وتجليات الظاهرة",
+        subsections: [
+          {
+            subTitle: "1. الإطار المفاهيمي والسياق العام",
+            content: [
+              `تحديد مفهوم "${lessonTitle}" وإبراز سياقه ومجاله.`,
+              "رصد المحطات التاريخية والمجالية البارزة التي ميزت تطور الموضوع.",
+              "تحديد المفاهيم الأساسية المرتبطة ببنية الدرس والمقرر الدراسي."
+            ]
+          },
+          {
+            subTitle: "2. أبرز المظاهر والتجليات الأساسية",
+            content: [
+              "استخلاص مظاهر التحول والتطور استناداً إلى الوثائق والدعامات الديداكتيكية.",
+              "مقارنة المؤشرات والخصائص النوعية والكمية المفسرة للظاهرة."
+            ]
+          }
+        ]
+      },
+      {
+        mainTitle: "ثانياً: العوامل والأسباب المفسرة للظاهرة",
+        subsections: [
+          {
+            subTitle: "1. العوامل البنيوية والداخلية",
+            content: [
+              "العوامل المباشرة والظروف التي ساهمت في بلورة الوضعية.",
+              "التحولات الهيكلية والتنظيمية المواكبة للظاهرة."
+            ]
+          },
+          {
+            subTitle: "2. العوامل الخارجية والتأثيرات المحيطة",
+            content: [
+              "انعكاسات الظروف الإقليمية والدولية على مسار التطور.",
+              "تفاعل العوامل وتكاملها في تفسير النتائج العامة."
+            ]
+          }
+        ]
+      },
+      {
+        mainTitle: "ثالثاً: النتائج والانعكاسات العامة والامتدادات",
+        subsections: [
+          {
+            subTitle: "1. الحصيلة العامة والنتائج المباشرة",
+            content: [
+              "رصد الآثار المترتبة على المستويات السياسية، الاقتصادية، والمجالية.",
+              "تقييم الأبعاد الإيجابية والتحديات الناجمة عن الظاهرة."
+            ]
+          }
+        ]
+      }
+    ],
+    conclusion: `نستخلص أن درس "${lessonTitle}" يجسد مرحلة هامة تفاعلت فيها مجموعة من العوامل لتفرز نتائج عميقة الأثر ساهمت في توجيه التطورات اللاحقة.`,
+    keyTerms: [
+      {
+        term: lessonTitle,
+        definition: `المفهوم المحوري لموضوع الدرس في مقرر ${subject} لمستوى ${level}.`
+      },
+      {
+        term: "النهج الديداكتيكي",
+        definition: "خطوات المعالجة الديداكتيكية المعتمدة: التعريف، التفسير، والتركيب."
+      }
+    ]
+  };
+};
 
 export const generateLessonSummary = async (
   lessonTitle: string,
-  subject: string = "التاريخ",
-  level: string = "الأولى بكالوريا",
-  term: string = "الدورة الأولى",
-  curriculum: string = "المنهاج الرسمي المغربي"
+  subject: string,
+  level: string,
+  term?: string,
+  options?: { summaryType?: string; targetLength?: string }
 ): Promise<LessonSummaryData> => {
   const prompt = `
-أنت مفتش ممتاز وخبير تربوي في تدريس مادة الاجتماعيات (${subject}) بالمنهاج المغربي.
-مهمتك هي صياغة "ملخص درسي نموذجي" منظم ومكثف ودقيق لدرس: "${lessonTitle}" للمستوى: "${level}" (${term}) (${curriculum}).
+أنت خبير تربوي مغربي متخصص في تدريس مادة الاجتماعيات (التاريخ، الجغرافيا، التربية على المواطنة).
+مهمتك إعداد "ملخص درس تركيبي مركز وشامل" ومعد بطريقة بيداغوجية احترافية لدرس: "${lessonTitle}" 
+المستوى: "${level}"
+المكون: "${subject}"
+${term ? `الدورة: "${term}"` : ''}
 
-يجب أن يلتزم الملخص التزاماً تاماً بـ **التوجيهات التربوية المغربية لمادة الاجتماعيات** والنمط المعتمد كالتالي:
+المطلوب:
+1. مقدمة موجزة تمهد للموضوع وتطرح الأسئلة الإشكالية.
+2. محاور رئيسية (بين 2 إلى 3 محاور كبرى) تتبع النهج الديداكتيكي للمادة (التعريف، التفسير، التركيب).
+3. فقرات ونقاط ملخصة وواضحة وسلسة دون إخلال بالعمق المعرفي والمفاهيم الرسمية.
+4. خاتمة استخلاصية موجزة تفتح آفاقاً للدرس الموالي.
+5. لائحة بأهم المفاهيم والمصطلحات الأساسية للدرس وشرحها الرسمي المختصر.
 
-1. **عنوان الدرس (title)**: "${lessonTitle}"
-2. **المادة (subject)**: "${subject}"
-3. **المستوى (level)**: "${level}"
-4. **مقدمة (introduction)**:
-   - context: نص التمهيد الإشكالي المحفز وصياغة مركزة.
-   - questions: 3 أسئلة إشكالية موجهة ومطابقة لعناوين المحاور الرئيسية (فما هي... وكيف... وما نتائج...؟).
-5. **المحاور الرئيسية (sections)**:
-   - المحور الأول: "أولاً: [عنوان رئيسي دقيق يركز على الوصف أو التفسير أو التعريف]"
-   - المحور الثاني: "ثانياً: [عنوان رئيسي دقيق]"
-   - المحور الثالث (حسب طبيعة الدرس): "ثالثاً: [عنوان رئيسي دقيق]"
-   - داخل كل محور، أضف 2 إلى 3 عناوين فرعية (subsections) مثل:
-     - subTitle: "1. [عنوان فرعي]"
-     - content: مصفوفة من النقاط التلخيصية (3-5 نقاط غنية بالمعطيات والتواريخ والأرقام والدقة العلمية).
-     - keyTerms (اختياري): أهم المصطلحات والمفاهيم الرسمية المرتبطة بهذا الجزء مع تعريفها الدقيق (إن وجدت).
-6. **خاتمة (conclusion)**: تركيب عام واستخلاص مركز يربط الدرس بافتتاحية الدرس القادم.
-7. **المفاهيم والمصطلحات الأساسية (keyTerms)**: قائمة مركزة بأهم المصطلحات والمفاهيم الرسمية المعتمدة للدرس مع تعريفاتها الدقيقة (تكون مستقلة في النهاية بعد الخاتمة).
-
-تنسيق الاستجابة يجب أن يكون JSON حصراً بالبنية التالية:
+أخرج النتيجة حصراً بصيغة JSON وفق الهيكل التالي دون أي مقدمات نصية:
 
 {
   "title": "${lessonTitle}",
   "subject": "${subject}",
   "level": "${level}",
-  "module": "الدورة الأولى / الثانية",
   "introduction": {
-    "context": "تمهيد إشكالي مركز...",
-    "questions": [
-      "فما هي ظروف...؟",
-      "وما هي مراحل...؟",
-      "وما هي النتائج والتداعيات...؟"
-    ]
+    "context": "نص التمهيد الإشكالي المركّز...",
+    "questions": ["السؤال الإشكالي الأول؟", "السؤال الإشكالي الثاني؟", "السؤال الإشكالي الثالث؟"]
   },
   "sections": [
     {
       "mainTitle": "أولاً: [عنوان المحور الأول]",
       "subsections": [
         {
-          "subTitle": "1. [عنوان الفقرة الفرعية الأولى]",
-          "content": [
-            "نقطة ملخصة دقيقة تتضمن المعطيات والتواريخ والوقائع...",
-            "نقطة ثانية غنية بالتحليل والشرح...",
-            "نقطة ثالثة..."
-          ]
-        },
-        {
-          "subTitle": "2. [عنوان الفقرة الفرعية الثانية]",
-          "content": [
-            "نقطة ملخصة دقيقة...",
-            "نقطة ثانية..."
-          ]
-        }
-      ]
-    },
-    {
-      "mainTitle": "ثانياً: [عنوان المحور الثاني]",
-      "subsections": [
-        {
-          "subTitle": "1. [عنوان فرعي]",
-          "content": [
-            "نقطة ملخصة...",
-            "نقطة ثانية..."
-          ]
+          "subTitle": "1. [عنوان الفقرة الأولى]",
+          "content": ["النقطة الأولى المركزة والمفيدة...", "النقطة الثانية...", "النقطة الثالثة..."]
         }
       ]
     }
   ],
-  "conclusion": "خاتمة استخلاصية مركزة...",
+  "conclusion": "نص الخاتمة التركيبية المعبرة والموجزة...",
   "keyTerms": [
-    { "term": "المفهوم / المصطلح 1", "definition": "التعريف الديداكتيكي الرسمي المعتمد..." },
-    { "term": "المفهوم / المصطلح 2", "definition": "التعريف الديداكتيكي الرسمي المعتمد..." }
+    {
+      "term": "المفهوم الأساسي 1",
+      "definition": "التعريف العلمي الدقيق والموجز..."
+    }
   ]
 }
 `;
 
-  let retries = 3;
-  while (retries > 0) {
-    try {
-      const responseText = await generateAIContent({
-        prompt,
-        responseMimeType: "application/json",
-        preferredModel: "gemini-3.6-flash",
-      });
+  try {
+    const rawResponse = await generateAIContent({
+      prompt,
+      responseMimeType: "application/json",
+      temperature: 0.3,
+      preferredModel: "gemini-3.7-flash",
+    });
 
-      if (!responseText) {
-        throw new Error("تلقينا استجابة فارغة من خادم الذكاء الاصطناعي.");
+    if (rawResponse) {
+      const parsed = safeJsonParse<LessonSummaryData>(rawResponse);
+      if (parsed && parsed.title && parsed.sections && parsed.sections.length > 0) {
+        return parsed;
       }
-
-      return safeJsonParse<LessonSummaryData>(responseText);
-    } catch (error: any) {
-      console.error(`API Summary Error (Attempts remaining: ${retries - 1}):`, error);
-      retries--;
-      if (retries === 0) {
-        throw new Error(error.message || "فشل في توليد الملخص. يرجى المحاولة مرة أخرى.");
-      }
-      await new Promise(resolve => setTimeout(resolve, 1500));
     }
+  } catch (error) {
+    console.warn("generateLessonSummary error, fallback triggered:", error);
   }
-  throw new Error("فشل في توليد الملخص بعد عدة محاولات.");
+
+  return generateFallbackSummary(lessonTitle, level, subject);
 };

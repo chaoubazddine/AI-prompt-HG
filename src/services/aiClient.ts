@@ -36,7 +36,7 @@ export async function generateAIContent(options: GenerateAIOptions): Promise<str
         responseMimeType,
         temperature,
         systemInstruction,
-        preferredModel: preferredModel || "gemini-3.6-flash",
+        preferredModel: preferredModel || "gemini-3.7-flash",
       }),
     });
 
@@ -49,7 +49,7 @@ export async function generateAIContent(options: GenerateAIOptions): Promise<str
       const errData = await res.json().catch(() => null);
       console.warn("Server AI route returned non-OK status:", res.status, errData);
       
-      // If server returned specific error message, we can throw it or try client-side
+      // If server returned specific error message, propagate it
       if (errData && errData.error && res.status !== 404 && res.status !== 502 && !manualKey) {
         throw new Error(errData.error);
       }
@@ -65,12 +65,25 @@ export async function generateAIContent(options: GenerateAIOptions): Promise<str
   // 2. Client-side fallback (if user entered a custom key or in standalone environment)
   const clientKey = manualKey || (typeof process !== "undefined" ? (process.env.API_KEY || process.env.GEMINI_API_KEY) : null);
   if (!clientKey || clientKey === "YOUR_API_KEY" || clientKey.trim() === "" || clientKey.includes("TODO")) {
-    throw new Error("تعذر الاتصال بخدمة الذكاء الاصطناعي. يرجى التحقق من الاتصال أو إدخال مفتاح API في الإعدادات.");
+    throw new Error("تعذر الاتصال بخدمة الذكاء الاصطناعي. يرجى التأكد من اتصال الإنترنت أو إدخال مفتاح API في الإعدادات.");
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey: clientKey });
-    const fallbackModels = ["gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+    const ai = new GoogleGenAI({
+      apiKey: clientKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    });
+    const fallbackModels = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-2.5-pro",
+      "gemini-3.7-flash",
+    ];
     const modelsToTry = preferredModel ? [preferredModel, ...fallbackModels] : fallbackModels;
     let lastErr: any = null;
 

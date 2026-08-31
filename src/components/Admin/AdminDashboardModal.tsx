@@ -36,7 +36,8 @@ import {
   Send,
   AlertTriangle,
   MessageSquare,
-  Megaphone
+  Megaphone,
+  CheckCircle
 } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../firebase';
@@ -107,6 +108,37 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [bulkBody, setBulkBody] = useState('');
   const [bulkTemplate, setBulkTemplate] = useState<'promo_general' | 'vip_unlimited' | 'special_discount' | 'custom'>('promo_general');
   const [isSendingBulk, setIsSendingBulk] = useState(false);
+
+  // Track recipients who have received emails in this outreach round to prevent repetition
+  const [sentBatchEmails, setSentBatchEmails] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('jadha_admin_sent_emails');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const markEmailsAsSent = (emailsToSend: string[]) => {
+    if (!Array.isArray(emailsToSend) || emailsToSend.length === 0) return;
+    setSentBatchEmails(prev => {
+      const updated = Array.from(new Set([...prev, ...emailsToSend]));
+      try {
+        localStorage.setItem('jadha_admin_sent_emails', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Could not persist sent emails:', e);
+      }
+      return updated;
+    });
+  };
+
+  const handleResetBatchCycle = () => {
+    setSentBatchEmails([]);
+    try {
+      localStorage.removeItem('jadha_admin_sent_emails');
+    } catch {}
+    toast.success('تمت إعادة تعيين دورة الإرسال بنجاح. يمكنك الآن بدء إرسال الدفعات من البداية.');
+  };
 
   // New Code Generation State
   const [newCodeTier, setNewCodeTier] = useState<'basic' | 'semester' | 'unlimited'>('unlimited');
@@ -580,17 +612,20 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       const bccList = emails.join(',');
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(bccList)}&su=${encodedSubject}&body=${encodedBody}`;
       window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+      markEmailsAsSent(emails);
       toast.success(`✅ تم فتح Gmail بنجاح مع إدراج نص الرسالة والموضوع و ${emails.length} أستاذ في (BCC)! 🚀`);
     } else {
-      // For larger lists, put first 15 in BCC with full text and copy all emails to clipboard
-      const primaryChunk = emails.slice(0, 15).join(',');
+      // For larger lists, pick first 15 unsent or primary chunk
+      const primaryChunk = emails.slice(0, 15);
+      const bccList = primaryChunk.join(',');
       const fullList = emails.join(', ');
       navigator.clipboard.writeText(fullList);
 
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(primaryChunk)}&su=${encodedSubject}&body=${encodedBody}`;
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&bcc=${encodeURIComponent(bccList)}&su=${encodedSubject}&body=${encodedBody}`;
       window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+      markEmailsAsSent(primaryChunk);
       toast.success(
-        `✅ تم فتح Gmail مع إدراج نص الرسالة كاملاً و أول 15 أستاذ في BCC! (تم نسخ كافة الـ ${emails.length} إيميل للحافظة)`,
+        `✅ تم فتح Gmail لدفعة من ${primaryChunk.length} أستاذ في BCC! (تم حفظ الدفعة ونسخ كافة الـ ${emails.length} إيميل للحافظة)`,
         { duration: 8000 }
       );
     }
@@ -604,13 +639,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       return;
     }
     navigator.clipboard.writeText(bulkBody);
-    const primaryList = emails.slice(0, 15).join(';');
+    const primaryList = emails.slice(0, 15);
     const encodedSubject = encodeURIComponent(bulkSubject);
     const encodedBody = encodeURIComponent(bulkBody);
 
-    const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?bcc=${encodeURIComponent(primaryList)}&subject=${encodedSubject}&body=${encodedBody}`;
+    const outlookUrl = `https://outlook.live.com/mail/0/deeplink/compose?bcc=${encodeURIComponent(primaryList.join(';'))}&subject=${encodedSubject}&body=${encodedBody}`;
     window.open(outlookUrl, '_blank', 'noopener,noreferrer');
-    toast.success(`تم فتح Outlook مع نص الرسالة ووضع ${Math.min(emails.length, 15)} أستاذ في (BCC)`);
+    markEmailsAsSent(primaryList);
+    toast.success(`تم فتح Outlook مع نص الرسالة ووضع ${primaryList.length} أستاذ في (BCC)`);
   };
 
   // 1-Click Mailto App
@@ -621,7 +657,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       return;
     }
     navigator.clipboard.writeText(bulkBody);
-    const bccList = emails.slice(0, 25).join(',');
+    const targetChunk = emails.slice(0, 25);
+    const bccList = targetChunk.join(',');
     const encodedSubject = encodeURIComponent(bulkSubject);
     const encodedBody = encodeURIComponent(bulkBody);
 
@@ -632,7 +669,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    toast.success(`تم فتح تطبيق البريد مع إدراج نص الرسالة والموضوع`);
+    markEmailsAsSent(targetChunk);
+    toast.success(`تم فتح تطبيق البريد مع إدراج نص الرسالة والموضوع لـ ${targetChunk.length} أستاذ`);
   };
 
   // Automated Server Batch Dispatch
@@ -657,6 +695,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
       const data = await response.json();
       if (data.success) {
+        markEmailsAsSent(emails);
         toast.success(`✅ تم إرسال الحملة الترويجية بنجاح إلى ${emails.length} أستاذ(ة) عبر الخادم`);
       } else if (data.mode === 'webmail_fallback') {
         toast.info(`جاري فتح شاشة الإرسال الجماعية في Gmail (BCC) لـ ${emails.length} أستاذ(ة)...`);
@@ -1891,44 +1930,139 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 </div>
 
                 {/* Info Note & Step-by-Step Guide */}
-                <div className="p-3.5 bg-linear-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 text-amber-950 text-xs space-y-2">
+                <div className="p-3.5 bg-linear-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 text-amber-950 text-xs space-y-3">
                   <div className="flex items-start gap-2">
                     <AlertTriangle size={17} className="text-amber-600 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-black text-amber-900 mb-0.5">
-                        طريقة الإرسال المباشرة والآمنة (BCC):
+                        طريقة الإرسال المباشرة والآمنة (BCC) بدون تكرار:
                       </p>
                       <p className="text-[11px] text-amber-800 leading-relaxed">
-                        عند النقر على <strong>«فتح في Gmail»</strong>، يتم فتح نافذة إنشاء الرسالة مباشرة مع إدراج <strong>الموضوع ونص الرسالة بالكامل</strong> وقائمة المستلمين في <strong>النسخة المخفية (BCC)</strong>.
+                        يتم تقسيم المستلمين تلقائياً إلى دفعات منظمة (15 أستاذ في كل دفعة). عند إرسال أي دفعة، يتم <strong>استبعاد من تم الإرسال لهم تلقائياً</strong> حتى لا يتكرر أي أستاذ في الدفعة التالية إلى حين إتمام القائمة كاملة.
                       </p>
                     </div>
                   </div>
 
-                  {/* Batch Buttons if many recipients */}
-                  {getBulkRecipients(bulkAudience).length > 15 && (
-                    <div className="pt-2 border-t border-amber-200/60">
-                      <p className="text-[11px] font-bold text-amber-900 mb-1.5">
-                        📦 إرسال مقسم على دفعات سريعة (15 أستاذ بكل نقرة مع إدراج النص كاملاً):
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Array.from({ length: Math.ceil(getBulkRecipients(bulkAudience).length / 15) }).map((_, idx) => {
-                          const start = idx * 15;
-                          const chunk = getBulkRecipients(bulkAudience).slice(start, start + 15);
-                          return (
+                  {/* Batch Progress Bar & Statistics */}
+                  {(() => {
+                    const allRecipients = getBulkRecipients(bulkAudience);
+                    const totalCount = allRecipients.length;
+                    const sentCount = allRecipients.filter(email => sentBatchEmails.includes(email)).length;
+                    const unsentList = allRecipients.filter(email => !sentBatchEmails.includes(email));
+                    const nextChunk = unsentList.slice(0, 15);
+                    const percent = totalCount > 0 ? Math.round((sentCount / totalCount) * 100) : 0;
+                    const isAllFinished = totalCount > 0 && sentCount >= totalCount;
+
+                    return (
+                      <div className="pt-2.5 border-t border-amber-200/70 space-y-2.5">
+                        {/* Progress Header */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <div className="flex items-center gap-2 font-bold text-amber-900">
+                            <span>📊 تقدم إرسال الدفعات:</span>
+                            <span className="bg-amber-100/90 text-amber-900 px-2 py-0.5 rounded-full font-black">
+                              {sentCount} / {totalCount} أستاذ ({percent}%)
+                            </span>
+                          </div>
+
+                          {sentCount > 0 && (
                             <button
-                              key={idx}
                               type="button"
-                              onClick={() => handleSendBulkViaGmail(chunk)}
-                              className="px-2.5 py-1 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                              onClick={handleResetBatchCycle}
+                              className="text-[10px] text-amber-800 hover:text-red-700 underline font-bold transition-colors cursor-pointer"
                             >
-                              <span>دفعة {idx + 1} ({chunk.length} أستاذ)</span>
-                              <Mail size={11} />
+                              إعادة تعيين دورة الإرسال ↺
                             </button>
-                          );
-                        })}
+                          )}
+                        </div>
+
+                        {/* Progress Track */}
+                        <div className="w-full bg-amber-200/60 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-linear-to-r from-amber-500 to-emerald-500 h-full transition-all duration-300 rounded-full"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+
+                        {/* Next Unsent Batch Action Banner */}
+                        {!isAllFinished && unsentList.length > 0 && (
+                          <div className="bg-white/80 p-2.5 rounded-xl border border-amber-300/80 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+                            <div className="text-[11px] text-slate-800 font-bold">
+                              <span>الدفعة التالية الجاهزة: </span>
+                              <span className="text-amber-700 font-black">{nextChunk.length} أستاذ جديد (غير مكرر)</span>
+                              <span className="text-slate-500 text-[10px] mr-1.5">(متبقي {unsentList.length} أستاذ)</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleSendBulkViaGmail(nextChunk)}
+                              className="px-3.5 py-1.5 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                            >
+                              <Mail size={13} />
+                              <span>إرسال الدفعة التالية في Gmail 🚀</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* All Batches Finished Celebration Banner */}
+                        {isAllFinished && (
+                          <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-300 text-emerald-900 flex flex-wrap items-center justify-between gap-2">
+                            <div className="text-[11px] font-black flex items-center gap-1.5">
+                              <span>🎉 رائع! تم الانتهاء من إرسال الحملة لكافة الأساتذة في هذه الفئة ({totalCount} أستاذ) دون أي تكرار!</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleResetBatchCycle}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-colors shadow-2xs cursor-pointer"
+                            >
+                              بدء دورة إرسال جديدة ↺
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Batch Partition Chips */}
+                        {totalCount > 15 && (
+                          <div className="pt-1">
+                            <p className="text-[10px] font-bold text-amber-900 mb-1">
+                              قائمة الدفعات المرتبة (15 أستاذ بالدفعة):
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {Array.from({ length: Math.ceil(totalCount / 15) }).map((_, idx) => {
+                                const start = idx * 15;
+                                const chunk = allRecipients.slice(start, start + 15);
+                                const isChunkFullySent = chunk.every(email => sentBatchEmails.includes(email));
+                                const isChunkPartiallySent = !isChunkFullySent && chunk.some(email => sentBatchEmails.includes(email));
+
+                                return (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => handleSendBulkViaGmail(chunk)}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shadow-2xs cursor-pointer ${
+                                      isChunkFullySent
+                                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 hover:bg-emerald-200'
+                                        : isChunkPartiallySent
+                                        ? 'bg-amber-100 text-amber-900 border border-amber-400 hover:bg-amber-200'
+                                        : 'bg-white text-slate-800 border border-slate-300 hover:bg-slate-100'
+                                    }`}
+                                    title={isChunkFullySent ? 'تم إرسال هذه الدفعة بالكامل' : 'إرسال هذه الدفعة'}
+                                  >
+                                    <span>
+                                      {isChunkFullySent ? '✓ ' : ''}دفعة {idx + 1} ({chunk.length})
+                                    </span>
+                                    {isChunkFullySent ? (
+                                      <CheckCircle size={11} className="text-emerald-700" />
+                                    ) : (
+                                      <Mail size={11} className="text-amber-700" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
 

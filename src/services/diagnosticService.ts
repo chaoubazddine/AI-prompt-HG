@@ -293,7 +293,7 @@ ${customFocusArea ? `- تركيز خاص: ${customFocusArea}` : ''}
       const rawText = await generateAIContent({
         prompt,
         responseMimeType: "application/json",
-        preferredModel: "gemini-3.6-flash",
+        preferredModel: "gemini-3.7-flash",
       });
 
       const parsed = safeJsonParse<DiagnosticDossier>(rawText);
