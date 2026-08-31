@@ -215,10 +215,46 @@ function JadhaApp() {
   const DOWNLOAD_LIMIT = TIER_LIMITS[subscriptionTier];
   const isAdmin = user?.email === 'chaoub7@gmail.com';
 
-  // Scroll to top whenever step changes
+  // Dynamic SEO Page Title & Meta Tags based on active view
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+    const titles: Record<string, string> = {
+      landing: 'منصة الاجتماعيات الذكية | جذاذات، فروض، ملخصات، عروض وتقويم تشخيصي لمادة الاجتماعيات بالمغرب',
+      dashboard: 'لوحة التحكم والمكتبة الرقمية | منصة الاجتماعيات الذكية',
+      form: 'إعداد وتوليد جذاذة تربوية بالذكاء الاصطناعي (Word & PDF) | منصة الاجتماعيات الذكية',
+      generate: 'جاري توليد الجذاذة التربوية | منصة الاجتماعيات الذكية',
+      view: 'معاينة وتحميل الجذاذة التربوية (DOCX / PDF) | منصة الاجتماعيات الذكية',
+      'lesson-summary': 'ملخصات وخطاطات دروس مادة الاجتماعيات (Word & PDF) | منصة الاجتماعيات الذكية',
+      'exam-generator': 'مولد الفروض والامتحانات المحروسة مع عناصر الإجابة وسلم التنقيط | منصة الاجتماعيات الذكية',
+      rayada: 'فضاء إعداديات الريادة | جذاذات التدريس الصريح وفروض TaRL لمادة الاجتماعيات',
+      diagnostic: 'حقيبة التقويم التشخيصي، شبكات التفريغ وتحليل نقط مسار | منصة الاجتماعيات الذكية',
+      presentation: 'عروض PowerPoint تفاعلية احترافية (PPTX) لدروس الاجتماعيات | منصة الاجتماعيات الذكية'
+    };
+
+    if (titles[step]) {
+      document.title = titles[step];
+    }
   }, [step]);
+
+  // Read URL query params on initial mount for SEO deep-linking (e.g. ?tab=jadhas)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        if (tab === 'jadhas') setStep('form');
+        else if (tab === 'exams') setStep('exam-generator');
+        else if (tab === 'summaries') setStep('lesson-summary');
+        else if (tab === 'presentation') setStep('presentation');
+        else if (tab === 'rayada') setStep('rayada');
+        else if (tab === 'diagnostic') setStep('diagnostic');
+        else if (tab === 'pricing') setShowPricingModal(true);
+      }
+    } catch (e) {
+      console.warn('URL param parse error:', e);
+    }
+  }, []);
 
   // Rotating loading tip timer
   useEffect(() => {
@@ -644,11 +680,6 @@ function JadhaApp() {
   }, [level, component, semester]);
 
   const handleGenerate = async () => {
-    if (!user) {
-      toast.error('يرجى تسجيل الدخول أولاً لتوليد الجذاذة.');
-      return;
-    }
-
     if (!lessonTitle) {
       toast.warning('تنبيه', {
         description: 'يرجى اختيار عنوان الدرس قبل متابعة التوليد.',
@@ -656,6 +687,7 @@ function JadhaApp() {
       return;
     }
     
+    setError(null);
     setIsGenerating(true);
     setStep('generate');
     
@@ -675,17 +707,33 @@ function JadhaApp() {
       const finalData: JadhaData = {
         ...data,
         level: level,
-        year: profInfo.year,
+        year: profInfo.year || '2025/2026',
         unit: component,
-        duration: duration,
-        academy: profInfo.academy,
-        directorate: profInfo.directorate,
-        school: profInfo.school,
-        teacherName: profInfo.name,
-        references: reference,
+        duration: duration || 'ساعتان',
+        academy: profInfo.academy || 'الأكاديمية الجهوية',
+        directorate: profInfo.directorate || 'المديرية الإقليمية',
+        school: profInfo.school || 'المؤسسة التعليمية',
+        teacherName: profInfo.name || 'أستاذ المادة',
+        references: reference || 'المقرر المعتمد',
       };
       setJadhaData(finalData);
-      await saveJadhaToHistory(finalData);
+      if (user) {
+        await saveJadhaToHistory(finalData);
+      } else {
+        // Save to local guest history
+        try {
+          const localHist = JSON.parse(localStorage.getItem('guest_jadha_history') || '[]');
+          localHist.unshift({
+            id: `local-${Date.now()}`,
+            title: finalData.title,
+            data: finalData,
+            createdAt: new Date().toISOString(),
+          });
+          localStorage.setItem('guest_jadha_history', JSON.stringify(localHist.slice(0, 20)));
+        } catch (e) {
+          console.warn("Local history save error:", e);
+        }
+      }
       setStep('view');
       setError(null);
       toast.success('تم إعداد وتوليد الجذاذة التربوية بنجاح!');
@@ -695,17 +743,19 @@ function JadhaApp() {
       const finalData: JadhaData = {
         ...fallbackData,
         level: level,
-        year: profInfo.year,
+        year: profInfo.year || '2025/2026',
         unit: component,
-        duration: duration,
-        academy: profInfo.academy,
-        directorate: profInfo.directorate,
-        school: profInfo.school,
-        teacherName: profInfo.name,
-        references: reference,
+        duration: duration || 'ساعتان',
+        academy: profInfo.academy || 'الأكاديمية الجهوية',
+        directorate: profInfo.directorate || 'المديرية الإقليمية',
+        school: profInfo.school || 'المؤسسة التعليمية',
+        teacherName: profInfo.name || 'أستاذ المادة',
+        references: reference || 'المقرر المعتمد',
       };
       setJadhaData(finalData);
-      await saveJadhaToHistory(finalData);
+      if (user) {
+        await saveJadhaToHistory(finalData);
+      }
       setStep('view');
       setError(null);
       toast.success('تم إعداد الجذاذة وفق الإطار المرجعي والتوجيهات الرسمية!');

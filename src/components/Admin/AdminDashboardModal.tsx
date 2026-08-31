@@ -101,12 +101,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSendStatus, setEmailSendStatus] = useState<string | null>(null);
 
-  // Bulk Email Campaign State (All Users)
+  // Bulk Email Outreach for Limit-Reached Users
   const [showBulkEmailModal, setShowBulkEmailModal] = useState(false);
-  const [bulkAudience, setBulkAudience] = useState<'all' | 'free_only' | 'limit_reached' | 'near_limit'>('all');
+  const [bulkAudience, setBulkAudience] = useState<'limit_reached' | 'near_limit'>('limit_reached');
   const [bulkSubject, setBulkSubject] = useState('');
   const [bulkBody, setBulkBody] = useState('');
-  const [bulkTemplate, setBulkTemplate] = useState<'promo_general' | 'vip_unlimited' | 'special_discount' | 'custom'>('promo_general');
+  const [bulkTemplate, setBulkTemplate] = useState<'limit_reached_support' | 'limit_reached_vip' | 'limit_reached_discount' | 'custom'>('limit_reached_support');
   const [isSendingBulk, setIsSendingBulk] = useState(false);
 
   // Track recipients who have received emails in this outreach round to prevent repetition
@@ -511,18 +511,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   };
 
   // ==========================================
-  // BULK EMAIL OUTREACH CAMPAIGN HANDLERS
+  // OUTREACH FOR LIMIT-REACHED USERS HANDLERS
   // ==========================================
   const getBulkRecipients = (audience?: string): string[] => {
     const targetAudience = typeof audience === 'string' ? audience : bulkAudience;
     if (!Array.isArray(users)) return [];
     let list = users.filter(u => u?.email && typeof u.email === 'string' && u.email.includes('@'));
-    if (targetAudience === 'free_only') {
-      list = list.filter(u => !u.subscriptionTier || u.subscriptionTier === 'free');
-    } else if (targetAudience === 'limit_reached') {
-      list = list.filter(u => (!u.subscriptionTier || u.subscriptionTier === 'free') && (u.downloadCount || 0) >= 5);
-    } else if (targetAudience === 'near_limit') {
+    if (targetAudience === 'near_limit') {
       list = list.filter(u => (!u.subscriptionTier || u.subscriptionTier === 'free') && (u.downloadCount || 0) >= 3);
+    } else {
+      // Default: free tier users who have reached the maximum limit (5/5 or downloadCount >= 5)
+      list = list.filter(u => (!u.subscriptionTier || u.subscriptionTier === 'free') && (u.downloadCount || 0) >= 5);
     }
     // Extract unique valid trimmed emails
     const unique = Array.from(new Set(list.map(u => String(u.email).trim()))).filter(Boolean);
@@ -530,67 +529,62 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   };
 
   const handleOpenBulkEmailModal = (
-    template: 'promo_general' | 'vip_unlimited' | 'special_discount' = 'promo_general',
-    audience: 'all' | 'free_only' | 'limit_reached' | 'near_limit' = 'all'
+    template: 'limit_reached_support' | 'limit_reached_vip' | 'limit_reached_discount' = 'limit_reached_support',
+    audience: 'limit_reached' | 'near_limit' = 'limit_reached'
   ) => {
     setBulkAudience(audience);
     setBulkTemplate(template);
     setShowBulkEmailModal(true);
 
-    if (template === 'promo_general') {
-      setBulkSubject(`📢 عرض ترويجي خاص لترقية واشتراك حسابكم في منصة الاجتماعيات الذكية 🌟`);
+    if (template === 'limit_reached_support') {
+      setBulkSubject(`🚀 إشعار هام: بلوغ الحد الأقصى المجاني في منصة الاجتماعيات الذكية (5/5)`);
       setBulkBody(`السلام عليكم ورحمة الله وبركاته،
 أستاذنا الفاضل / أستاذتنا الفاضلة،
 
-يسر فريق منصة الاجتماعيات الذكية (المنصة المتخصصة الشاملة لمدرسي مادة الاجتماعيات بالمغرب) أن يقدم لكم عرضاً استثنائياً وخاصاً لترقية حسابكم والاستفادة من كافة مزايا وإمكانيات المنصة:
+نود إعلامكم بأنكم قد بلغتم الحد الأقصى من الرصيد المجاني المتاح في منصة الاجتماعيات الذكية (5 تحميلات من أصل 5).
 
-🌟 أبرز مزايا الاشتراك والترقية الكاملة:
-• توليد وتحميل غير محدود (Word و PDF) لكافة الجذاذات التربوية المحينة وفق التوجيهات الرسمية 2025/2026.
-• المنظومة المتكاملة للفروض المحروسة والامتحانات الإشهادية مع عناصر الإجابة وشبكات التنقيط المفصلة.
-• روائز وشبكات التقويم التشخيصي وأنشطة الدعم والمعالجة المندمجة مع استيراد نقط مسار بضغطة زر.
-• وثائق إعداديات الريادة والعروض التفاعلية الرقمية المرفقة بالوسائط والخرائط عالية الجودة.
+نظراً لاقتناعكم بجودة وأهمية أدوات المنصة في تيسير التخطيط والتحضير الديداكتيكي، يسعدنا مرافقتكم لمواصلة الاستفادة دون انقطاع:
 
-🎁 عرض خاص وحصري لكافة المسجلين:
-استفيدوا الآن من خصم تشجيعي مميز على باقات الاشتراك السنوية والدورية مع التفعيل المباشر والفوري لحسابكم عبر كود ترقية.
+🌟 خيارات ترقية الحساب المتاحة:
+• باقة VIP غير المحدودة (السنوية): تحميل وتوليد غير محدود طيلة الموسم الدراسي 2025/2026 لكافة الجذاذات والفروض والروائز والملخصات.
+• باقة الدورة / الأسدس: رصيد 60 تحميلاً شاملاً لكافة الأدوات.
 
-📲 للاستفادة من العرض واستلام كود التفعيل الفوري:
+📲 لتفعيل حسابكم واستلام كود الترقية الفوري:
 • التواصل المباشر عبر واتساب: 0646662690
 • رابط واتساب المباشر: https://wa.me/212646662690
 • أو الرد المباشر على هذه الرسالة البريدية.
 
-مع خالص متمنياتنا لكم بموسم دراسي مليء بالتميز والنجاح والعطاء التربوي.
+مع خالص التحيات والتقدير لجهودكم التربوية،
 فريق منصة الاجتماعيات الذكية`);
-    } else if (template === 'vip_unlimited') {
-      setBulkSubject(`👑 دعوة خاصة للانضمام إلى باقة VIP غير المحدودة - منصة الاجتماعيات الذكية`);
+    } else if (template === 'limit_reached_vip') {
+      setBulkSubject(`👑 دعوة خاصة للترقية إلى باقة VIP غير المحدودة بعد استنفاد الرصيد المجاني`);
       setBulkBody(`تحية تربوية خالصة أستاذنا الفاضل / أستاذتنا الفاضلة،
 
-يسعدنا دعوتكم للانضمام إلى باقة VIP غير المحدودة في منصة الاجتماعيات الذكية للاستفادة من تحضير رقمي فائق السلاسة:
+بعد استنفادكم للرصيد المجاني في منصة الاجتماعيات الذكية، يسعدنا دعوتكم للانضمام إلى باقة VIP غير المحدودة للاستفادة من:
+- تحميلات وتوليد غير محدود بصيغة Word و PDF طيلة الموسم الدراسي 2025/2026.
+- المنظومة الكاملة للفروض والتقويم التشخيصي واستيراد نقط مسار بنقرة واحدة.
+- وثائق إعداديات الريادة والعروض التفاعلية الرقمية المندمجة.
 
-✨ لماذا يفضل الأساتذة باقة VIP؟
-- توفير أكثر من 80% من وقت التحضير والتخطيط الأسبوعي.
-- وثائق ديداكتيكية جاهزة ومطابقة 100% للتوجيهات والكتب المدرسية المعتمدة (منار / في رحاب / الجديد / الفضاء / النجاح / المسار).
-- تصدير فوري لملفات Word منسقة وقابلة للتعديل والطباعة مع شبكات التنقيط.
-- دعم ومرافقة مستمرة طيلة الموسم الدراسي.
-
-🚀 لتفعيل حسابكم فوراً:
+🚀 لتفعيل حسابكم واستلام كود التفعيل الفوري:
 تواصلوا معنا عبر واتساب: 0646662690 (https://wa.me/212646662690)
 
 مع فائق التقدير والاحترام،
 إدارة منصة الاجتماعيات الذكية`);
-    } else if (template === 'special_discount') {
-      setBulkSubject(`⚡ كود تخفيض استثنائي للاشتراك في منصة الاجتماعيات الذكية`);
+    } else if (template === 'limit_reached_discount') {
+      setBulkSubject(`⚡ عرض ميسر وخاص لترقية حسابكم بعد بلوغ الحد الأقصى (5/5)`);
       setBulkBody(`السلام عليكم ورحمة الله وبركاته،
 
-أستاذنا العزيز، تقديراً لانضمامكم للمنصة وثقتكم، يسعدنا تقديم كود خصم حصري لتفعيل اشتراككم في باقة المنصة الشاملة (باقة VIP أو باقة الدورة).
+أستاذنا العزيز، نلاحظ وصولكم للحد الأقصى المجاني (5/5) واستعمالكم المتكرر للمنصة.
+تقديراً لثقتكم واهتمامكم بالمنصة، يسرنا تقديم كود خصم استثنائي لتفعيل اشتراككم في باقة VIP السنوية أو باقة الدورة.
 
-للحصول على كود التخفيض الفوري وتفعيل الحساب:
+للحصول على كود التخفيض المباشر وتفعيل الحساب:
 واتساب: 0646662690 (https://wa.me/212646662690)
 
 منصة الاجتماعيات الذكية - رفيقكم الرقمي للتميز الديداكتيكي.`);
     }
   };
 
-  const handleChangeBulkTemplate = (template: 'promo_general' | 'vip_unlimited' | 'special_discount') => {
+  const handleChangeBulkTemplate = (template: 'limit_reached_support' | 'limit_reached_vip' | 'limit_reached_discount') => {
     handleOpenBulkEmailModal(template, bulkAudience);
   };
 
@@ -696,9 +690,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       const data = await response.json();
       if (data.success) {
         markEmailsAsSent(emails);
-        toast.success(`✅ تم إرسال الحملة الترويجية بنجاح إلى ${emails.length} أستاذ(ة) عبر الخادم`);
+        toast.success(`✅ تم إرسال رسائل المتابعة بنجاح إلى ${emails.length} أستاذ(ة) وصلوا للحد الأقصى عبر الخادم`);
       } else if (data.mode === 'webmail_fallback') {
-        toast.info(`جاري فتح شاشة الإرسال الجماعية في Gmail (BCC) لـ ${emails.length} أستاذ(ة)...`);
+        toast.info(`جاري فتح شاشة الإرسال في Gmail (BCC) لـ ${emails.length} أستاذ(ة)...`);
         handleSendBulkViaGmail();
       } else {
         toast.error(data.error || 'تعذر الإرسال التلقائي، جاري الفتح عبر Gmail');
@@ -706,7 +700,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       }
     } catch (err: any) {
       console.warn('Server bulk email fallback to Gmail:', err);
-      toast.info('جاري فتح شاشة الإرسال الجماعية في Gmail (BCC)...');
+      toast.info('جاري فتح شاشة الإرسال في Gmail (BCC)...');
       handleSendBulkViaGmail();
     } finally {
       setIsSendingBulk(false);
@@ -728,7 +722,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const handleCopyBulkContent = () => {
     const fullText = `الموضوع: ${bulkSubject}\n\n${bulkBody}`;
     navigator.clipboard.writeText(fullText);
-    toast.success('تم نسخ نص وموضوع الحملة الترويجية بالكامل إلى الحافظة');
+    toast.success('تم نسخ نص وموضوع الرسالة بالكامل إلى الحافظة');
   };
 
 
@@ -1014,14 +1008,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <span>تصدير Excel/CSV</span>
                   </button>
 
-                  {/* Bulk Promotional Campaign Button */}
+                  {/* Outreach Button for Limit-Reached Users */}
                   <button
-                    onClick={() => handleOpenBulkEmailModal('promo_general', 'all')}
+                    onClick={() => handleOpenBulkEmailModal('limit_reached_support', 'limit_reached')}
                     className="px-3.5 py-2 bg-linear-to-r from-red-600 via-rose-600 to-amber-600 text-white rounded-xl text-xs font-black hover:from-red-700 hover:to-amber-700 transition-all flex items-center gap-1.5 shadow-xs hover:shadow-md cursor-pointer"
-                    title="إرسال رسائل ترويجية جماعية لكل المسجلين في المنصة للاشتراك والترقية"
+                    title="مراسلة وتواصل مع الأساتذة الذين وصلوا للحد الأقصى المجاني (5/5) لترقية حساباتهم"
                   >
-                    <Megaphone size={14} className="animate-pulse" />
-                    <span>حملة ترويجية جماعية ({getBulkRecipients('all').length} أستاذ) 📢</span>
+                    <Mail size={14} />
+                    <span>مراسلة من وصلوا للحد الأقصى ({getBulkRecipients('limit_reached').length} أستاذ) ⚡</span>
                   </button>
                 </div>
               </div>
@@ -1746,7 +1740,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           </div>
         )}
         {/* ======================================================== */}
-        {/* MODAL 3: BULK PROMOTIONAL EMAIL CAMPAIGN MODAL           */}
+        {/* MODAL 3: OUTREACH TO LIMIT-REACHED USERS MODAL           */}
         {/* ======================================================== */}
         {showBulkEmailModal && (
           <div className="fixed inset-0 z-[180] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs font-sans text-right" dir="rtl">
@@ -1760,17 +1754,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               <div className="p-4 sm:p-5 border-b border-slate-100 bg-linear-to-r from-red-900/10 via-rose-900/5 to-amber-900/10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-linear-to-tr from-red-600 to-rose-500 text-white flex items-center justify-center shadow-md shadow-red-200 shrink-0">
-                    <Megaphone size={22} className="animate-pulse" />
+                    <Mail size={22} className="animate-pulse" />
                   </div>
                   <div>
                     <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
-                      <span>إطلاق حملة ترويجية جماعية لكافة المسجلين</span>
+                      <span>التواصل مع الأساتذة الذين وصلوا للحد الأقصى</span>
                       <span className="bg-red-100 text-red-700 text-[11px] font-black px-2.5 py-0.5 rounded-full">
-                        {getBulkRecipients(bulkAudience).length} مستلم
+                        {getBulkRecipients(bulkAudience).length} أستاذ
                       </span>
                     </h4>
                     <p className="text-xs text-slate-500 font-medium">
-                      إرسال عروض الاشتراك والترقية لجميع الأساتذة بنقرة واحدة عبر البريد كنسخة مخفية (BCC)
+                      مراسلة موجهة للأساتذة الذين استنفدوا رصيدهم المجاني (5 تحميلات) لمساعدتهم في ترقية الحساب وتفعيل الاشتراك
                     </p>
                   </div>
                 </div>
@@ -1787,50 +1781,23 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 {/* Audience Filter Pills */}
                 <div>
                   <label className="block text-xs font-black text-slate-700 mb-2">
-                    🎯 الفئة المستهدفة من الأساتذة المسجلين:
+                    🎯 الفئة المستهدفة من الأساتذة:
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setBulkAudience('all')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
-                        bulkAudience === 'all'
-                          ? 'bg-red-600 text-white border-red-700 shadow-xs'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      <span>كل المسجلين بالمنصة</span>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                        {getBulkRecipients('all').length} أستاذ
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setBulkAudience('free_only')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
-                        bulkAudience === 'free_only'
-                          ? 'bg-red-600 text-white border-red-700 shadow-xs'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      <span>الباقة المجانية فقط</span>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'free_only' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                        {getBulkRecipients('free_only').length} أستاذ
-                      </span>
-                    </button>
-
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setBulkAudience('limit_reached')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-between gap-2 ${
                         bulkAudience === 'limit_reached'
                           ? 'bg-red-600 text-white border-red-700 shadow-xs'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
                     >
-                      <span>وصلوا للحد (5/5)</span>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'limit_reached' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      <div className="text-right">
+                        <p className="font-black">من وصلوا للحد الأقصى (5/5)</p>
+                        <p className={`text-[10px] ${bulkAudience === 'limit_reached' ? 'text-red-100' : 'text-slate-500'}`}>الأساتذة الذين استهلكوا كامل الرصيد المجاني</p>
+                      </div>
+                      <span className={`text-xs font-black px-2.5 py-1 rounded-md ${bulkAudience === 'limit_reached' ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'}`}>
                         {getBulkRecipients('limit_reached').length} أستاذ
                       </span>
                     </button>
@@ -1838,14 +1805,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setBulkAudience('near_limit')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 ${
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-between gap-2 ${
                         bulkAudience === 'near_limit'
                           ? 'bg-red-600 text-white border-red-700 shadow-xs'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
                     >
-                      <span>قاربوا الحد (≥3)</span>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${bulkAudience === 'near_limit' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                      <div className="text-right">
+                        <p className="font-black">من قاربوا بلوغ الحد (≥3 تحميلات)</p>
+                        <p className={`text-[10px] ${bulkAudience === 'near_limit' ? 'text-red-100' : 'text-slate-500'}`}>الأساتذة النشطون برصيد 3 أو 4 تحميلات</p>
+                      </div>
+                      <span className={`text-xs font-black px-2.5 py-1 rounded-md ${bulkAudience === 'near_limit' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
                         {getBulkRecipients('near_limit').length} أستاذ
                       </span>
                     </button>
@@ -1855,26 +1825,26 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 {/* Templates Selector */}
                 <div>
                   <label className="block text-xs font-black text-slate-700 mb-2">
-                    📑 اختيار نموذج العرض الترويجي:
+                    📑 اختيار نموذج رسالة المتابعة:
                   </label>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => handleChangeBulkTemplate('promo_general')}
+                      onClick={() => handleChangeBulkTemplate('limit_reached_support')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 ${
-                        bulkTemplate === 'promo_general'
+                        bulkTemplate === 'limit_reached_support'
                           ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
                     >
-                      <span>🌟 عرض ترويجي شامل ومخفض</span>
+                      <span>🚀 إشعار بلوغ الحد والمساعدة بالترقية</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => handleChangeBulkTemplate('vip_unlimited')}
+                      onClick={() => handleChangeBulkTemplate('limit_reached_vip')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 ${
-                        bulkTemplate === 'vip_unlimited'
+                        bulkTemplate === 'limit_reached_vip'
                           ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
@@ -1884,14 +1854,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => handleChangeBulkTemplate('special_discount')}
+                      onClick={() => handleChangeBulkTemplate('limit_reached_discount')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 ${
-                        bulkTemplate === 'special_discount'
+                        bulkTemplate === 'limit_reached_discount'
                           ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
                     >
-                      <span>⚡ كود تخفيض استثنائي</span>
+                      <span>⚡ عرض ميسر وكود تخفيض</span>
                     </button>
                   </div>
                 </div>
@@ -1906,7 +1876,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     value={bulkSubject}
                     onChange={(e) => setBulkSubject(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-hidden focus:border-red-500"
-                    placeholder="عنوان الرسالة الترويجية..."
+                    placeholder="عنوان الرسالة..."
                   />
                 </div>
 
@@ -1914,7 +1884,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-black text-slate-700">
-                      محتوى الرسالة الترويجية (يمكنك التعديل والإضافة بحرية):
+                      محتوى الرسالة (يمكنك التعديل والإضافة بحرية):
                     </label>
                     <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                       واتساب معتمد: 0646662690 ✅
@@ -1925,7 +1895,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     value={bulkBody}
                     onChange={(e) => setBulkBody(e.target.value)}
                     className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 leading-relaxed focus:bg-white focus:outline-hidden focus:border-red-500 font-mono"
-                    placeholder="اكتب نص الرسالة الترويجية هنا..."
+                    placeholder="اكتب نص الرسالة هنا..."
                   />
                 </div>
 
@@ -2007,7 +1977,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         {isAllFinished && (
                           <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-300 text-emerald-900 flex flex-wrap items-center justify-between gap-2">
                             <div className="text-[11px] font-black flex items-center gap-1.5">
-                              <span>🎉 رائع! تم الانتهاء من إرسال الحملة لكافة الأساتذة في هذه الفئة ({totalCount} أستاذ) دون أي تكرار!</span>
+                              <span>🎉 تم الانتهاء من مراسلة كافة الأساتذة في هذه الفئة ({totalCount} أستاذ) دون أي تكرار!</span>
                             </div>
                             <button
                               type="button"
@@ -2075,10 +2045,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       type="button"
                       onClick={() => handleSendBulkViaGmail()}
                       className="px-4 py-2.5 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-black text-xs flex items-center gap-2 transition-all shadow-md shadow-red-200 hover:shadow-lg cursor-pointer"
-                      title="فتح Gmail فوراً مع وضع كافة إيميلات المسجلين في خانة النسخة المخفية BCC"
+                      title="فتح Gmail فوراً مع وضع كافة إيميلات الأساتذة الذين وصلوا للحد في خانة النسخة المخفية BCC"
                     >
                       <Mail size={16} />
-                      <span>فتح في Gmail لجميع المستهدفين (BCC) 🚀</span>
+                      <span>فتح في Gmail لمن وصل للحد الأقصى (BCC) 🚀</span>
                     </button>
 
                     {/* Direct Outlook BCC Compose */}
