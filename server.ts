@@ -148,13 +148,13 @@ app.post("/api/ai/generate", async (req, res) => {
       },
     });
 
-    // Valid production models across Gemini API generations
+    // Valid production models supported by the Gemini API (Gemini 3 series)
     const fallbackModels = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-2.5-pro",
       "gemini-3.7-flash",
+      "gemini-flash-latest",
+      "gemini-3.1-flash-lite",
+      "gemini-3.6-flash",
+      "gemini-3.1-pro-preview",
     ];
     const candidateModels = preferredModel
       ? [preferredModel, ...fallbackModels]
@@ -165,31 +165,47 @@ app.post("/api/ai/generate", async (req, res) => {
     let lastError: any = null;
 
     for (const modelName of uniqueModels) {
-      try {
-        const config: any = {};
-        if (responseMimeType) {
-          config.responseMimeType = responseMimeType;
-        }
-        if (typeof temperature === "number") {
-          config.temperature = temperature;
-        }
-        if (systemInstruction) {
-          config.systemInstruction = systemInstruction;
-        }
+      // Try up to 2 attempts per model for transient 503 / 429 errors
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const config: any = {};
+          if (responseMimeType) {
+            config.responseMimeType = responseMimeType;
+          }
+          if (typeof temperature === "number") {
+            config.temperature = temperature;
+          }
+          if (systemInstruction) {
+            config.systemInstruction = systemInstruction;
+          }
 
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config,
-        });
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config,
+          });
 
-        if (response && response.text) {
-          generatedText = response.text;
+          if (response && response.text) {
+            generatedText = response.text;
+            break;
+          }
+        } catch (err: any) {
+          const errMsg = err?.message || String(err);
+          const isTransient = errMsg.includes("503") || errMsg.includes("429") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE");
+          console.warn(`[Server AI] Model '${modelName}' attempt ${attempt + 1} failed:`, errMsg);
+          lastError = err;
+
+          if (isTransient && attempt === 0) {
+            // Brief pause before retry for transient load spikes
+            await new Promise((r) => setTimeout(r, 600));
+            continue;
+          }
           break;
         }
-      } catch (err: any) {
-        console.warn(`[Server AI] Model '${modelName}' attempt failed:`, err?.message || err);
-        lastError = err;
+      }
+
+      if (generatedText) {
+        break;
       }
     }
 

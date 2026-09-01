@@ -47,15 +47,13 @@ import {
   FileCheck2,
   ClipboardCheck,
   Menu,
-  ChevronDown,
-  Presentation as PresentationIcon
+  ChevronDown
 } from 'lucide-react';
 import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha, generateFallbackJadha } from './services/geminiService';
 import { CYCLES, DOC_TYPES, LESSONS_DATA, CYCLE_LEVELS, TEXTBOOKS } from './constants';
 import { downloadWord } from './utils/wordExport';
 import { LessonSummaryGenerator } from './components/LessonSummary/LessonSummaryGenerator';
-import { PresentationGenerator } from './components/Presentation/PresentationGenerator';
 import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
 import { RayadaPioneerHub } from './components/Rayada/RayadaPioneerHub';
 import { DiagnosticHub } from './components/Diagnostic/DiagnosticHub';
@@ -162,7 +160,7 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator' | 'rayada' | 'diagnostic' | 'presentation'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator' | 'rayada' | 'diagnostic'>('landing');
   const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -220,7 +218,7 @@ function JadhaApp() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
     const titles: Record<string, string> = {
-      landing: 'منصة الاجتماعيات الذكية | جذاذات، فروض، ملخصات، عروض وتقويم تشخيصي لمادة الاجتماعيات بالمغرب',
+      landing: 'منصة الاجتماعيات الذكية | جذاذات تربوية نموذجية، ملخصات وخطاطات وفروض الاجتماعيات بالمغرب',
       dashboard: 'لوحة التحكم والمكتبة الرقمية | منصة الاجتماعيات الذكية',
       form: 'إعداد وتوليد جذاذة تربوية بالذكاء الاصطناعي (Word & PDF) | منصة الاجتماعيات الذكية',
       generate: 'جاري توليد الجذاذة التربوية | منصة الاجتماعيات الذكية',
@@ -228,8 +226,7 @@ function JadhaApp() {
       'lesson-summary': 'ملخصات وخطاطات دروس مادة الاجتماعيات (Word & PDF) | منصة الاجتماعيات الذكية',
       'exam-generator': 'مولد الفروض والامتحانات المحروسة مع عناصر الإجابة وسلم التنقيط | منصة الاجتماعيات الذكية',
       rayada: 'فضاء إعداديات الريادة | جذاذات التدريس الصريح وفروض TaRL لمادة الاجتماعيات',
-      diagnostic: 'حقيبة التقويم التشخيصي، شبكات التفريغ وتحليل نقط مسار | منصة الاجتماعيات الذكية',
-      presentation: 'عروض PowerPoint تفاعلية احترافية (PPTX) لدروس الاجتماعيات | منصة الاجتماعيات الذكية'
+      diagnostic: 'حقيبة التقويم التشخيصي، شبكات التفريغ وتحليل نقط مسار | منصة الاجتماعيات الذكية'
     };
 
     if (titles[step]) {
@@ -246,7 +243,6 @@ function JadhaApp() {
         if (tab === 'jadhas') setStep('form');
         else if (tab === 'exams') setStep('exam-generator');
         else if (tab === 'summaries') setStep('lesson-summary');
-        else if (tab === 'presentation') setStep('presentation');
         else if (tab === 'rayada') setStep('rayada');
         else if (tab === 'diagnostic') setStep('diagnostic');
         else if (tab === 'pricing') setShowPricingModal(true);
@@ -694,14 +690,14 @@ function JadhaApp() {
     try {
       let data: JadhaData | null = null;
       try {
-        data = await generateJadha(lessonTitle, level, reference);
+        data = await generateJadha(lessonTitle, level, reference, component, duration, cycle, semester);
       } catch (genErr) {
         console.warn("Direct generation fallback:", genErr);
-        data = generateFallbackJadha(lessonTitle, level, reference);
+        data = generateFallbackJadha(lessonTitle, level, reference, component, duration);
       }
       
       if (!data) {
-        data = generateFallbackJadha(lessonTitle, level, reference);
+        data = generateFallbackJadha(lessonTitle, level, reference, component, duration);
       }
 
       const finalData: JadhaData = {
@@ -875,7 +871,7 @@ function JadhaApp() {
             <nav className="hidden lg:flex items-center gap-1 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 text-xs font-bold">
               <button 
                 onClick={() => setStep('dashboard')}
-                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'dashboard' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 <Layout size={14} />
                 <span>فضاء الأستاذ</span>
@@ -886,22 +882,22 @@ function JadhaApp() {
                   setStep('form');
                   setFormStep(1);
                 }}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${step === 'form' ? 'bg-[#4F46E5] text-white shadow-xs' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-black ${step === 'form' ? 'bg-[#4F46E5] text-white shadow-xs' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
               >
                 <Plus size={14} />
                 <span>جذاذة جديدة</span>
               </button>
 
               <button 
-                onClick={() => setStep('presentation')}
-                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
-                  step === 'presentation'
-                    ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-xs'
-                    : 'text-teal-700 bg-teal-50 hover:bg-teal-100'
+                onClick={() => setStep('lesson-summary')}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
+                  step === 'lesson-summary' 
+                    ? 'bg-amber-500 text-white shadow-xs' 
+                    : 'text-amber-800 bg-amber-50/90 hover:bg-amber-100 border border-amber-200/60'
                 }`}
               >
-                <PresentationIcon size={14} className="text-teal-600" />
-                <span>عروض PPT</span>
+                <FileText size={14} />
+                <span>ملخصات وخطاطات الدروس</span>
               </button>
 
               <button 
@@ -909,15 +905,7 @@ function JadhaApp() {
                 className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'exam-generator' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 <FileCheck2 size={14} />
-                <span>الامتحانات</span>
-              </button>
-
-              <button 
-                onClick={() => setStep('lesson-summary')}
-                className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${step === 'lesson-summary' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                <FileText size={14} />
-                <span>الملخصات</span>
+                <span>الامتحانات والفروض</span>
               </button>
 
               <button 
@@ -941,7 +929,7 @@ function JadhaApp() {
                 }`}
               >
                 <ClipboardCheck size={14} />
-                <span>التقويم</span>
+                <span>التقويم التشخيصي</span>
               </button>
             </nav>
           )}
@@ -1205,15 +1193,15 @@ function JadhaApp() {
 
                   <button 
                     onClick={() => {
-                      setStep('presentation');
+                      setStep('lesson-summary');
                       setMobileMenuOpen(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      step === 'presentation' ? 'bg-teal-600 text-white shadow-xs' : 'text-teal-700 bg-teal-50/70 hover:bg-teal-100'
+                      step === 'lesson-summary' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-800 bg-amber-50/70 hover:bg-amber-100'
                     }`}
                   >
-                    <PresentationIcon size={16} />
-                    <span>عروض PPT التفاعلية 📊</span>
+                    <FileText size={16} />
+                    <span>ملخصات وخطاطات الدروس 📖</span>
                   </button>
 
                   <button 
@@ -1227,19 +1215,6 @@ function JadhaApp() {
                   >
                     <FileCheck2 size={16} />
                     <span>توليد الامتحانات والفروض 📋</span>
-                  </button>
-
-                  <button 
-                    onClick={() => {
-                      setStep('lesson-summary');
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      step === 'lesson-summary' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-800 bg-amber-50/70 hover:bg-amber-100'
-                    }`}
-                  >
-                    <FileText size={16} />
-                    <span>ملخصات وخطاطات الدروس 📖</span>
                   </button>
 
                   <button 
@@ -1442,35 +1417,47 @@ function JadhaApp() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                  {/* Tool 1: Lesson Plans */}
-                  <div className="bg-white p-5 rounded-3xl border border-indigo-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition-all group relative overflow-hidden">
-                    <div className="space-y-3">
-                      <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-                        <BookOpen size={22} />
+                {/* Featured Core Pillars (الجذاذات والملخصات) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Pillar 1: Lesson Plans (الجذاذات التربوية) */}
+                  <div className="bg-gradient-to-br from-indigo-50/70 via-white to-indigo-50/30 p-6 sm:p-7 rounded-3xl border-2 border-indigo-200 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all group relative overflow-hidden">
+                    <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-xs">
+                      الركيزة الأساسية 📝
+                    </div>
+                    <div className="space-y-4">
+                      <div className="w-13 h-13 rounded-2xl bg-[#4F46E5] text-white flex items-center justify-center shadow-lg shadow-indigo-200 group-hover:scale-105 transition-transform">
+                        <BookOpen size={26} />
                       </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">
-                          التوجيهات التربوية الرسمية
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100/80 px-2.5 py-0.5 rounded-md border border-indigo-200">
+                          التوجيهات التربوية الرسمية • النهج البيداغوجي
                         </span>
-                        <h3 className="text-base font-black text-slate-900 pt-1">مولّد الجذاذات التربوية</h3>
+                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد الجذاذات التربوية النموذجية</h3>
                       </div>
-                      <p className="text-slate-600 text-xs leading-relaxed">
-                        توليد جذاذات بيداغوجية شاملة وفق النهج التاريخي والجغرافي والتربية على المواطنة مع التدابير الديداكتيكية.
+                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                        بناء جذاذات بيداغوجية مفصلة ومطابقة لديداكتيك التاريخ (تعريف، تفسير، تركيب)، الجغرافيا (وصف، تفسير، تعميم)، والتربية على المواطنة مع توزيع المهام الدقيقة بين الأستاذ والمتعلم.
                       </p>
                     </div>
 
-                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
-                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
-                        <li className="flex items-center gap-1.5">
-                          <CheckCircle size={13} className="text-indigo-600 shrink-0" />
-                          <span>النهج والمقاطع البيداغوجية</span>
-                        </li>
-                        <li className="flex items-center gap-1.5">
-                          <CheckCircle size={13} className="text-indigo-600 shrink-0" />
-                          <span>تحديد المهام والتقويمات</span>
-                        </li>
-                      </ul>
+                    <div className="pt-5 mt-5 border-t border-indigo-100 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 font-semibold">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
+                          <span>النهج الديداكتيكي والمقاطع</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
+                          <span>تحديد مهام المدرس والمتعلم بدقة</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
+                          <span>الدعامات الديداكتيكية الرسمية</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-indigo-600 shrink-0" />
+                          <span>تصدير Word (.docx) قابل للتعديل</span>
+                        </div>
+                      </div>
                       <button 
                         onClick={() => {
                           if (user) {
@@ -1480,19 +1467,74 @@ function JadhaApp() {
                             handleLogin();
                           }
                         }}
-                        className="w-full bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                        className="w-full bg-[#4F46E5] hover:bg-indigo-700 text-white py-3 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 shadow-sm"
                       >
-                        <Sparkles size={14} />
-                        <span>إنشاء جذاذة جديدة</span>
+                        <Sparkles size={16} />
+                        <span>إنشاء جذاذة تربوية الآن</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Tool 2: Pioneer Schools Section */}
-                  <div className="bg-gradient-to-b from-amber-50/70 via-white to-amber-50/30 p-5 rounded-3xl border-2 border-amber-300/80 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-500 transition-all group relative overflow-hidden">
-                    <div className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
-                      الريادة 🌟
+                  {/* Pillar 2: Lesson Summaries (ملخصات وخطاطات الدروس) */}
+                  <div className="bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 p-6 sm:p-7 rounded-3xl border-2 border-amber-300 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-amber-500 transition-all group relative overflow-hidden">
+                    <div className="absolute top-3 left-3 bg-amber-500 text-slate-950 text-[11px] font-black px-3 py-1 rounded-full shadow-xs">
+                      الركيزة الأساسية 📖
                     </div>
+                    <div className="space-y-4">
+                      <div className="w-13 h-13 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-200 group-hover:scale-105 transition-transform">
+                        <FileText size={26} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-200">
+                          هيكلة بيداغوجية مركزة • خطاطات ومفاهيم
+                        </span>
+                        <h3 className="text-xl font-black text-slate-900 pt-1">مولّد ملخصات وخطاطات الدروس</h3>
+                      </div>
+                      <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                        استخراج وتنسيق ملخصات مركزة وشاملة لدروس مادة الاجتماعيات (مقدمة إشكالية، محاور بيداغوجية، مصطلحات ومفاهيم أساسية، وخاتمة تركيبية) جاهزة للطباعة والتوزيع.
+                      </p>
+                    </div>
+
+                    <div className="pt-5 mt-5 border-t border-amber-100 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 font-semibold">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
+                          <span>هيكلة محاور الدرس بدقة</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
+                          <span>معجم المفاهيم والمصطلحات</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
+                          <span>صيغ تلخيص متنوعة وخطاطات</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={14} className="text-amber-600 shrink-0" />
+                          <span>تصدير فوري Word و PDF</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (user) {
+                            setStep('lesson-summary');
+                          } else {
+                            handleLogin();
+                          }
+                        }}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 py-3 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 shadow-sm"
+                      >
+                        <Sparkles size={16} />
+                        <span>إعداد ملخص درس أو خطاطة</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Supporting Specialized Modules */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+                  {/* Tool: Pioneer Schools Section */}
+                  <div className="bg-gradient-to-b from-amber-50/40 via-white to-amber-50/20 p-5 rounded-3xl border border-amber-200/80 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-400 transition-all group relative overflow-hidden">
                     <div className="space-y-3">
                       <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shadow-md shadow-amber-200 group-hover:scale-105 transition-transform">
                         <Sparkles size={22} />
@@ -1535,11 +1577,8 @@ function JadhaApp() {
                     </div>
                   </div>
 
-                  {/* Tool 3: Diagnostic Assessment & Remediation */}
-                  <div className="bg-gradient-to-b from-blue-50/60 via-white to-indigo-50/40 p-5 rounded-3xl border-2 border-indigo-200 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all group relative overflow-hidden">
-                    <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
-                      بداية السنة 📋
-                    </div>
+                  {/* Tool: Diagnostic Assessment & Remediation */}
+                  <div className="bg-gradient-to-b from-blue-50/40 via-white to-indigo-50/20 p-5 rounded-3xl border border-indigo-200/80 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all group relative overflow-hidden">
                     <div className="space-y-3">
                       <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
                         <ClipboardCheck size={22} />
@@ -1582,7 +1621,7 @@ function JadhaApp() {
                     </div>
                   </div>
 
-                  {/* Tool 4: Exam & Official Answer Keys */}
+                  {/* Tool: Exam & Official Answer Keys */}
                   <div className="bg-white p-5 rounded-3xl border border-emerald-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-emerald-300 transition-all group relative overflow-hidden">
                     <div className="space-y-3">
                       <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 group-hover:scale-105 transition-transform">
@@ -1622,97 +1661,6 @@ function JadhaApp() {
                       >
                         <Sparkles size={14} />
                         <span>توليد فرض أو امتحان</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Tool 5: Lesson Summaries */}
-                  <div className="bg-white p-5 rounded-3xl border border-amber-100 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-amber-300 transition-all group relative overflow-hidden">
-                    <div className="space-y-3">
-                      <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-200 group-hover:scale-105 transition-transform">
-                        <FileText size={22} />
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-100">
-                          هيكلة بيداغوجية مركزة
-                        </span>
-                        <h3 className="text-base font-black text-slate-900 pt-1">مولّد ملخصات الدروس</h3>
-                      </div>
-                      <p className="text-slate-600 text-xs leading-relaxed">
-                        استخراج وتنسيق ملخصات دروس الاجتماعيات المركزة (مقدمة، محاور، مصطلحات وخاتمة).
-                      </p>
-                    </div>
-
-                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
-                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
-                        <li className="flex items-center gap-1.5">
-                          <CheckCircle size={13} className="text-amber-600 shrink-0" />
-                          <span>مفاهيم ومصطلحات موحدة</span>
-                        </li>
-                        <li className="flex items-center gap-1.5">
-                          <CheckCircle size={13} className="text-amber-600 shrink-0" />
-                          <span>تصدير Word و PDF</span>
-                        </li>
-                      </ul>
-                      <button 
-                        onClick={() => {
-                          if (user) {
-                            setStep('lesson-summary');
-                          } else {
-                            handleLogin();
-                          }
-                        }}
-                        className="w-full bg-amber-50 hover:bg-amber-500 text-amber-800 hover:text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Sparkles size={14} />
-                        <span>إعداد ملخص درس</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Tool 6: PowerPoint Presentations */}
-                  <div className="bg-gradient-to-b from-teal-50/60 via-white to-emerald-50/30 p-5 rounded-3xl border-2 border-teal-200 shadow-xs flex flex-col justify-between hover:shadow-md hover:border-teal-400 transition-all group relative overflow-hidden">
-                    <div className="absolute top-2 left-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
-                      جديد 📊
-                    </div>
-                    <div className="space-y-3">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-200 group-hover:scale-105 transition-transform">
-                        <PresentationIcon size={22} />
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-teal-800 bg-teal-100 px-2.5 py-0.5 rounded-md border border-teal-200">
-                          عروض رقمية تفاعلية 16:9
-                        </span>
-                        <h3 className="text-base font-black text-slate-900 pt-1">عروض PowerPoint</h3>
-                      </div>
-                      <p className="text-slate-600 text-xs leading-relaxed">
-                        توليد وتصدير عروض تقديمية PPTX للدروس متضمنة الأهداف، التمهيد، الدعامات، والتقويمات.
-                      </p>
-                    </div>
-
-                    <div className="pt-4 mt-4 border-t border-slate-100 space-y-3">
-                      <ul className="text-xs text-slate-500 space-y-1 font-medium">
-                        <li className="flex items-center gap-1.5">
-                          <CheckCircle size={13} className="text-teal-600 shrink-0" />
-                          <span>تحميل ملف .pptx للتعديل</span>
-                        </li>
-                        <li className="flex items-center gap-1.5">
-                          <CheckCircle size={13} className="text-teal-600 shrink-0" />
-                          <span>وضع العرض التفاعلي الكامل</span>
-                        </li>
-                      </ul>
-                      <button 
-                        onClick={() => {
-                          if (user) {
-                            setStep('presentation');
-                          } else {
-                            handleLogin();
-                          }
-                        }}
-                        className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                      >
-                        <Sparkles size={14} />
-                        <span>توليد عرض PPT</span>
                       </button>
                     </div>
                   </div>
@@ -1853,16 +1801,16 @@ function JadhaApp() {
                   <span className="text-xs text-slate-500 font-medium">اختر الأداة للبدء فوراً</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                  {/* Tool 1: Lesson Plan */}
-                  <div className="bg-gradient-to-br from-indigo-50/80 via-white to-indigo-50/30 p-5 rounded-3xl border border-indigo-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  {/* Tool 1: Lesson Plan (الجذاذات) */}
+                  <div className="bg-gradient-to-br from-indigo-50/90 via-white to-indigo-50/40 p-5 rounded-3xl border-2 border-indigo-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-xs">
                           <BookOpen size={20} />
                         </div>
                         <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
-                          جذاذات رسمية
+                          جذاذات رسمية 📝
                         </span>
                       </div>
                       <h4 className="text-base font-black text-slate-900">مولّد الجذاذات</h4>
@@ -1883,8 +1831,60 @@ function JadhaApp() {
                     </button>
                   </div>
 
-                  {/* Tool 2: Pioneer Schools Section */}
-                  <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 p-5 rounded-3xl border-2 border-amber-300 shadow-xs flex flex-col justify-between space-y-4 hover:border-amber-500 transition-all relative overflow-hidden">
+                  {/* Tool 2: Lesson Summaries (الملخصات والخطاطات) */}
+                  <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 p-5 rounded-3xl border-2 border-amber-300 shadow-xs flex flex-col justify-between space-y-4 hover:border-amber-500 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-xs">
+                          <FileText size={20} />
+                        </div>
+                        <span className="text-[10px] bg-amber-100 text-amber-900 font-black px-2 py-0.5 rounded-full border border-amber-200">
+                          ملخصات الدروس 📖
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">ملخصات وخطاطات</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        ملخصات دروس بالهيكلة المعتمدة (محاور، مصطلحات وخاتمة) وتصدير Word.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setStep('lesson-summary')}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <Sparkles size={15} />
+                      <span>إعداد ملخص درس</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 3: Exam & Official Answer Keys */}
+                  <div className="bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 p-5 rounded-3xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-emerald-400 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">
+                          <FileCheck2 size={20} />
+                        </div>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                          الأطر المرجعية 📋
+                        </span>
+                      </div>
+                      <h4 className="text-base font-black text-slate-900">مولّد الامتحانات</h4>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        إعداد فروض بـ 3 وضعيات اختبارية مع عناصر الإجابة وسُلم التنقيط.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setStep('exam-generator')}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <Sparkles size={15} />
+                      <span>توليد فرض</span>
+                    </button>
+                  </div>
+
+                  {/* Tool 4: Pioneer Schools Section */}
+                  <div className="bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 p-5 rounded-3xl border border-amber-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all relative overflow-hidden">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 rounded-2xl shadow-xs">
@@ -1909,15 +1909,15 @@ function JadhaApp() {
                     </button>
                   </div>
 
-                  {/* Tool 3: Diagnostic Assessment & Remediation */}
-                  <div className="bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/40 p-5 rounded-3xl border-2 border-indigo-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
+                  {/* Tool 5: Diagnostic Assessment & Remediation */}
+                  <div className="bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/40 p-5 rounded-3xl border border-indigo-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-xs">
                           <ClipboardCheck size={20} />
                         </div>
                         <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full border border-indigo-200">
-                          بداية السنة 📋
+                          بداية السنة 🩺
                         </span>
                       </div>
                       <h4 className="text-base font-black text-slate-900">التقويم التشخيصي</h4>
@@ -1932,84 +1932,6 @@ function JadhaApp() {
                     >
                       <ClipboardCheck size={15} />
                       <span>فضاء التقويم</span>
-                    </button>
-                  </div>
-
-                  {/* Tool 4: Exam & Official Answer Keys */}
-                  <div className="bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 p-5 rounded-3xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-emerald-400 transition-all">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">
-                          <FileCheck2 size={20} />
-                        </div>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                          الأطر المرجعية
-                        </span>
-                      </div>
-                      <h4 className="text-base font-black text-slate-900">مولّد الامتحانات</h4>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        إعداد فروض بـ 3 وضعيات اختبارية مع عناصر الإجابة الرسمية.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setStep('exam-generator')}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <Sparkles size={15} />
-                      <span>توليد فرض</span>
-                    </button>
-                  </div>
-
-                  {/* Tool 5: Lesson Summaries */}
-                  <div className="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 p-5 rounded-3xl border border-amber-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-amber-400 transition-all">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-xs">
-                          <FileText size={20} />
-                        </div>
-                        <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-                          ملخصات بيداغوجية
-                        </span>
-                      </div>
-                      <h4 className="text-base font-black text-slate-900">ملخصات الدروس</h4>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        ملخصات دروس بالهيكلة المعتمدة (محاور، مصطلحات وخاتمة).
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setStep('lesson-summary')}
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <Sparkles size={15} />
-                      <span>إعداد ملخص</span>
-                    </button>
-                  </div>
-
-                  {/* Tool 6: PowerPoint Presentations */}
-                  <div className="bg-gradient-to-br from-teal-50/80 via-white to-emerald-50/30 p-5 rounded-3xl border-2 border-teal-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-teal-400 transition-all">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="p-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-2xl shadow-xs">
-                          <PresentationIcon size={20} />
-                        </div>
-                        <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-full border border-teal-200">
-                          عروض PPT 📊
-                        </span>
-                      </div>
-                      <h4 className="text-base font-black text-slate-900">عروض PowerPoint</h4>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        توليد عروض 16:9 تفاعلية مع أنشطة ودعامات وتحميل .pptx.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setStep('presentation')}
-                      className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <Sparkles size={15} />
-                      <span>توليد عرض PPT</span>
                     </button>
                   </div>
                 </div>
@@ -2710,18 +2632,6 @@ function JadhaApp() {
               exit={{ opacity: 0, y: -10 }}
             >
               <ExamGenerator />
-            </motion.div>
-          )}
-
-          {/* POWERPOINT PRESENTATIONS STEP */}
-          {step === 'presentation' && (
-            <motion.div
-              key="presentation"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <PresentationGenerator />
             </motion.div>
           )}
         </AnimatePresence>
