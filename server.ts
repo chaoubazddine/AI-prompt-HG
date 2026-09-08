@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import nodemailer from "nodemailer";
@@ -148,68 +149,56 @@ app.post("/api/ai/generate", async (req, res) => {
       },
     });
 
-    // Valid production models supported by the Gemini API (Gemini 3 series)
+    // Highly available production models supported by the Gemini API (Gemini 3 series)
+    // Ordered by reliability, availability and speed:
     const fallbackModels = [
-      "gemini-3.7-flash",
-      "gemini-flash-latest",
+      "gemini-3.5-flash-lite",
       "gemini-3.1-flash-lite",
       "gemini-3.6-flash",
-      "gemini-3.1-pro-preview",
     ];
-    const candidateModels = preferredModel
-      ? [preferredModel, ...fallbackModels]
-      : fallbackModels;
+
+    const candidateModels: string[] = [];
+    if (preferredModel && fallbackModels.includes(preferredModel)) {
+      candidateModels.push(preferredModel);
+    }
+    candidateModels.push(...fallbackModels);
 
     const uniqueModels = Array.from(new Set(candidateModels));
     let generatedText = "";
     let lastError: any = null;
 
     for (const modelName of uniqueModels) {
-      // Try up to 2 attempts per model for transient 503 / 429 errors
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const config: any = {};
-          if (responseMimeType) {
-            config.responseMimeType = responseMimeType;
-          }
-          if (typeof temperature === "number") {
-            config.temperature = temperature;
-          }
-          if (systemInstruction) {
-            config.systemInstruction = systemInstruction;
-          }
+      try {
+        const config: any = {};
+        if (responseMimeType) {
+          config.responseMimeType = responseMimeType;
+        }
+        if (typeof temperature === "number") {
+          config.temperature = temperature;
+        }
+        if (systemInstruction) {
+          config.systemInstruction = systemInstruction;
+        }
 
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: prompt,
-            config,
-          });
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config,
+        });
 
-          if (response && response.text) {
-            generatedText = response.text;
-            break;
-          }
-        } catch (err: any) {
-          const errMsg = err?.message || String(err);
-          const isTransient = errMsg.includes("503") || errMsg.includes("429") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE");
-          console.warn(`[Server AI] Model '${modelName}' attempt ${attempt + 1} failed:`, errMsg);
-          lastError = err;
-
-          if (isTransient && attempt === 0) {
-            // Brief pause before retry for transient load spikes
-            await new Promise((r) => setTimeout(r, 600));
-            continue;
-          }
+        if (response && response.text) {
+          generatedText = response.text;
           break;
         }
-      }
-
-      if (generatedText) {
-        break;
+      } catch (err: any) {
+        lastError = err;
+        console.info(`[Server AI] Model '${modelName}' unavailable, proceeding to next fallback...`);
+        continue;
       }
     }
 
     if (!generatedText) {
+      console.error("[Server AI] All fallback models failed. Final error:", lastError?.message);
       const errMsg = lastError?.message || "لم نتمكن من الحصول على رد من نماذج الذكاء الاصطناعي.";
       return res.status(500).json({ error: errMsg });
     }
@@ -270,7 +259,7 @@ app.get("/api/benchmark", async (req, res) => {
 });
 
 async function startServer() {
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -289,10 +278,12 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+});
 
 export default app;

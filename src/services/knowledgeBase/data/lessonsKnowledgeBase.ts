@@ -6,6 +6,14 @@ export interface LessonDetailedContent {
   level: string;
   curriculum: string;
   duration?: string;
+  lessonNumber?: string;
+  unitNumber?: string;
+  module?: string;
+  academy?: string;
+  directorate?: string;
+  school?: string;
+  teacherName?: string;
+  references?: string;
   competencies: string[];
   capabilities: string[];
   objectives: {
@@ -88,14 +96,6 @@ export const MOROCCAN_LESSONS_DATABASE: Record<string, LessonDetailedContent> = 
         teacherActivities: 'كتابة عنوان الدرس وضبط المفاهيم المركزية (الإمبريالية، القرن 19م).',
         studentActivities: '• تدوين العنوان في دفاتر الدروس وقراءته قراءة استكشافية.',
         workForm: 'عمل موجه'
-      },
-      {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'رصد التمثلات القبلية',
-        tools: 'أسئلة تشخيصية سريعة',
-        teacherActivities: 'طرح سؤال تشخيصي: ما الفرق في نظركم بين الاستعمار التقليدي والإمبريالية في القرن 19م؟',
-        studentActivities: '• التعبير عن التمثل الأولي للسيطرة الأجنبية والاحتلال العسكري.',
-        workForm: 'عمل فردي'
       },
       {
         phase: 'أهداف التعلم',
@@ -287,14 +287,6 @@ export const MOROCCAN_LESSONS_DATABASE: Record<string, LessonDetailedContent> = 
         workForm: 'عمل موجه'
       },
       {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'رصد التمثلات القبلية',
-        tools: 'أسئلة تشخيصية',
-        teacherActivities: 'طرح سؤال: ما هي الدول الأوروبية التي تنافست لاحتلال المغرب في مطلع القرن 20م؟',
-        studentActivities: '• ذكر فرنسا، إسبانيا، بريطانيا، وألمانيا.',
-        workForm: 'عمل فردي'
-      },
-      {
         phase: 'أهداف التعلم',
         subPhase: 'تحديد التعاقد البيداغوجي',
         tools: 'الكتاب المدرسي',
@@ -449,14 +441,6 @@ export const MOROCCAN_LESSONS_DATABASE: Record<string, LessonDetailedContent> = 
         teacherActivities: 'كتابة العنوان وضبط المفاهيم الجغرافية (المغرب العربي، الوحدة، التنوع، التكامل).',
         studentActivities: '• تدوين العنوان وتحديد البلدان الخمسة المكونة للمغرب العربي.',
         workForm: 'عمل موجه'
-      },
-      {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'تشخيص المكتسبات',
-        tools: 'أسئلة توطين سريعة',
-        teacherActivities: 'طرح سؤال: اذكر الدول الخمس المكونة لاتحاد المغرب العربي وعواصمها.',
-        studentActivities: '• ذكر: المغرب (الرباط)، الجزائر (الجزائر)، تونس (تونس)، ليبيا (طرابلس)، موريتانيا (نواكشوط).',
-        workForm: 'عمل فردي'
       },
       {
         phase: 'أهداف التعلم',
@@ -615,14 +599,6 @@ export const MOROCCAN_LESSONS_DATABASE: Record<string, LessonDetailedContent> = 
         workForm: 'عمل موجه'
       },
       {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'رصد التمثلات',
-        tools: 'أسئلة تشخيصية',
-        teacherActivities: 'طرح سؤال: ما هي أشهر الشركات والمنتجات الأمريكية التي تعكس قوتها الاقتصادية؟',
-        studentActivities: '• ذكر شركات التكنولوجيا (Apple, Microsoft, Google) والسيارات والطيران (Boeing) والمطاعم والسلع.',
-        workForm: 'عمل فردي'
-      },
-      {
         phase: 'أهداف التعلم',
         subPhase: 'التعاقد البيداغوجي',
         tools: 'الكتاب المدرسي',
@@ -777,14 +753,6 @@ export const MOROCCAN_LESSONS_DATABASE: Record<string, LessonDetailedContent> = 
         teacherActivities: 'كتابة العنوان وضبط المفاهيم المركزية (التراث، التراث المادي، التراث غير المادي، صيانة التراث).',
         studentActivities: '• تدوين العنوان بدفاتر الدروس.',
         workForm: 'عمل موجه'
-      },
-      {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'تشخيص التمثلات',
-        tools: 'بطاقات تصنيف سريعة',
-        teacherActivities: 'طرح سؤال: اذكر بعض المآثر أو التقاليد التي ورثناها عن أجدادنا في منطقتك.',
-        studentActivities: '• ذكر المعالم والأسوار والمواسم والفروسية والصناعة التقليدية والمطبخ والأهازيج الشعبية.',
-        workForm: 'عمل فردي'
       },
       {
         phase: 'أهداف التعلم',

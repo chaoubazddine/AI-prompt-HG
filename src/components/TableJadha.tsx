@@ -5,19 +5,12 @@
 
 import React, { useState } from 'react';
 import { 
-  BookOpen, 
   Sparkles, 
   CheckCircle2, 
-  Layers, 
   HelpCircle, 
   Award, 
-  Compass, 
   Edit3, 
-  Save, 
-  Plus, 
-  Trash2, 
-  Copy, 
-  Check
+  Save
 } from 'lucide-react';
 
 export interface JadhaStep {
@@ -32,28 +25,6 @@ export interface JadhaStep {
   isHeader?: boolean;
   isSynthesis?: boolean;
   isEvaluation?: boolean;
-}
-
-export interface KeyConceptItem {
-  term: string;
-  definition: string;
-}
-
-export interface DidacticExtensions {
-  priorPrerequisites?: string[];
-  subsequentLessons?: string[];
-  crossCurricular?: string[];
-}
-
-export interface DifferentiationActivities {
-  remedial?: string[];
-  enrichment?: string[];
-}
-
-export interface EvaluationCriterion {
-  criterion: string;
-  indicators: string[];
-  targetLevel?: string;
 }
 
 export interface JadhaData {
@@ -79,10 +50,10 @@ export interface JadhaData {
     affective: string[];
   };
   problematic?: string;
-  keyConcepts?: KeyConceptItem[];
-  didacticExtensions?: DidacticExtensions;
-  differentiationActivities?: DifferentiationActivities;
-  evaluationGrid?: EvaluationCriterion[];
+  keyConcepts?: Array<{ term: string; definition: string }>;
+  didacticExtensions?: any;
+  differentiationActivities?: any;
+  evaluationGrid?: any;
   teacherNotes?: string;
   introductionSteps: JadhaStep[];
   steps: JadhaStep[];
@@ -98,7 +69,6 @@ interface TableJadhaProps {
 export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableData, setEditableData] = useState<JadhaData>(data);
-  const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   // Sync if prop updates and not currently editing
   React.useEffect(() => {
@@ -112,12 +82,6 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
     if (onUpdateData) {
       onUpdateData(editableData);
     }
-  };
-
-  const handleCopyText = (text: string, sectionId: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedSection(sectionId);
-    setTimeout(() => setCopiedSection(null), 2000);
   };
 
   const currentData = isEditing ? editableData : data;
@@ -153,15 +117,15 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
         }
       `}} />
 
-      {/* Editor & Control Bar (Screen only) */}
-      <div className="no-print mb-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between flex-wrap gap-2 text-xs">
+      {/* Editor Bar (Screen only) */}
+      <div className="no-print mb-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between flex-wrap gap-2 text-xs">
         <div className="flex items-center gap-2">
           <span className="font-bold text-slate-700 flex items-center gap-1.5">
             <Sparkles size={16} className="text-indigo-600" />
-            جذاذة تربوية معيارية موسّعة
+            جذاذة تربوية نموذجية لمادة الاجتماعيات
           </span>
           <span className="bg-indigo-100 text-indigo-800 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-indigo-200">
-            وفق الأطر التوجيهية الرسمية
+            وفق التوجيهات الرسمية المغربية
           </span>
         </div>
 
@@ -276,16 +240,16 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
 
       {/* Competencies, Capacities, Objectives Table (3-Columns) */}
       <div className="grid grid-cols-3 border border-black mb-3 text-[10px] jadha-section" dir="rtl">
-        {/* Right: الكفايات المستهدفة */}
+        {/* Right: الكفايات */}
         <div className="border-l border-black p-0 flex flex-col">
           <h3 className="font-bold text-center border-b border-black p-1.5 bg-[#e6f0fa] text-black">
-            الكفايات المستهدفة (المنهجية، التواصلية، والقيمية)
+            الكفايات
           </h3>
           <div className="p-2.5 flex-1 bg-white">
             <ul className="list-none space-y-1.5 text-black">
-              {currentData.competencies.map((c, i) => (
+              {currentData.competencies?.map((c, i) => (
                 <li key={i} className="leading-relaxed">
-                  • <span className="font-semibold">{c}</span>
+                  - {c}
                 </li>
               ))}
             </ul>
@@ -295,166 +259,130 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
         {/* Middle: القدرات */}
         <div className="border-l border-black p-0 flex flex-col">
           <h3 className="font-bold text-center border-b border-black p-1.5 bg-[#e6f0fa] text-black">
-            القدرات والمهارات الأساسية
+            القدرات
           </h3>
           <div className="p-2.5 flex-1 bg-white">
             <ul className="list-none space-y-1.5 text-black">
-              {currentData.capabilities.map((c, i) => (
-                <li key={i} className="leading-relaxed">• {c}</li>
+              {currentData.capabilities?.map((c, i) => (
+                <li key={i} className="leading-relaxed">- {c}</li>
               ))}
             </ul>
           </div>
         </div>
 
-        {/* Left: الأهداف التعلمية الإجرائية */}
+        {/* Left: الأهداف */}
         <div className="p-0 flex flex-col">
           <h3 className="font-bold text-center border-b border-black p-1.5 bg-[#e6f0fa] text-black">
-            أهداف التعلم (معرفية، مهارية، ووجدانية)
+            الأهداف
           </h3>
           <div className="p-2.5 flex-1 bg-white">
             <ul className="list-none space-y-1 text-black">
-              {currentData.objectives.cognitive?.map((o, i) => (
-                <li key={`cog-${i}`} className="leading-relaxed">
-                  <span className="font-bold text-indigo-900">[معرفي]</span> {o}
-                </li>
-              ))}
-              {currentData.objectives.skill?.map((o, i) => (
-                <li key={`skl-${i}`} className="leading-relaxed">
-                  <span className="font-bold text-emerald-900">[مهاري]</span> {o}
-                </li>
-              ))}
-              {currentData.objectives.affective?.map((o, i) => (
-                <li key={`aff-${i}`} className="leading-relaxed">
-                  <span className="font-bold text-amber-900">[وجداني]</span> {o}
-                </li>
-              ))}
+              {(() => {
+                const allObjs = Array.isArray(currentData.objectives)
+                  ? currentData.objectives
+                  : [
+                      ...(currentData.objectives?.cognitive || []),
+                      ...(currentData.objectives?.skill || []),
+                      ...(currentData.objectives?.affective || [])
+                    ];
+                return allObjs.map((o, i) => (
+                  <li key={i} className="leading-relaxed">
+                    - {o}
+                  </li>
+                ));
+              })()}
             </ul>
           </div>
         </div>
       </div>
 
-      {/* ENRICHMENT SECTION 1: Key Concepts & Terms Glossary (المفاهيم والمصطلحات المهيكلة) */}
-      {currentData.keyConcepts && currentData.keyConcepts.length > 0 && (
-        <div className="mb-3 border border-black p-2.5 bg-slate-50/50 text-[10px] jadha-section">
-          <div className="flex items-center justify-between border-b border-black/30 pb-1 mb-1.5">
-            <h4 className="font-bold text-black flex items-center gap-1">
-              <BookOpen size={13} className="text-indigo-700" />
-              المفاهيم والمصطلحات المركزية المؤطرة للدرس (معجم المادة):
-            </h4>
-            <span className="text-[9px] text-slate-600">مطابقة للأطر المرجعية المعتمدة</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {currentData.keyConcepts.map((item, idx) => (
-              <div key={idx} className="bg-white p-1.5 border border-slate-300 rounded">
-                <span className="font-black text-indigo-900 block mb-0.5">• {item.term}:</span>
-                <p className="text-slate-800 text-[9.5px] leading-relaxed">{item.definition}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ENRICHMENT SECTION 2: Didactic Extensions & Cross-Curricular Links (الامتدادات والتقاطعات) */}
-      {currentData.didacticExtensions && (
-        <div className="mb-3 grid grid-cols-1 sm:grid-cols-3 gap-0 border border-black text-[9.5px] jadha-section">
-          {/* M مكتسبات سابقة */}
-          <div className="border-b sm:border-b-0 sm:border-l border-black p-2 bg-white">
-            <h5 className="font-bold text-black border-b border-slate-200 pb-1 mb-1 flex items-center gap-1">
-              <Compass size={12} className="text-blue-700" />
-              المكتسبات القبلية:
-            </h5>
-            <ul className="list-none space-y-0.5 text-slate-800">
-              {(currentData.didacticExtensions.priorPrerequisites || ['مكتسبات السنوات السابقة', 'مفاهيم الوحدة السابقة']).map((item, i) => (
-                <li key={i} className="leading-snug">- {item}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* امتدادات مرتقبة */}
-          <div className="border-b sm:border-b-0 sm:border-l border-black p-2 bg-white">
-            <h5 className="font-bold text-black border-b border-slate-200 pb-1 mb-1 flex items-center gap-1">
-              <Layers size={12} className="text-emerald-700" />
-              الامتدادات اللاحقة:
-            </h5>
-            <ul className="list-none space-y-0.5 text-slate-800">
-              {(currentData.didacticExtensions.subsequentLessons || ['الدروس اللاحقة بنفس المكون', 'مقررات السلك الموالي']).map((item, i) => (
-                <li key={i} className="leading-snug">- {item}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* تقاطعات مع مواد أخرى */}
-          <div className="p-2 bg-white">
-            <h5 className="font-bold text-black border-b border-slate-200 pb-1 mb-1 flex items-center gap-1">
-              <Award size={12} className="text-amber-700" />
-              التقاطعات مع مواد أخرى:
-            </h5>
-            <ul className="list-none space-y-0.5 text-slate-800">
-              {(currentData.didacticExtensions.crossCurricular || ['اللغة العربية (تحليل النصوص)', 'التربية الإسلامية (القيم)', 'الفلسفة/علوم الحياة والأرض']).map((item, i) => (
-                <li key={i} className="leading-snug">- {item}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* Table 1: Introduction Steps Table (وضعيات التعلم الاستهلالية) */}
-      <div className="mb-3 overflow-hidden border border-black jadha-section">
-        <div className="bg-[#e6f0fa] border-b border-black p-1.5 text-center font-black text-[11px] text-black">
-          محطة الانطلاق: الوضعيات التعلمية الاستهلالية (التمهيد والتعاقد الديداكتيكي)
-        </div>
+      {/* Unified Didactic Table (Single continuous table matching the official Moroccan model) */}
+      <div className="overflow-x-auto border border-black mb-3 jadha-section">
         <table className="w-full border-collapse text-[10px] jadha-table" dir="rtl">
           <thead>
-            <tr className="bg-slate-100 font-bold">
-              <th className="border border-black p-2 w-24 text-center">وضعيات التعلم</th>
-              <th className="border border-black p-2 w-28 text-center">أهداف التعلم</th>
-              <th className="border border-black p-2 w-24 text-center">الدعامات الديداكتيكية</th>
+            <tr className="bg-slate-100 font-bold border-b border-black">
+              <th className="border border-black p-2 w-28 text-center">وضعيات التعلم</th>
+              <th className="border border-black p-2 w-32 text-center">أهداف التعلم</th>
+              <th className="border border-black p-2 w-36 text-center">الدعامات الديداكتيكية</th>
               <th className="border border-black p-2 text-center">التدبير الديداكتيكي: مهام المدرس</th>
               <th className="border border-black p-2 text-center">التدبير الديداكتيكي: مهام المتعلم</th>
-              <th className="border border-black p-2 w-20 text-center">أشكال العمل</th>
+              <th className="border border-black p-2 w-24 text-center">أشكال العمل</th>
             </tr>
           </thead>
           <tbody>
-            {currentData.introductionSteps.map((step, index) => (
-              <tr key={index} className="bg-white">
+            {/* 1. Introduction Steps (الوضعيات الاستهلالية) */}
+            {currentData.introductionSteps?.map((step, index) => (
+              <tr key={`intro-${index}`} className="bg-white">
                 <td className="border border-black p-2 font-bold text-center align-middle">{step.phase}</td>
                 <td className="border border-black p-2 text-center align-middle">{step.subPhase}</td>
-                <td className="border border-black p-2 text-center align-middle text-[9px]">{step.tools}</td>
-                <td className="border border-black p-2.5 text-right whitespace-pre-wrap leading-relaxed">
-                  {step.teacherActivities}
+                <td className="border border-black p-2 text-center align-middle text-[9px]">
+                  {isEditing ? (
+                    <textarea
+                      value={step.tools || ''}
+                      onChange={(e) => {
+                        const updated = [...editableData.introductionSteps];
+                        updated[index] = { ...step, tools: e.target.value };
+                        setEditableData({ ...editableData, introductionSteps: updated });
+                      }}
+                      rows={2}
+                      className="w-full border border-slate-300 rounded p-1 text-[9px]"
+                    />
+                  ) : (
+                    step.tools
+                  )}
                 </td>
-                <td className="border border-black p-2.5 text-right whitespace-pre-wrap leading-relaxed">
-                  {step.studentActivities}
+                <td className="border border-black p-2 text-right leading-relaxed whitespace-pre-wrap">
+                  {isEditing ? (
+                    <textarea
+                      value={step.teacherActivities || ''}
+                      onChange={(e) => {
+                        const updated = [...editableData.introductionSteps];
+                        updated[index] = { ...step, teacherActivities: e.target.value };
+                        setEditableData({ ...editableData, introductionSteps: updated });
+                      }}
+                      rows={3}
+                      className="w-full border border-slate-300 rounded p-1 text-[9.5px]"
+                    />
+                  ) : (
+                    step.teacherActivities
+                  )}
+                </td>
+                <td className="border border-black p-2 text-right leading-relaxed whitespace-pre-wrap">
+                  {isEditing ? (
+                    <textarea
+                      value={step.studentActivities || ''}
+                      onChange={(e) => {
+                        const updated = [...editableData.introductionSteps];
+                        updated[index] = { ...step, studentActivities: e.target.value };
+                        setEditableData({ ...editableData, introductionSteps: updated });
+                      }}
+                      rows={3}
+                      className="w-full border border-slate-300 rounded p-1 text-[9.5px]"
+                    />
+                  ) : (
+                    step.studentActivities
+                  )}
                 </td>
                 <td className="border border-black p-2 text-center align-middle">{step.workForm}</td>
               </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
 
-      {/* Table 2: Main Table (المقاطع والأنشطة التعلمية) */}
-      <div className="overflow-hidden border border-black mb-3 jadha-section">
-        <div className="bg-[#e6f0fa] border-b border-black p-1.5 text-center font-black text-[11px] text-black">
-          محطة البناء: المقاطع والأنشطة التعلمية التفاعلية
-        </div>
-        <table className="w-full border-collapse text-[10px] jadha-table" dir="rtl">
-          <thead>
-            <tr className="bg-slate-100 font-bold">
-              <th className="border border-black p-2 w-24 text-center">وضعيات التعلم</th>
-              <th className="border border-black p-2 w-28 text-center">أهداف التعلم</th>
-              <th className="border border-black p-2 w-24 text-center">الدعامات</th>
-              <th className="border border-black p-2 text-center">مهام الأستاذ(ة)</th>
-              <th className="border border-black p-2 text-center">مهام المتعلمين(ات)</th>
-              <th className="border border-black p-2 w-20 text-center">أشكال العمل</th>
+            {/* Subheader repeating before learning stages (identical to official Moroccan PDF) */}
+            <tr className="bg-slate-100 font-bold border-t border-b border-black">
+              <th className="border border-black p-2 text-center">وضعيات التعلم</th>
+              <th className="border border-black p-2 text-center">أهداف التعلم</th>
+              <th className="border border-black p-2 text-center">الدعامات</th>
+              <th className="border border-black p-2 text-center">مهام الأستاذ</th>
+              <th className="border border-black p-2 text-center">مهام المتعلم</th>
+              <th className="border border-black p-2 text-center">أشكال العمل</th>
             </tr>
-          </thead>
-          <tbody>
-            {currentData.steps.map((step, index) => {
+
+            {/* 2. Main Steps (المقاطع والأنشطة التعلمية) */}
+            {currentData.steps?.map((step, index) => {
               if (step.isHeader) {
                 return (
                   <tr key={index} className="bg-slate-100 font-bold">
-                    <td colSpan={6} className="border border-black p-2 text-center text-[11px] bg-slate-200/80 text-black">
+                    <td colSpan={6} className="border border-black p-2 text-center text-[11px] font-black bg-slate-200/90 text-black">
                       {step.phase}
                     </td>
                   </tr>
@@ -463,18 +391,30 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
               
               if (step.isSynthesis) {
                 return (
-                  <tr key={index} className="bg-emerald-50/20">
-                    <td className="border border-black p-2 font-bold text-center align-middle w-24 text-emerald-900 bg-emerald-50/40">
+                  <tr key={index} className="bg-white">
+                    <td className="border border-black p-2 font-bold text-center align-middle w-28">
                       وضعية تركيبية
                     </td>
-                    <td colSpan={5} className="border border-black p-3 text-right">
-                      <div className="font-bold text-emerald-950 mb-1 flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-emerald-700" />
-                        بناء المنتوج (المعارف الأساسية التي يدوّنها المتعلم في دفتر الدروس):
+                    <td colSpan={5} className="border border-black p-2.5 text-right">
+                      <div className="font-bold text-black mb-1">
+                        بناء المنتوج:
                       </div>
-                      <div className="leading-relaxed text-black whitespace-pre-wrap text-[10.5px]">
-                        {step.teacherActivities || step.studentActivities}
-                      </div>
+                      {isEditing ? (
+                        <textarea
+                          value={step.teacherActivities || step.studentActivities || ''}
+                          onChange={(e) => {
+                            const updatedSteps = [...editableData.steps];
+                            updatedSteps[index] = { ...step, teacherActivities: e.target.value, studentActivities: e.target.value };
+                            setEditableData({ ...editableData, steps: updatedSteps });
+                          }}
+                          rows={3}
+                          className="w-full border border-slate-300 rounded p-1 text-[10px]"
+                        />
+                      ) : (
+                        <div className="leading-relaxed text-black whitespace-pre-wrap text-[10px]">
+                          {step.teacherActivities || step.studentActivities || ''}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -482,18 +422,30 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
 
               if (step.isEvaluation) {
                 return (
-                  <tr key={index} className="bg-amber-50/20">
-                    <td className="border border-black p-2 font-bold text-center align-middle w-24 text-amber-900 bg-amber-50/40">
+                  <tr key={index} className="bg-white">
+                    <td className="border border-black p-2 font-bold text-center align-middle w-28">
                       وضعية تقويمية
                     </td>
                     <td colSpan={5} className="border border-black p-2.5 text-right">
-                      <div className="font-bold text-amber-950 mb-1 flex items-center gap-1.5">
-                        <HelpCircle size={13} className="text-amber-700" />
-                        تقويم تكويني مرحلي (التحقق من تحقق أهداف المقطع):
+                      <div className="font-bold text-black mb-1">
+                        تقويم مرحلي:
                       </div>
-                      <div className="leading-relaxed text-black whitespace-pre-wrap">
-                        {step.teacherActivities}
-                      </div>
+                      {isEditing ? (
+                        <textarea
+                          value={step.teacherActivities || ''}
+                          onChange={(e) => {
+                            const updatedSteps = [...editableData.steps];
+                            updatedSteps[index] = { ...step, teacherActivities: e.target.value };
+                            setEditableData({ ...editableData, steps: updatedSteps });
+                          }}
+                          rows={2}
+                          className="w-full border border-slate-300 rounded p-1 text-[10px]"
+                        />
+                      ) : (
+                        <div className="leading-relaxed text-black whitespace-pre-wrap">
+                          {step.teacherActivities || ''}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -501,16 +453,57 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
 
               return (
                 <tr key={index} className="bg-white">
-                  <td className="border border-black p-2 font-bold text-center align-middle w-24">{step.phase}</td>
-                  <td className="border border-black p-2 text-center align-middle w-28">{step.subPhase}</td>
-                  <td className="border border-black p-2 text-center text-[9px] align-middle w-24">{step.tools}</td>
-                  <td className="border border-black p-2.5 text-right whitespace-pre-wrap leading-relaxed">
-                    {step.teacherActivities}
+                  <td className="border border-black p-2 font-bold text-center align-middle w-28">{step.phase}</td>
+                  <td className="border border-black p-2 text-center align-middle w-32">{step.subPhase}</td>
+                  <td className="border border-black p-2 text-center text-[9px] align-middle w-36">
+                    {isEditing ? (
+                      <textarea
+                        value={step.tools || ''}
+                        onChange={(e) => {
+                          const updatedSteps = [...editableData.steps];
+                          updatedSteps[index] = { ...step, tools: e.target.value };
+                          setEditableData({ ...editableData, steps: updatedSteps });
+                        }}
+                        rows={2}
+                        className="w-full border border-slate-300 rounded p-1 text-[9px]"
+                      />
+                    ) : (
+                      step.tools
+                    )}
                   </td>
-                  <td className="border border-black p-2.5 text-right whitespace-pre-wrap leading-relaxed">
-                    {step.studentActivities}
+                  <td className="border border-black p-2 text-right leading-relaxed whitespace-pre-wrap">
+                    {isEditing ? (
+                      <textarea
+                        value={step.teacherActivities || ''}
+                        onChange={(e) => {
+                          const updatedSteps = [...editableData.steps];
+                          updatedSteps[index] = { ...step, teacherActivities: e.target.value };
+                          setEditableData({ ...editableData, steps: updatedSteps });
+                        }}
+                        rows={3}
+                        className="w-full border border-slate-300 rounded p-1 text-[9.5px]"
+                      />
+                    ) : (
+                      step.teacherActivities
+                    )}
                   </td>
-                  <td className="border border-black p-2 text-center align-middle w-20">{step.workForm}</td>
+                  <td className="border border-black p-2 text-right leading-relaxed whitespace-pre-wrap">
+                    {isEditing ? (
+                      <textarea
+                        value={step.studentActivities || ''}
+                        onChange={(e) => {
+                          const updatedSteps = [...editableData.steps];
+                          updatedSteps[index] = { ...step, studentActivities: e.target.value };
+                          setEditableData({ ...editableData, steps: updatedSteps });
+                        }}
+                        rows={3}
+                        className="w-full border border-slate-300 rounded p-1 text-[9.5px]"
+                      />
+                    ) : (
+                      step.studentActivities
+                    )}
+                  </td>
+                  <td className="border border-black p-2 text-center align-middle w-24">{step.workForm}</td>
                 </tr>
               );
             })}
@@ -518,107 +511,21 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
         </table>
       </div>
 
-      {/* ENRICHMENT SECTION 3: Final Evaluation (تقويم إجمالي) */}
+      {/* Final Evaluation (تقويم إجمالي) */}
       {currentData.finalEvaluation && currentData.finalEvaluation.length > 0 && (
         <div className="mb-3 border border-black p-3 jadha-section bg-white text-[10px]" dir="rtl">
-          <h3 className="font-bold text-[11px] mb-2 text-black flex items-center gap-1.5">
-            <Award size={14} className="text-indigo-700" />
-            تقويم إجمالي وإشهاد للمكتسبات:
+          <h3 className="font-bold text-[11px] mb-2 text-black">
+            تقويم إجمالي:
           </h3>
           <ul className="list-none space-y-1.5 text-black">
             {currentData.finalEvaluation.map((item, i) => (
               <li key={i} className="leading-relaxed">
-                <span className="font-bold text-indigo-900">{i + 1}.</span> {item}
+                - {item}
               </li>
             ))}
           </ul>
         </div>
       )}
-
-      {/* ENRICHMENT SECTION 4: Differentiation & Remediation (بيداغوجيا التمايز والدعم الفوري) */}
-      {currentData.differentiationActivities && (
-        <div className="mb-3 border border-black grid grid-cols-1 md:grid-cols-2 text-[9.5px] jadha-section">
-          {/* Remedial */}
-          <div className="p-2.5 border-b md:border-b-0 md:border-l border-black bg-white">
-            <h4 className="font-bold text-rose-900 border-b border-slate-200 pb-1 mb-1.5 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-rose-600 inline-block"></span>
-              أنشطة الدعم والمعالجة الفورية (للمتعثرين):
-            </h4>
-            <ul className="list-none space-y-1 text-slate-800">
-              {(currentData.differentiationActivities.remedial || [
-                'إعادة صياغة المفاهيم المركزية بواسطة خطاطة توضيحية مبسطة.',
-                'الاشتغال على دعامات إضافية ذات مؤشرات بصرية واضحة ومباشرة.',
-                'تنظيم عمل أقران موجه (تلميذ مساعد) لضبط منهجية استخراج المعطيات.'
-              ]).map((act, i) => (
-                <li key={i} className="leading-snug">• {act}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Enrichment */}
-          <div className="p-2.5 bg-white">
-            <h4 className="font-bold text-emerald-900 border-b border-slate-200 pb-1 mb-1.5 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
-              أنشطة الإغناء والتثمين (للمتفوقين):
-            </h4>
-            <ul className="list-none space-y-1 text-slate-800">
-              {(currentData.differentiationActivities.enrichment || [
-                'تحرير فقرة تركيبية معمقة تربط سياق الدرس بقضايا راهنة.',
-                'إعداد ملصق حائطي أو بطاقة تعريفية بيوغرافية حول إحدى الشخصيات/الظواهر.',
-                'البحث في مراجع تكميلية وتأطير نقاش صفي موجز.'
-              ]).map((act, i) => (
-                <li key={i} className="leading-snug">• {act}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {/* ENRICHMENT SECTION 5: Formative Assessment Criteria Grid (شبكة معايير ومؤشرات التحقق) */}
-      {currentData.evaluationGrid && currentData.evaluationGrid.length > 0 && (
-        <div className="mb-3 border border-black overflow-hidden jadha-section text-[9.5px]">
-          <div className="bg-[#e6f0fa] border-b border-black p-1.5 font-bold text-center text-black">
-            شبكة معايير ومؤشرات التقويم والملاحظة التكوينية
-          </div>
-          <table className="w-full border-collapse jadha-table">
-            <thead>
-              <tr className="bg-slate-100">
-                <th className="border border-black p-1.5 w-40 text-center font-bold">المعيار الديداكتيكي</th>
-                <th className="border border-black p-1.5 text-center font-bold">مؤشرات التحقق والإنجاز</th>
-                <th className="border border-black p-1.5 w-24 text-center font-bold">درجة التحكم</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentData.evaluationGrid.map((item, idx) => (
-                <tr key={idx} className="bg-white">
-                  <td className="border border-black p-2 font-bold text-center align-middle">{item.criterion}</td>
-                  <td className="border border-black p-2 text-right">
-                    <ul className="list-none space-y-0.5">
-                      {item.indicators.map((ind, iIdx) => (
-                        <li key={iIdx}>- {ind}</li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="border border-black p-2 text-center text-[9px] align-middle">{item.targetLevel || 'مكتسب / في طور الاكتساب'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Footer Signatures and Observations (Moroccan Official Standard) */}
-      <div className="border border-black p-3 grid grid-cols-2 text-center text-[10px] jadha-section bg-white">
-        <div className="border-l border-black pr-2">
-          <p className="font-bold mb-6">توقيع وملاحظات أستاذ(ة) المادة:</p>
-          <p className="text-slate-400 text-[9px]">................................................</p>
-        </div>
-        <div className="pl-2">
-          <p className="font-bold mb-6">توقيع وتأشيرة المفتش(ة) التربوي(ة):</p>
-          <p className="text-slate-400 text-[9px]">................................................</p>
-        </div>
-      </div>
     </div>
   );
 };
-

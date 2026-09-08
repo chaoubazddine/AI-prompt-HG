@@ -36,7 +36,7 @@ export async function generateAIContent(options: GenerateAIOptions): Promise<str
         responseMimeType,
         temperature,
         systemInstruction,
-        preferredModel: preferredModel || "gemini-3.7-flash",
+        preferredModel: preferredModel || "gemini-3.5-flash-lite",
       }),
     });
 
@@ -78,44 +78,35 @@ export async function generateAIContent(options: GenerateAIOptions): Promise<str
       },
     });
     const fallbackModels = [
-      "gemini-3.7-flash",
-      "gemini-flash-latest",
+      "gemini-3.5-flash-lite",
       "gemini-3.1-flash-lite",
       "gemini-3.6-flash",
-      "gemini-3.1-pro-preview",
     ];
-    const modelsToTry = preferredModel ? [preferredModel, ...fallbackModels] : fallbackModels;
+    const candidateModels = preferredModel && fallbackModels.includes(preferredModel)
+      ? [preferredModel, ...fallbackModels]
+      : fallbackModels;
     let lastErr: any = null;
 
-    for (const model of Array.from(new Set(modelsToTry))) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const config: any = {};
-          if (responseMimeType) config.responseMimeType = responseMimeType;
-          if (typeof temperature === "number") config.temperature = temperature;
-          if (systemInstruction) config.systemInstruction = systemInstruction;
+    for (const model of Array.from(new Set(candidateModels))) {
+      try {
+        const config: any = {};
+        if (responseMimeType) config.responseMimeType = responseMimeType;
+        if (typeof temperature === "number") config.temperature = temperature;
+        if (systemInstruction) config.systemInstruction = systemInstruction;
 
-          const res = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config,
-          });
+        const res = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config,
+        });
 
-          if (res && res.text) {
-            return res.text;
-          }
-        } catch (err: any) {
-          const errMsg = err?.message || String(err);
-          const isTransient = errMsg.includes("503") || errMsg.includes("429") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE");
-          console.warn(`[Client AI Fallback] Model '${model}' attempt ${attempt + 1} failed:`, errMsg);
-          lastErr = err;
-
-          if (isTransient && attempt === 0) {
-            await new Promise((r) => setTimeout(r, 600));
-            continue;
-          }
-          break;
+        if (res && res.text) {
+          return res.text;
         }
+      } catch (err: any) {
+        lastErr = err;
+        console.info(`[Client AI Fallback] Model '${model}' unavailable, trying next fallback...`);
+        continue;
       }
     }
 

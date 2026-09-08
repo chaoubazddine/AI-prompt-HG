@@ -51,14 +51,6 @@ export const EXTENDED_MOROCCAN_LESSONS: Record<string, LessonDetailedContent> = 
         workForm: 'عمل موجه ومؤطر'
       },
       {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'رصد التمثلات',
-        tools: 'أسئلة سريعة حول السلوكيات اليومية للماء والكهرباء',
-        teacherActivities: 'استكشاف السلوكيات اليومية للمتعلمين في استهلاك الماء والطاقة بالمنازل والمدرسة.',
-        studentActivities: 'التعبير عن السلوكيات الواقعية وتقييم مدى مطابقتها لمبادئ الاستهلاك الرشيد.',
-        workForm: 'عمل فردي'
-      },
-      {
         phase: 'أهداف التعلم',
         subPhase: 'التعاقد البيداغوجي',
         tools: 'الكتاب المدرسي (تجديد/منار)',
@@ -242,14 +234,6 @@ export const EXTENDED_MOROCCAN_LESSONS: Record<string, LessonDetailedContent> = 
         workForm: 'عمل موجه ومؤطر'
       },
       {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'رصد التمثلات',
-        tools: 'أسئلة تشخيصية سريعة',
-        teacherActivities: 'استكشاف معارف المتعلمين حول تاريخ الحرب والدول المشاركة ونتائجها العامة.',
-        studentActivities: 'تقديم إجابات أولية حول أطراف الصراع (دول الوفاق ودول المركز).',
-        workForm: 'عمل فردي'
-      },
-      {
         phase: 'أهداف التعلم',
         subPhase: 'التعاقد البيداغوجي',
         tools: 'الكتاب المدرسي المعتمد',
@@ -399,14 +383,6 @@ export const EXTENDED_MOROCCAN_LESSONS: Record<string, LessonDetailedContent> = 
         teacherActivities: 'كتابة العنوان وإبراز مفهوم "القوة التكنولوجية".',
         studentActivities: 'تدوين العنوان بالدفاتر واستكشاف مدلول التفوق التكنولوجي الياباني.',
         workForm: 'عمل موجه ومؤطر'
-      },
-      {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'رصد التمثلات',
-        tools: 'صور لعلامات تجارية يابانية (Sony, Toyota, Panasonic, Honda, Shinkansen)',
-        teacherActivities: 'عرض العلامات واستكشاف معرفة التلاميذ بالمنتجات التكنولوجية اليابانية.',
-        studentActivities: 'التعرف على المنتجات والربط بين اسم اليابان والجودة التكنولوجية الفائقة.',
-        workForm: 'عمل جماعي'
       },
       {
         phase: 'أهداف التعلم',
@@ -563,6 +539,12 @@ export const EXTENDED_MOROCCAN_LESSONS: Record<string, LessonDetailedContent> = 
     level: 'الجذع المشترك',
     curriculum: 'المنار في الاجتماعيات',
     duration: 'ساعتان (2س)',
+    lessonNumber: 'الدرس 4',
+    unitNumber: '4',
+    module: 'المجزوءة الأولى: العالم المتوسطي في القرنين 15 و16م: التحولات العامة وإرهاصات الحداثة',
+    academy: 'جهة الدار البيضاء سطات',
+    directorate: 'سيدي البرنوصي',
+    references: 'المنار في الاجتماعيات',
     competencies: [
       'كفاية إدراك مفهوم الحداثة وتجلياتها الفكرية والفنية خلال العصر الحديث',
       'كفاية توظيف النهج التاريخي (التعريف، التفسير، التركيب) في معالجة القضايا الفكرية',
@@ -606,14 +588,6 @@ export const EXTENDED_MOROCCAN_LESSONS: Record<string, LessonDetailedContent> = 
         teacherActivities: "أكتب العنوان 'التحولات الفكرية والعلمية والفنية (الحركة الإنسية)' بوضوح ووضح دلالات المصطلحات الكبرى.",
         studentActivities: 'يدون المتعلمون العنوان ويستعدون للمناقشة.',
         workForm: 'عمل موجه ومؤطر'
-      },
-      {
-        phase: 'تقويم تشخيصي',
-        subPhase: 'رصد التمثلات',
-        tools: 'أسئلة شفهية',
-        teacherActivities: "ماذا تعني لكم كلمة 'إنسية'؟ ما هي معلوماتكم الأولية عن فنانين مثل ليوناردو دافينشي؟",
-        studentActivities: 'إجابات متباينة تحاول ربط المفهوم بالإنسان ونهضة الفنون والآداب.',
-        workForm: 'عمل جماعي حواري'
       },
       {
         phase: 'أهداف التعلم',

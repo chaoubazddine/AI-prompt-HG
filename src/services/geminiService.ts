@@ -3,6 +3,7 @@ import { safeJsonParse } from "../utils/jsonCleaner";
 import { generateAIContent } from "./aiClient";
 import { CurriculumService } from "./knowledgeBase/curriculumService";
 import { getDetailedMoroccanLessonContent } from "./knowledgeBase/data/lessonsKnowledgeBase";
+import { getOfficialCurriculumSections } from "../constants/officialCurriculumSections";
 
 /**
  * Generates an extensive, highly grounded Moroccan pedagogical lesson plan (جذاذة تربوية نموذجية)
@@ -19,18 +20,18 @@ export const generateFallbackJadha = (
   const detailedMatch = getDetailedMoroccanLessonContent(lessonTitle);
   if (detailedMatch) {
     return {
-      title: lessonTitle,
+      title: detailedMatch.title || lessonTitle,
       level: level || detailedMatch.level,
       year: "2025/2026",
       duration: durationInput || detailedMatch.duration || "ساعتان (2س)",
       unit: detailedMatch.component,
-      lessonNumber: "درس بيداغوجي رقم 01",
-      module: "المجزوءة الأولى",
-      academy: "الأكاديمية الجهوية للتربية والتكوين",
-      directorate: "المديرية الإقليمية",
-      school: "المؤسسة التعليمية",
-      teacherName: "أستاذ المادة",
-      references: `${curriculum} - التوجيهات التربوية الرسمية`,
+      lessonNumber: detailedMatch.lessonNumber || "الدرس 01",
+      module: detailedMatch.module || "المجزوءة الأولى",
+      academy: detailedMatch.academy || "جهة الدار البيضاء سطات",
+      directorate: detailedMatch.directorate || "سيدي البرنوصي",
+      school: detailedMatch.school || "المؤسسة التعليمية",
+      teacherName: detailedMatch.teacherName || "أستاذ المادة",
+      references: detailedMatch.references || `${curriculum} - التوجيهات التربوية الرسمية`,
       competencies: detailedMatch.competencies,
       capabilities: detailedMatch.capabilities,
       objectives: detailedMatch.objectives,
@@ -50,8 +51,12 @@ export const generateFallbackJadha = (
   
   const unit = componentInput || (isHistory ? "التاريخ" : isCivics ? "التربية على المواطنة" : "الجغرافيا");
   const duration = durationInput || "ساعتان";
+  const officialSecs = getOfficialCurriculumSections(lessonTitle, level, unit);
 
   if (unit === "التاريخ") {
+    const sec1Title = officialSecs?.sections[0]?.title || `المقطع التعلمي الأول: التعريف بالحدث التاريخي وتحديد سياقه الزماني والمكاني ومظاهره`;
+    const sec2Title = officialSecs?.sections[1]?.title || `المقطع التعلمي الثاني: رصد العوامل والأسباب والدوافع المفسرة لـ (${lessonTitle})`;
+    const sec3Title = officialSecs?.sections[2]?.title || `المقطع التعلمي الثالث: استخلاص النتائج والامتدادات والتحولات الناتجة`;
     return {
       title: lessonTitle,
       level: level,
@@ -92,74 +97,66 @@ export const generateFallbackJadha = (
         {
           phase: "مراجعة الدرس السابق",
           subPhase: "الربط والتمهيد البيداغوجي",
-          tools: "الدفاتر المدرسية، أسئلة شفهية تفاعلية",
-          teacherActivities: "طرح أسئلة استرجاعية حول الدرس السابق وتثبيت المكتسبات الأساسية للربط بالدرس الجديد.",
-          studentActivities: "استحضار المعطيات التاريخية السابقة والإجابة بدقة مع إبراز نقط التقاطع مع الموضوع الجديد.",
+          tools: "الدفاتر المدرسية، أسئلة استرجاعية تفاعلية",
+          teacherActivities: "طرح أسئلة استرجاعية محددة حول مفاهيم ومعطيات الدرس السابق للربط بالدرس الجديد.",
+          studentActivities: "استحضار الحقائق والمفاهيم التاريخية السابقة بدقة وإبراز نقط التقاطع مع الموضوع الجديد.",
           workForm: "عمل جماعي حواري"
         },
         {
           phase: "تقديم عنوان الدرس",
           subPhase: "توطين الموضوع ديداكتيكياً",
-          tools: "السبورة، الكتاب المدرسي المعتمد",
+          tools: `السبورة، الكتاب المدرسي المعتمد (${curriculum})`,
           teacherActivities: "كتابة عنوان الدرس على السبورة وتحديد موقعه ضمن البرنامج الدراسي ومكون التاريخ.",
-          studentActivities: "تدوين العنوان في دفاتر الدروس وقراءته قراءة أولية لاستكشاف دلالاته التاريخية.",
+          studentActivities: "تدوين العنوان في دفاتر الدروس وقراءته قراءة أولية لاستكشاف دلالاته ومحدداته التاريخية.",
           workForm: "عمل موجه ومؤطر"
         },
         {
-          phase: "تقويم تشخيصي",
-          subPhase: "رصد التمثلات والمكتسبات القبلية",
-          tools: "بطاقات استطلاع، أسئلة تشخيصية سريعة",
-          teacherActivities: "طرح أسئلة لاستكشاف تمثلات المتعلمين القبلية حول مفاهيم وأحداث الدرس وتشخيص الفوارق الفردية.",
-          studentActivities: "التعبير عن المكتسبات والتمثلات القبلية والتفاعل الإيجابي مع الأسئلة المطروحة.",
-          workForm: "عمل فردي"
-        },
-        {
           phase: "أهداف التعلم",
-          subPhase: "إبراز التعاقد البيداغوجي",
+          subPhase: "إبراز التعاقد الديداكتيكي",
           tools: "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
-          teacherActivities: "إبراز الأهداف المعرفية والمهارية والوجدانية المسطرة للحصة ومشاركتها مع المتعلمين.",
-          studentActivities: "قراءة الأهداف واستيعاب مسار الحصة والغايات المنتظرة من الأنشطة.",
+          teacherActivities: "إبراز الأهداف المعرفية والمهارية والوجدانية المسطرة ومشاركتها مع جماعة الفصل.",
+          studentActivities: "قراءة الأهداف واستيعاب مسار الحصة والغايات والمهارات المستهدفة.",
           workForm: "عمل جماعي حواري"
         },
         {
           phase: "التمهيد الإشكالي",
           subPhase: "بناء الإشكالية وصياغة التساؤلات",
-          tools: `نص تمهيدي وصورة افتتاحية من مرجع (${curriculum})`,
-          teacherActivities: "توجيه المتعلمين لقراءة الدعامة التمهيدية وتأطير التساؤلات الإشكالية المحورية للدرس.",
-          studentActivities: "قراءة السند التمهيدي وصياغة الأسئلة الإشكالية بدقة وتدوين التمهيد الإشكالي في الدفاتر.",
+          tools: `الدعامة التمهيدية والصورة الافتتاحية من مرجع (${curriculum})`,
+          teacherActivities: "سؤال موجه: اقرأ الدعامة التمهيدية وصغ التساؤلات الإشكالية الثلاثة الكبرى المؤطرة لإشكالية الدرس.",
+          studentActivities: "قراءة السند وصياغة الأسئلة الإشكالية الثلاثة بدقة وتدوين التمهيد الإشكالي في الدفاتر.",
           workForm: "عمل جماعي حواري"
         }
       ],
       steps: [
         {
           isHeader: true,
-          phase: `المقطع التعلمي الأول: التعريف بالحدث التاريخي وتحديد سياقه الزماني والمكاني ومظاهره`
+          phase: sec1Title
         },
         {
           isHeader: false,
           phase: "النشاط 1",
-          subPhase: `تحديد الإطار الزمني والمكاني لموضوع (${lessonTitle}) وضبط المفاهيم المركزية`,
-          tools: `المرجع (${curriculum}): الوثيقة 1 (نص تاريخي مؤطر)، الوثيقة 2 (خريطة تاريخية توطينية)، الوثيقة 3 (خط زمني كرونولوجي)`,
-          workForm: "عمل في مجموعات صغيرة",
-          teacherActivities: `1. حدد سياق ومفهوم (${lessonTitle}) ومجاله الزماني والمكاني من النص 1.
-2. استخرج من الخريطة 2 والخط الزمني 3 أهم المحطات التاريخية والمناطق المعنية.
-3. استخلص الفكرة العامة والمفاهيم المركزية المؤسسة للحدث.`,
-          studentActivities: `• تحديد مفهوم وسياق (${lessonTitle}) بدقة وضبط إطاره التاريخي في الزمان والمكان من خلال النص 1.
-• توطين الأحداث والمحطات التاريخية الكبرى على الخريطة والخط الزمني ورصد امتدادها الميداني.
-• استخراج المفاهيم والمصطلحات التاريخية المركزية وضبط دلالاتها في دفاتر الدروس.`
+          subPhase: officialSecs?.sections[0]?.subActivities?.[0] || `تحديد الإطار الزمني والمكاني لموضوع (${lessonTitle}) وضبط المفاهيم المركزية`,
+          tools: `المرجع (${curriculum}): الوثيقة 1 (نص تاريخي)، الوثيقة 2 (خريطة تاريخية)، الوثيقة 3 (خط زمني)`,
+          workForm: "عمل بالوثائق / مجموعات",
+          teacherActivities: `• س1 (الوثيقة 1 - نص تاريخي): استخرج من النص السياق التاريخي المحدد والمفهوم المركزي للحدث.
+• س2 (الوثيقة 2 - خريطة تاريخية): حدد انطلاقاً من الخريطة المجال الجغرافي المعني ووطّن أهم المراكز والمحطات.
+• س3 (الوثيقة 3 - خط زمني): استخلص الإطار الزمني الكرونولوجي وامتداد المراحل الكبرى للحدث.`,
+          studentActivities: `• ج1: يستخرج المتعلم المفهوم والسياق التاريخي المحدد في النص بدقة بالتواريخ والمصطلحات المقررة.
+• ج2: يوطّن المتعلم المراكز الجغرافية والمواقع المحددة على الخريطة استناداً إلى معارف ومفتاح الوثيقة.
+• ج3: يرتب المتعلم المراحل الكرونولوجية ويدون السنوات والأحداث البارزة المستخلصة من الخط الزمني.`
         },
         {
           isHeader: false,
           phase: "النشاط 2",
-          subPhase: "رصد المظاهر والتجليات الأساسية وتتبع مسار الأحداث التاريخية",
-          tools: `المرجع (${curriculum}): الوثيقة 4 (جدول كرونولوجي لأهم المحطات)، الوثيقة 5 (صورة وثائقية تاريخية)، الوثيقة 6 (نص تاريخي تحليلي)`,
+          subPhase: officialSecs?.sections[0]?.subActivities?.[1] || "رصد المظاهر والتجليات الأساسية وتتبع مسار الأحداث التاريخية",
+          tools: `المرجع (${curriculum}): الوثيقة 4 (جدول كرونولوجي)، الوثيقة 5 (صورة وثائقية)، الوثيقة 6 (نص تحليلي)`,
           workForm: "عمل ثنائي",
-          teacherActivities: `1. استخرج من الجدول 4 والوثيقة 5 أهم المظاهر والتجليات التاريخية للحدث.
-2. صنف هذه التجليات حسب طبيعتها (سياسية، عسكرية، اقتصادية).
-3. ركب خلاصة موجزة تبرز التطور المرحلي للظاهرة التاريخية.`,
-          studentActivities: `• رصد المظاهر والوقائع والتجليات البارزة للحدث التاريخي من واقع الجدول والصورة.
-• تصنيف التجليات التاريخية إلى أبعاد سياسية وعسكرية واقتصادية واضحة في جدول منظم.
-• صياغة خلاصة تبرز التحولات التاريخية ومراحل تطور الظاهرة وتدوينها في الدفتر.`
+          teacherActivities: `• س1 (الجدول 4 والصورة 5): استخرج المظاهر والتجليات التاريخية البارزة للحدث وفق معطيات الجدول والصورة.
+• س2 (الوثيقة 6 - نص تحليلي): صنف هذه المظاهر والتجليات حسب طبيعتها (سياسية، عسكرية، اقتصادية).
+• س3: قارن بين مراحل تطور الحدث واستنتج التحول النوعي الذي طرأ عليه.`,
+          studentActivities: `• ج1: يستخرج المتعلم المظاهر والوقائع البارزة المدرجة في الجدول والمعالم التوثيقية بالصورة.
+• ج2: يصنف المعطيات في جدول منظم يبرز الأبعاد السياسية والعسكرية والاقتصادية المسطرة في النص.
+• ج3: يستنتج خلاصة التحول التاريخي ويدونها بصياغة علمية مركزة.`
         },
         {
           isSynthesis: true,
@@ -180,7 +177,7 @@ export const generateFallbackJadha = (
         },
         {
           isHeader: true,
-          phase: `المقطع التعلمي الثاني: رصد العوامل والأسباب والدوافع المفسرة لـ (${lessonTitle})`
+          phase: sec2Title
         },
         {
           isHeader: false,
@@ -226,7 +223,7 @@ export const generateFallbackJadha = (
         },
         {
           isHeader: true,
-          phase: `المقطع التعلمي الثالث: استخلاص النتائج والامتدادات والتحولات الناتجة`
+          phase: sec3Title
         },
         {
           isHeader: false,
@@ -259,6 +256,10 @@ export const generateFallbackJadha = (
   }
 
   if (unit === "التربية على المواطنة") {
+    const civSec1 = officialSecs?.sections[0]?.title || `المقطع التعلمي الأول: مفهوم (${lessonTitle}) ومرجعياته الدينية والوطنية والدولية`;
+    const civSec2 = officialSecs?.sections[1]?.title || `المقطع التعلمي الثاني: دراسة وضعيات ومواقف واقعية وتحليلها نقدياً`;
+    const civSec3 = officialSecs?.sections[2]?.title || `المقطع التعلمي الثالث: التدرب على المبادرة وتطبيق خطوات السلوك المواطن`;
+
     return {
       title: lessonTitle,
       level: level,
@@ -306,33 +307,25 @@ export const generateFallbackJadha = (
         },
         {
           phase: "تقديم عنوان الدرس",
-          subPhase: "تأطير المفهوم",
-          tools: "السبورة، المقرر المدرسي",
-          teacherActivities: "كتابة عنوان الدرس على السبورة وتحديد مكانته في برنامج التربية على المواطنة.",
-          studentActivities: "تسجيل العنوان في الدفاتر واستحضار دلالاته اليومية والأخلاقية.",
+          subPhase: "تأطير المفهوم وتوطينه",
+          tools: `السبورة، المقرر المدرسي (${curriculum})`,
+          teacherActivities: "كتابة عنوان الدرس على السبورة وتحديد مكانته وأهميته في برنامج التربية على المواطنة.",
+          studentActivities: "تسجيل العنوان في الدفاتر واستحضار دلالاته الحقوقية والمدنية وموقعه في المقرر.",
           workForm: "عمل موجه ومؤطر"
         },
         {
-          phase: "تقويم تشخيصي",
-          subPhase: "استكشاف التمثلات المجتمعية",
-          tools: "بطاقات مواقف، أسئلة سريعة",
-          teacherActivities: "رصد تمثلات المتعلمين حول هذا الحق/الواجب ومدى وعيهم بحدوده ومسؤولياته.",
-          studentActivities: "التعبير عن الأفكار والمواقف العفوية والمشاركة في الحوار التشخيصي.",
-          workForm: "عمل فردي"
-        },
-        {
           phase: "أهداف التعلم",
-          subPhase: "تحديد الغايات البيداغوجية",
-          tools: "الكتاب المدرسي، الخطاطة التوجيهية",
-          teacherActivities: "عرض الأهداف المعرفية والمهارية والقيمية ومناقشتها مع جماعة القسم.",
-          studentActivities: "قراءة الأهداف واستيعاب المهارات والمواقف المراد اكتسابها.",
+          subPhase: "إبراز التعاقد الديداكتيكي",
+          tools: "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
+          teacherActivities: "عرض الأهداف المعرفية والمهارية والقيمية المسطرة ومشاركتها مع جماعة القسم.",
+          studentActivities: "قراءة الأهداف واستيعاب الكفايات والمواقف المدنية المستهدفة في الحصة.",
           workForm: "عمل جماعي حواري"
         },
         {
           phase: "التمهيد الإشكالي",
           subPhase: "صياغة الإشكالية الحقوقية",
           tools: `نص وضعية مشكلة أو صورة معبرة من مرجع (${curriculum})`,
-          teacherActivities: "توجيه التلاميذ لقراءة الوضعية المشكلة وطرح التساؤلات الإشكالية الناظمة للدرس.",
+          teacherActivities: "سؤال موجه: حلل السند التمهيدي وصغ التساؤلات الإشكالية الثلاثة الكبرى لموضوع الدرس.",
           studentActivities: "تحليل الوضعية وصياغة الأسئلة المحورية وتدوين التمهيد الإشكالي في الدفاتر.",
           workForm: "عمل جماعي حواري"
         }
@@ -340,25 +333,25 @@ export const generateFallbackJadha = (
       steps: [
         {
           isHeader: true,
-          phase: `المقطع التعلمي الأول: مفهوم (${lessonTitle}) ومرجعياته الدينية والوطنية والدولية`
+          phase: civSec1
         },
         {
           isHeader: false,
           phase: "النشاط 1",
-          subPhase: "تعريف المفهوم وتحديد مدلوله الحقوقي والقيمي",
-          tools: `المرجع (${curriculum}): الوثيقة 1 (نص مرجعي مؤطر)، الوثيقة 2 (خطاطة أبعاد المفهوم)، الوثيقة 3 (صور تجسيدية)`,
-          workForm: "عمل في مجموعات صغيرة",
-          teacherActivities: `1. حدد مفهوم (${lessonTitle}) ودلالته الحقوقية والأخلاقية من النص 1.
-2. استخرج من الخطاطة 2 أبعاد هذا المفهوم (الفردية، الجماعية، المؤسساتية).
-3. صنف خصائص هذا الحق في جدول منظم بدفترك.`,
-          studentActivities: `• تعريف (${lessonTitle}) كقيمة حقوقية وسلوك مدني يكرس الكرامة والعدالة الاجتماعية والتضامن.
-• استخراج الأبعاد الأخلاقية والمدنية للمفهوم وتحديد مجالات تطبيقه في الحياة اليومية والمدرسية.
-• تدوين خصائص المفهوم في جدول مقارن يبرز التكامل التام بين التمتع بالحقوق والالتزام بالواجبات.`
+          subPhase: officialSecs?.sections[0]?.subActivities?.[0] || "تعريف المفهوم وتحديد مدلوله الحقوقي والقيمي",
+          tools: `المرجع (${curriculum}): الوثيقة 1 (نص حقوقي مرجعي)، الوثيقة 2 (خطاطة أبعاد المفهوم)، الوثيقة 3 (صور توثيقية)`,
+          workForm: "عمل بالوثائق / مجموعات",
+          teacherActivities: `• س1 (الوثيقة 1 - نص مرجعي): استخرج من النص تعريف مفهوم (${lessonTitle}) ودلالته في المنظومة الحقوقية.
+• س2 (الوثيقة 2 - خطاطة أبعاد المفهوم): صنف انطلاقاً من الخطاطة أبعاد هذا المفهوم (فردية، مجتمعية، مؤسساتية).
+• س3 (الوثيقة 3 - صور توثيقية): استخلص من الصور السلوكيات والممارسات المجسدة لهذا الحق/المفهوم.`,
+          studentActivities: `• ج1: يستخرج المتعلم تعريف (${lessonTitle}) بدقة وفق المرجعيات والنصوص القانونية والأخلاقية المسطرة.
+• ج2: يصنف المتعلم في جدول منظم أبعاد المفهوم مستنداً إلى معطيات الخطاطة ومصطلحات المقرر.
+• ج3: يحدد السلوكيات المدنية المستخلصة من الصور ويدونها في الدفتر كمعايير التزام واقعية.`
         },
         {
           isHeader: false,
           phase: "النشاط 2",
-          subPhase: "استجلاء مرجعيات المفهوم (الدين الإسلامي، الدستور المغربي، المواثيق الدولية)",
+          subPhase: officialSecs?.sections[0]?.subActivities?.[1] || "استجلاء مرجعيات المفهوم (الدين الإسلامي، الدستور المغربي، المواثيق الدولية)",
           tools: `المرجع (${curriculum}): الوثيقة 4 (نص قرآني/حديث شريف)، الوثيقة 5 (فصل من الدستور المغربي)، الوثيقة 6 (مادة من الإعلان العالمي لحقوق الإنسان)`,
           workForm: "عمل جماعي حواري",
           teacherActivities: `1. استخرج من النص الديني 4 المبادئ السامية المؤصلة لـ (${lessonTitle}).
@@ -386,12 +379,12 @@ export const generateFallbackJadha = (
         },
         {
           isHeader: true,
-          phase: `المقطع التعلمي الثاني: دراسة وضعيات ومواقف واقعية وتحليلها نقدياً`
+          phase: civSec2
         },
         {
           isHeader: false,
           phase: "النشاط 1",
-          subPhase: "تشخيص حالات ووضعيات من الواقع المعيش وتحليل أسباب الخروقات أو التعثرات",
+          subPhase: officialSecs?.sections[1]?.subActivities?.[0] || "تشخيص حالات ووضعيات من الواقع المعيش وتحليل أسباب الخروقات أو التعثرات",
           tools: `المرجع (${curriculum}): الوثيقة 1 (شهادات واقعية/قصاصات إخبارية)، الوثيقة 2 (جدول رصد الحالات)، الوثيقة 3 (رسم كاريكاتوري هادف)`,
           workForm: "عمل ثنائي",
           teacherActivities: `1. حدد المشكلة المطروحة في السند الواقعي 1 والكاريكاتور 3.
@@ -419,7 +412,7 @@ export const generateFallbackJadha = (
         },
         {
           isHeader: true,
-          phase: `المقطع التعلمي الثالث: التدرب على المبادرة وتطبيق خطوات السلوك المواطن`
+          phase: civSec3
         },
         {
           isHeader: false,
@@ -452,6 +445,10 @@ export const generateFallbackJadha = (
   }
 
   // Fallback for Geography (الجغرافيا)
+  const geoSec1 = officialSecs?.sections[0]?.title || `المقطع التعلمي الأول: رصد المظاهر والخصائص والتوطين المجالي`;
+  const geoSec2 = officialSecs?.sections[1]?.title || `المقطع التعلمي الثاني: رصد العوامل الطبيعية والبشرية والتنظيمية المفسرة`;
+  const geoSec3 = officialSecs?.sections[2]?.title || `المقطع التعلمي الثالث: رصد المشاكل والتحديات والحلول والمقارنات الكبرى`;
+
   return {
     title: lessonTitle,
     level: level,
@@ -500,32 +497,24 @@ export const generateFallbackJadha = (
       {
         phase: "تقديم عنوان الدرس",
         subPhase: "التوطين المجالي للموضوع",
-        tools: "السبورة، خريطة الحائط أو شاشة العرض",
+        tools: `السبورة، خريطة الحائط أو المقرر (${curriculum})`,
         teacherActivities: "كتابة عنوان الدرس وتوطين المجال المدروس على خريطة العالم/المغرب.",
         studentActivities: "تدوين العنوان في الدفاتر وملاحظة التوطين الأولي للمجال.",
         workForm: "عمل موجه ومؤطر"
       },
       {
-        phase: "تقويم تشخيصي",
-        subPhase: "استكشاف المكتسبات والتمثلات المجالية",
-        tools: "بطاقات أسئلة تشخيصية، خريطة صماء سريعة",
-        teacherActivities: "رصد المكتسبات الجغرافية القبلية حول المجال المدروس ومعالجة التمثلات الخاطئة.",
-        studentActivities: "التفاعل مع الأسئلة وتحديد المعالم الجغرافية الأولية.",
-        workForm: "عمل فردي"
-      },
-      {
         phase: "أهداف التعلم",
-        subPhase: "تحديد مسار الحصة الجغرافية",
-        tools: "الكتاب المدرسي، الخطاطة التوجيهية",
+        subPhase: "إبراز التعاقد الديداكتيكي",
+        tools: "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
         teacherActivities: "إبراز الأهداف المعرفية والمهارية والقيمية المسطرة ومشاركتها مع القسم.",
-        studentActivities: "قراءة الأهداف واستيعاب الكفايات المنتظر اكتسابها.",
+        studentActivities: "قراءة الأهداف واستيعاب الكفايات وخطوات النهج الجغرافي المستهدفة.",
         workForm: "عمل جماعي حواري"
       },
       {
         phase: "التمهيد الإشكالي",
         subPhase: "بناء الإشكالية الجغرافية",
         tools: `نص تمهيدي وصورة جغرافية من مرجع (${curriculum})`,
-        teacherActivities: "توجيه المتعلمين لقراءة السند التمهيدي وصياغة الأسئلة الإشكالية الدقيقة.",
+        teacherActivities: "سؤال موجه: حلل السند التمهيدي وصغ التساؤلات الإشكالية الثلاثة الكبرى لموضوع الدرس.",
         studentActivities: "قراءة السند وصياغة التساؤلات الإشكالية وتدوين التمهيد الإشكالي في الدفاتر.",
         workForm: "عمل جماعي حواري"
       }
@@ -533,25 +522,25 @@ export const generateFallbackJadha = (
     steps: [
       {
         isHeader: true,
-        phase: `المقطع التعلمي الأول: رصد المظاهر والخصائص والتوطين المجالي`
+        phase: geoSec1
       },
       {
         isHeader: false,
         phase: "النشاط 1",
-        subPhase: `توطين موضوع (${lessonTitle}) ورصد خصائصه النوعية وتوزيعه المجالي`,
+        subPhase: officialSecs?.sections[0]?.subActivities?.[0] || `توطين موضوع (${lessonTitle}) ورصد خصائصه النوعية وتوزيعه المجالي`,
         tools: `المرجع (${curriculum}): الوثيقة 1 (خريطة موضوعاتية مفصلة)، الوثيقة 2 (جدول معطيات وإحصائيات)، الوثيقة 3 (نص جغرافي واصف)`,
-        workForm: "عمل في مجموعات صغيرة",
-        teacherActivities: `1. وطّن المجال والظاهرة موضوع (${lessonTitle}) على الخريطة 1.
-2. استخرج من الجدول 2 المؤشرات النوعية والكمية ورتبها.
-3. صف مظاهر التوزيع المجالي والتباينات الإقليمية في نقط مركزة.`,
-        studentActivities: `• توطين الظاهرة جغرافياً وضبط حدودها ومجالها على الخريطة الموضوعاتية وتحديد الامتداد الإقليمي.
-• استقراء معطيات الجدول الإحصائي واستخراج الأرقام الدالة ومناطق التركز والإنتاج.
-• تحرير فقرة وصفية تلخص الخصائص الميدانية والتباينات المجالية في دفاتر الدروس.`
+        workForm: "عمل بالوثائق / مجموعات",
+        teacherActivities: `• س1 (الوثيقة 1 - خريطة موضوعاتية): وطّن المجال والكيانات الجغرافية لموضوع (${lessonTitle}) وحدد مناطق تركزها.
+• س2 (الوثيقة 2 - جدول إحصائي): استخرج المؤشرات الإحصائية والأرقام الدقيقة ورتبها تصاعدياً/تنازلياً.
+• س3 (الوثيقة 3 - نص جغرافي): صف الخصائص النوعية والتباينات المجالية انطلاقاً من النص.`,
+        studentActivities: `• ج1: يوطّن المتعلم الكيانات والمجالات الجغرافية على الخريطة استناداً إلى المفتاح والإحداثيات.
+• ج2: يستخرج المتعلم الأرقام والنسب المئوية المسطرة في الجدول ويحدد مراتبها بدقة.
+• ج3: يصوغ المتعلم وصفاً جغرافياً دقيقاً للخصائص والتباينات المجالية ويدونها في دفتره.`
       },
       {
         isHeader: false,
         phase: "النشاط 2",
-        subPhase: "رصد المظاهر الكمية وتطور المؤشرات عبر الزمن/المجال",
+        subPhase: officialSecs?.sections[0]?.subActivities?.[1] || "رصد المظاهر الكمية وتطور المؤشرات عبر الزمن/المجال",
         tools: `المرجع (${curriculum}): الوثيقة 4 (مبيان بالمنحنيات أو الأعمدة)، الوثيقة 5 (صور فوتوغرافية معبرة)، الوثيقة 6 (نص شارح)`,
         workForm: "عمل ثنائي",
         teacherActivities: `1. اقرأ المبيان 4 وحدد وتيرة تطور المؤشرات (ارتفاع، انخفاض، استقرار).
@@ -579,12 +568,12 @@ export const generateFallbackJadha = (
       },
       {
         isHeader: true,
-        phase: `المقطع التعلمي الثاني: رصد العوامل الطبيعية والبشرية والتنظيمية المفسرة`
+        phase: geoSec2
       },
       {
         isHeader: false,
         phase: "النشاط 1",
-        subPhase: "إبراز العوامل الطبيعية والبشرية المفسرة للظاهرة المدروسة",
+        subPhase: officialSecs?.sections[1]?.subActivities?.[0] || "إبراز العوامل الطبيعية والبشرية المفسرة للظاهرة المدروسة",
         tools: `المرجع (${curriculum}): الوثيقة 1 (خريطة التضاريس/المناخ)، الوثيقة 2 (هرم سكاني/جدول ديمغرافي)، الوثيقة 3 (نص تفسيري)`,
         workForm: "عمل جماعي حواري",
         teacherActivities: `1. استخرج من الخريطة 1 المؤهلات الطبيعية (الموقع، التضاريس، المناخ، الموارد المائية).
@@ -597,7 +586,7 @@ export const generateFallbackJadha = (
       {
         isHeader: false,
         phase: "النشاط 2",
-        subPhase: "تحليل العوامل الاقتصادية والتنظيمية والتكنولوجية ودور السياسات التنموية",
+        subPhase: officialSecs?.sections[1]?.subActivities?.[1] || "تحليل العوامل الاقتصادية والتنظيمية والتكنولوجية ودور السياسات التنموية",
         tools: `المرجع (${curriculum}): الوثيقة 4 (خطاطة التنظيم الاقتصادي)، الوثيقة 5 (نص حول الاستثمارات والبحث العلمي)`,
         workForm: "عمل في مجموعات صغيرة",
         teacherActivities: `1. استخرج من الخطاطة 4 والنص 5 مقومات التنظيم الاقتصادي وسياسات الدولة.
@@ -625,7 +614,7 @@ export const generateFallbackJadha = (
       },
       {
         isHeader: true,
-        phase: `المقطع التعلمي الثالث: رصد المشاكل والتحديات والحلول والمقارنات الكبرى`
+        phase: geoSec3
       },
       {
         isHeader: false,
@@ -658,6 +647,63 @@ export const generateFallbackJadha = (
 };
 
 /**
+ * Helper to ensure standard default fields for Moroccan Jadha
+ */
+export const enrichJadhaData = (
+  data: JadhaData,
+  component: string,
+  lessonTitle: string,
+  curriculum: string,
+  level?: string
+): JadhaData => {
+  const official = getOfficialCurriculumSections(lessonTitle, level, component);
+  let updatedSteps = data.steps ? [...data.steps] : [];
+
+  // Remove any remaining diagnostic evaluation step from introduction
+  const cleanedIntro = (data.introductionSteps || []).filter(
+    (step) =>
+      !step.phase.includes("تشخيص") &&
+      !(step.subPhase && step.subPhase.includes("تشخيص"))
+  );
+
+  // Strictly enforce official curriculum section titles if available
+  if (official && official.sections.length > 0) {
+    let headerIdx = 0;
+    updatedSteps = updatedSteps.map((step) => {
+      if (step.isHeader) {
+        if (headerIdx < official.sections.length) {
+          const officialSec = official.sections[headerIdx];
+          headerIdx++;
+          return {
+            ...step,
+            phase: officialSec.title,
+          };
+        }
+      }
+      return step;
+    });
+  }
+
+  const cleanedSteps = updatedSteps.filter(
+    (step) =>
+      !step.phase.includes("تشخيص") &&
+      !(step.subPhase && step.subPhase.includes("تشخيص"))
+  );
+
+  return {
+    ...data,
+    unit: data.unit || component,
+    references: data.references || `${curriculum} - التوجيهات التربوية الرسمية`,
+    teacherName: data.teacherName || 'أستاذ(ة) المادة',
+    school: data.school || 'المؤسسة التعليمية',
+    year: data.year || '2025/2026',
+    duration: data.duration || 'ساعتان (2س)',
+    introductionSteps: cleanedIntro,
+    steps: cleanedSteps,
+  };
+};
+
+/**
  * Enhanced AI Jadha Generator strictly aligned with Moroccan Curriculum Standards.
  */
 export const generateJadha = async (
@@ -679,9 +725,34 @@ export const generateJadha = async (
   const component = componentInput || (isHistory ? "التاريخ" : isCivics ? "التربية على المواطنة" : "الجغرافيا");
   const duration = durationInput || "ساعتان";
 
+  // Check rich authentic Moroccan curriculum database first
+  const detailedMatch = getDetailedMoroccanLessonContent(lessonTitle);
+  if (detailedMatch && detailedMatch.steps && detailedMatch.steps.length >= 4) {
+    return {
+      title: detailedMatch.title || lessonTitle,
+      level: level || detailedMatch.level,
+      year: "2025/2026",
+      duration: durationInput || detailedMatch.duration || "ساعتان (2س)",
+      unit: detailedMatch.component || component,
+      lessonNumber: detailedMatch.lessonNumber || "الدرس 01",
+      module: detailedMatch.module || "المجزوءة الأولى",
+      academy: detailedMatch.academy || "جهة الدار البيضاء سطات",
+      directorate: detailedMatch.directorate || "سيدي البرنوصي",
+      school: detailedMatch.school || "المؤسسة التعليمية",
+      teacherName: detailedMatch.teacherName || "أستاذ المادة",
+      references: detailedMatch.references || `${curriculum} - التوجيهات التربوية الرسمية`,
+      competencies: detailedMatch.competencies,
+      capabilities: detailedMatch.capabilities,
+      objectives: detailedMatch.objectives,
+      problematic: detailedMatch.problematic,
+      introductionSteps: detailedMatch.introductionSteps,
+      steps: detailedMatch.steps,
+      finalEvaluation: detailedMatch.finalEvaluation
+    };
+  }
+
   // 2. Fetch Grounded Curriculum Context if available
   let officialRefContext = "";
-  const detailedMatch = getDetailedMoroccanLessonContent(lessonTitle);
 
   if (detailedMatch) {
     officialRefContext = `
@@ -747,6 +818,24 @@ ${detailedMatch.steps.filter(s => !s.isHeader && s.studentActivities).map(s => `
 `;
   }
 
+  // 4. Retrieve official curriculum sections
+  const officialCurricSections = getOfficialCurriculumSections(lessonTitle, level, component);
+  let officialSectionsRule = "";
+  if (officialCurricSections && officialCurricSections.sections.length > 0) {
+    officialSectionsRule = `
+4. **الاحتفاظ الإلزامي بنفس عناوين المقاطع والأنشطة الواردة في المقرر الدراسي (${curriculum})**:
+   المقرر المدرسي المعتمد لدرس "${lessonTitle}" يحتوي حصراً على المقاطع التعلمية والأنشطة التالية، ويجب استخدامها بالحرف نصاً وترتيباً كعناوين للمقاطع (في حقل phase لرؤوس المقاطع isHeader: true) والأنشطة (في حقل subPhase):
+${officialCurricSections.sections.map((sec, idx) => `   * المقطع ${idx + 1}: "${sec.title}"${sec.subActivities ? '\n     - الأنشطة المقررة: ' + sec.subActivities.join(' | ') : ''}`).join('\n')}
+   **يُمنع منعاً باتاً استبدال عناوين المقاطع هذه بصيغ عامة أو بديلة أو ارتجالية.**
+`;
+  } else {
+    officialSectionsRule = `
+4. **الاحتفاظ بنفس عناوين المقاطع الواردة في المقرر الدراسي (${curriculum})**:
+   - يجب الاحتفاظ حرفياً بنفس عناوين المقاطع التعلمية والأنشطة كما وردت في فهرس وصفحات المقرر الدراسي المعتمد (${curriculum}) الخاص بدرس "${lessonTitle}".
+   - **يُمنع منعاً باتاً استبدال عناوين المقاطع بعبارات نظرية مجردة عامة** (مثل "التعريف بالحدث التاريخي" أو "الوصف الجغرافي" كعنوان للمقطع)، بل يجب كتابة العنوان الدقيق الوارد في الكتاب المدرسي.
+`;
+  }
+
   const prompt = `
 أنت مفتش تربوي ممتاز وخبير ديداكتيكي معتمد في تدريس مادة الاجتماعيات بالمملكة المغربية.
 مهمتك الأساسية هي كتابة "جذاذة تربوية نموذجية رسمية مفصلة ورصينة" مطابقة تماماً للتوجيهات التربوية الرسمية لدرس: "${lessonTitle}" لمستوى: "${level}"، في مكون: "${component}" (المرجع المدرسي المعتمد: ${curriculum}).
@@ -755,31 +844,25 @@ ${officialRefContext}
 
 ${pedagogicalApproachInstructions}
 
-المعايير والضوابط الصارمة لتدبير الجذاذة:
-1. عناوين الأنشطة والمقاطع:
-   - لا تذكر نهج المادة بجانب عنوان النشاط (لا تكتب إطلاقاً: "النشاط 1 (خطوة التعريف)" أو "النشاط 1 (الوصف الجغرافي)" أو ما شابه).
-   - اجعل حقل phase في الأنشطة حصراً بالاسم الرسمي البسيط: "النشاط 1"، "النشاط 2"، إلخ.
-   - اعتمد في subPhase نفس عناوين ومضامين الأنشطة كما هي واردة في المقرر المدرسي المعتمد (${curriculum}).
-2. الربط المباشر بمهام المدرس والمتعلم وإجابات في شكل رؤوس أقلام:
-   - ممارسات المدرس (teacherActivities): يجب أن تكون أسئلة إجرائية موجهة ومرقمة بوضوح (1. ... \n2. ... \n3. ...) تطرح أسئلة علمية دقيقة حول وثائق الدرس.
-   - أنشطة المتعلمين(ات) (studentActivities): يجب أن تكون عبارة عن إجابات مباشرة ودقيقة وشاملة مصاغة على شكل **رؤوس أقلام منظمة تبدأ بالرمز (•)** (مثل: • ... \n• ... \n• ...) تجيب بدقة وتركيز عن كل سؤال من أسئلة المدرس، وتقدم المعارف والتواريخ والأرقام والوقائع والحقائق الخاصة بالدرس لتسهيل تدوينها واستيعابها.
-3. الابتعاد التام عن العموميات:
-   - ممنوع منعاً باتاً كتابة عبارات إنشائية عامة أو تعليمات جوفاء مثل "استخراج المعطيات"، "قراءة الوثيقة"، "تدوين الأفكار".
-   - املأ مهام المتعلم بالمضامين العلمية الحقيقية للدرس (تواريخ معاهدات، أرقام وإحصائيات، أعلام تاريخية، مناطق وكيانات جغرافية، فصول ومواد دستورية وقانونية).
-4. محطة الانطلاق (introductionSteps): تتضمن الوضعيات الخمس الرسمية (مراجعة المكتسبات، تقديم العنوان، تقويم تشخيصي، أهداف التعلم، والتمهيد الإشكالي) مع صياغة أنشطة المتعلم في شكل رؤوس أقلام (•).
-5. الوضعيات التركيبية والتقويمية (isSynthesis و isEvaluation): تتضمن ملخصات تركيبية وأسئلة تقويم مرحلي للمقاطع.
-
-مثال إلزامي للبناء الديداكتيكي للنشاط:
-- حقل phase: "النشاط 1"
-- حقل subPhase: "[عنوان النشاط كما في المقرر المدرسي]"
-- ممارسات المدرس (teacherActivities):
-  "1. حدد(ي) الإطار الزمني والمكاني لموضوع الدرس من خلال الوثيقة 1.
-2. استخرج(ي) من الجدول 2 المؤشرات والأرقام الدالة على تطور الظاهرة.
-3. فسر(ي) العوامل والأسباب المسؤولة عن هذا التحول انطلاقاً من النص 3."
-- أنشطة المتعلمين(ات) (studentActivities):
-  "• [رأس قلم 1: إجابة علمية دقيقة ومباشرة للسؤال 1 تتضمن التاريخ والمكان والمفهوم الخاص بالدرس].
-• [رأس قلم 2: إجابة علمية دقيقة للسؤال 2 تتضمن الأرقام والإحصائيات والمقارنة الدقيقة].
-• [رأس قلم 3: إجابة علمية وتفسيرية للسؤال 3 توضح الأسباب والترابط السببي الحقيقي للدرس]."
+الضوابط الديداكتيكية الصارمة وإلزاميات الأستاذ (قواعد غير قابلة للتجاوز):
+1. **طرح أسئلة موجهة للتلاميذ للاشتغال على وثائق الكتاب المدرسي (${curriculum})**:
+   - في خانة "مهام المدرس": **يُمنع منعاً باتاً كتابة أي توجيهات أو عبارات عامة** (مثل: "يوجه الأستاذ"، "يشرح الأستاذ"، "تأطير النقاش"، "مناقشة الوثائق").
+   - مهام المدرس **يجب أن تكون حصراً أسئلة استثمار إجرائية مرقمة ومحددة موجهة للتلاميذ للاشتغال المباشر على وثائق ودعامات الكتاب المدرسي** المعتمد (${curriculum}).
+   - في كل سؤال يجب الإشارة الصريحة لرقم الوثيقة ونوعها الديداكتيكي وصفحتها؛ مثال:
+     • س1 (الوثيقة 1 - نص تاريخي/جغرافي ص..): استخرج من النص...
+     • س2 (الوثيقة 2 - خريطة/جدول إحصائي ص..): وطّن على الخريطة... / استخرج من الجدول المؤشرات...
+     • س3 (الوثيقة 3 - مبيان/خطاطة ص..): فسر انطلاقاً من المبيان...
+2. **الارتباط الكلي بالمعارف بالكتاب المدرسي ومنع الأجوبة العامة**:
+   - في خانة "مهام المتعلم": **يُمنع منعاً باتاً كتابة أجوبة عامة أو مجرد أفعال مبهمة** (مثل: "يجيب المتعلم عن الأسئلة"، "يشارك في بناء التعلمات"، "يستخلص المعطيات").
+   - يجب أن تتضمن خانة مهام المتعلم **الإجابة المعرفية الدقيقة والمفصلة المستخرجة من تلك الوثيقة استجابة لسؤال المدرس**، متضمنة الأرقام، النسب، التواريخ، المصطلحات، الأعلام، والعوامل المسطرة في الكتاب المدرسي (${curriculum}).
+3. **الإلغاء الكلي للتقويم التشخيصي**:
+   - **لا تدرج أي مرحلة باسم "التقويم التشخيصي" نهائياً**.
+   - تتكون وضعيات الانطلاق الاستهلالية (introductionSteps) حصراً من 4 خطوات:
+     أ. مراجعة الدرس السابق (الربط والتمهيد للدرس الجديد).
+     ب. تقديم عنوان الدرس وتأطيره وتوطينه.
+     ج. أهداف التعلم والتعاقد الديداكتيكي.
+     د. التمهيد الإشكالي وصياغة التساؤلات الإشكالية الثلاثة الكبرى.
+${officialSectionsRule}
 
 تنسيق الإخراج:
 أخرج النتيجة بتنسيق JSON حصرياً وصالح تماماً وفق هذا المخطط:
@@ -827,40 +910,32 @@ ${pedagogicalApproachInstructions}
       "phase": "مراجعة الدرس السابق",
       "subPhase": "الربط والتمهيد للدرس الجديد",
       "tools": "أسئلة شفهية، دفاتر الدروس",
-      "teacherActivities": "طرح أسئلة استرجاعية حول معطيات الدرس السابق وإبراز الصلة بالدرس الجديد.",
-      "studentActivities": "• استرجاع المفاهيم الأساسية السابقة.\n• إبراز الامتدادات والروابط المنطقية مع موضوع الدرس الجديد.",
+      "teacherActivities": "طرح أسئلة استرجاعية محددة حول معطيات الدرس السابق وإبراز الصلة الوثيقة بالدرس الجديد.",
+      "studentActivities": "• استرجاع المفاهيم الأساسية السابقة بدقة.\n• إبراز الامتدادات والروابط المنطقية مع موضوع الدرس الجديد.",
       "workForm": "عمل جماعي حواري"
     },
     {
       "phase": "تقديم عنوان الدرس",
       "subPhase": "التأطير وتوطين الموضوع",
-      "tools": "السبورة، المقرر المدرسي",
-      "teacherActivities": "كتابة عنوان الدرس على السبورة وتحديد موقعه ضمن المقرر.",
-      "studentActivities": "• تدوين العنوان في الدفاتر واستحضار المعارف الأولية حوله.",
+      "tools": "السبورة، المقرر المدرسي (${curriculum})",
+      "teacherActivities": "كتابة عنوان الدرس على السبورة وتحديد موقعه بدقة ضمن المقرر والمجال المعرفي.",
+      "studentActivities": "• تدوين العنوان في الدفاتر واستحضار المعارف الأولية حوله وموقعه في المقرر.",
       "workForm": "عمل موجه"
-    },
-    {
-      "phase": "تقويم تشخيصي",
-      "subPhase": "استكشاف المكتسبات والتمثلات",
-      "tools": "أسئلة تشخيصية سريعة",
-      "teacherActivities": "طرح أسئلة لاستكشاف تمثلات المتعلمين القبلية وتصحيح الخاطئ منها.",
-      "studentActivities": "• الإجابة عن الأسئلة التشخيصية والتعبير عن المعارف القبلية المتوفرة.",
-      "workForm": "عمل فردي"
     },
     {
       "phase": "أهداف التعلم",
       "subPhase": "التعاقد الديداكتيكي",
-      "tools": "الكتاب المدرسي، الخطاطة التوجيهية",
-      "teacherActivities": "قراءة وتوضيح الأهداف المعرفية والمهارية والوجدانية المسطرة للحصة.",
+      "tools": "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
+      "teacherActivities": "قراءة وتوضيح الأهداف المعرفية والمهارية والوجدانية المسطرة ومشاركتها مع المتعلمين.",
       "studentActivities": "• استيعاب الأهداف المسطرة وإدراك الكفايات المراد اكتسابها في نهاية الدرس.",
       "workForm": "عمل جماعي حواري"
     },
     {
       "phase": "التمهيد الإشكالي",
       "subPhase": "صياغة الإشكالية والتساؤلات",
-      "tools": "نص تمهيدي وصورة من مرجع ${curriculum}",
-      "teacherActivities": "توجيه المتعلمين لقراءة السند التمهيدي وصياغة الأسئلة الإشكالية للدرس.",
-      "studentActivities": "• قراءة السند واستخلاص الفكرة التمهيدية العامة.\n• صياغة الأسئلة الإشكالية الثلاثة وتدوين التمهيد الإشكالي في الدفاتر.",
+      "tools": "الدعامة التمهيدية والصورة الافتتاحية من مرجع ${curriculum}",
+      "teacherActivities": "سؤال موجه: اقرأ الدعامة التمهيدية وصغ التساؤلات الإشكالية الثلاثة الكبرى المؤطرة لإشكالية الدرس.",
+      "studentActivities": "• قراءة السند واستخلاص الفكرة التمهيدية العامة.\n• صياغة الأسئلة الإشكالية الثلاثة بدقة وتدوين التمهيد الإشكالي في الدفاتر.",
       "workForm": "عمل جماعي حواري"
     }
   ],
@@ -873,18 +948,18 @@ ${pedagogicalApproachInstructions}
       "isHeader": false,
       "phase": "النشاط 1",
       "subPhase": "[عنوان النشاط الأول في المقرر المدرسي]",
-      "tools": "و: 1 + 2 ص: .. من مقرر ${curriculum}",
-      "teacherActivities": "1. [سؤال مباشر ومحدد يطرحه المدرس على الوثيقة 1]\n2. [سؤال مباشر ومحدد يطرحه المدرس على الوثيقة 2]\n3. [سؤال استنتاجي أو مقارنة محددة]",
-      "studentActivities": "• [إجابة مباشرة وشاملة للسؤال 1 بالتواريخ والأرقام والمفاهيم العلمية الخاصة بالدرس]\n• [إجابة مباشرة وشاملة للسؤال 2 بالمعطيات والحقائق]\n• [إجابة مباشرة واستنتاج دقيق للسؤال 3]",
-      "workForm": "عمل في مجموعات / عمل فردي"
+      "tools": "و: 1 (نوعها) + و: 2 (نوعها) ص: .. من مقرر ${curriculum}",
+      "teacherActivities": "• س1 (الوثيقة 1 - نوعها ص..): [سؤال استثمار إجرائي محدد وموجه للاشتغال على الوثيقة 1]\n• س2 (الوثيقة 2 - نوعها ص..): [سؤال استثمار إجرائي محدد وموجه للاشتغال على الوثيقة 2]\n• س3: [سؤال مقارنة أو استخلاص محدد]",
+      "studentActivities": "• ج1: [الإجابة المعرفية الدقيقة والشاملة للسؤال 1 بالتواريخ والأرقام والمفاهيم من صلب الكتاب المدرسي]\n• ج2: [الإجابة المعرفية المفصلة للسؤال 2 بالمعطيات والحقائق الواردة بالوثيقة]\n• ج3: [استنتاج معرفي دقيق ومباشر للسؤال 3]",
+      "workForm": "عمل بالوثائق / مجموعات"
     },
     {
       "isHeader": false,
       "phase": "النشاط 2",
       "subPhase": "[عنوان النشاط الثاني في المقرر المدرسي]",
-      "tools": "و: 3 + 4 ص: .. من مقرر ${curriculum}",
-      "teacherActivities": "1. [سؤال مباشر على الوثيقة 3]\n2. [سؤال تحليلي أو تصنيفي على الوثيقة 4]\n3. [سؤال استخلاصي محدد]",
-      "studentActivities": "• [إجابة مباشرة للسؤال 1 بالحقائق والمعطيات]\n• [إجابة مباشرة للسؤال 2 مصنفة ومفصلة]\n• [إجابة مباشرة للسؤال 3 بالخلاصة العلمية]",
+      "tools": "و: 3 (نوعها) + و: 4 (نوعها) ص: .. من مقرر ${curriculum}",
+      "teacherActivities": "• س1 (الوثيقة 3 - نوعها ص..): [سؤال استثمار مباشر على الوثيقة 3]\n• س2 (الوثيقة 4 - نوعها ص..): [سؤال تحليلي أو تصنيفي على الوثيقة 4]\n• س3: [سؤال تركيبي محدد]",
+      "studentActivities": "• ج1: [الإجابة المعرفية المستخرجة من الوثيقة 3 بالحقائق والمعطيات]\n• ج2: [الإجابة المعرفية المصنفة والمفصلة للسؤال 2]\n• ج3: [خلاصة علمية مركزة ومستخلصة من الوثيقتين]",
       "workForm": "عمل جماعي حواري"
     },
     {
@@ -977,7 +1052,7 @@ ${pedagogicalApproachInstructions}
       const responseText = await generateAIContent({
         prompt,
         responseMimeType: "application/json",
-        preferredModel: "gemini-3.7-flash",
+        preferredModel: "gemini-3.5-flash-lite",
         temperature: 0.3, // Lower temperature for higher factual precision and pedagogical rigor
       });
 
@@ -987,12 +1062,13 @@ ${pedagogicalApproachInstructions}
 
       const parsed = safeJsonParse<JadhaData>(responseText);
       if (parsed && parsed.title && parsed.steps && parsed.steps.length > 0) {
-        // Ensure unit and curriculum are cleanly anchored
-        return {
+        // Ensure unit, curriculum and rich didactic extensions are cleanly anchored
+        const baseResult: JadhaData = {
           ...parsed,
           unit: parsed.unit || component,
           references: parsed.references || `${curriculum} - التوجيهات التربوية الرسمية`,
         };
+        return enrichJadhaData(baseResult, component, lessonTitle, curriculum, level);
       }
       throw new Error("تنسيق الجذاذة غير مكتمل.");
     } catch (error: any) {
@@ -1000,12 +1076,14 @@ ${pedagogicalApproachInstructions}
       retries--;
       if (retries === 0) {
         console.info("Using grounded Moroccan curriculum fallback generation for:", lessonTitle);
-        return generateFallbackJadha(lessonTitle, level, curriculum, component, duration);
+        const fallback = generateFallbackJadha(lessonTitle, level, curriculum, component, duration);
+        return enrichJadhaData(fallback, component, lessonTitle, curriculum, level);
       }
       await new Promise(resolve => setTimeout(resolve, 800));
     }
   }
 
-  return generateFallbackJadha(lessonTitle, level, curriculum, component, duration);
+  const fallback = generateFallbackJadha(lessonTitle, level, curriculum, component, duration);
+  return enrichJadhaData(fallback, component, lessonTitle, curriculum, level);
 };
 

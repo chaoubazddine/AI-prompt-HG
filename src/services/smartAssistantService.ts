@@ -303,7 +303,7 @@ ${curriculumBlock || 'الاعتماد على المرجعية التربوية 
     const rawText = await generateAIContent({
       prompt,
       responseMimeType: 'application/json',
-      preferredModel: 'gemini-3.7-flash',
+      preferredModel: 'gemini-3.5-flash-lite',
     });
     const concept = safeJsonParse<DidacticConcept>(rawText);
 
@@ -363,22 +363,29 @@ ${JSON.stringify(concept, null, 2)}
 أرجع كائن JSON حصرياً مطابقاً لنفس هيكل DidacticConcept دون تغيير الحقول.
 `;
 
-  const rawText = await generateAIContent({
-    prompt,
-    responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.7-flash',
-  });
-  const updated = safeJsonParse<DidacticConcept>(rawText);
+  try {
+    const rawText = await generateAIContent({
+      prompt,
+      responseMimeType: 'application/json',
+      preferredModel: 'gemini-3.5-flash-lite',
+    });
+    const updated = safeJsonParse<DidacticConcept>(rawText);
 
-  updated.qualityAssessment = LessonPlanQualityEvaluator.evaluateConcept(updated, {
-    subject: updated.subject,
-    level: updated.level,
-    component: updated.component,
-    lessonTitle: updated.lessonTitle,
-    duration: updated.duration
-  });
+    if (updated) {
+      updated.qualityAssessment = LessonPlanQualityEvaluator.evaluateConcept(updated, {
+        subject: updated.subject || concept.subject,
+        level: updated.level || concept.level,
+        component: updated.component || concept.component,
+        lessonTitle: updated.lessonTitle || concept.lessonTitle,
+        duration: updated.duration || concept.duration
+      });
+      return updated;
+    }
+  } catch (error) {
+    console.warn("refineDidacticConceptElement error:", error);
+  }
 
-  return updated;
+  return concept;
 };
 
 /**
@@ -556,7 +563,7 @@ ${JSON.stringify(concept, null, 2)}
     const rawText = await generateAIContent({
       prompt,
       responseMimeType: 'application/json',
-      preferredModel: 'gemini-3.7-flash',
+      preferredModel: 'gemini-3.5-flash-lite',
     });
     const plan = safeJsonParse<StructuredLessonPlan>(rawText);
 
@@ -762,14 +769,19 @@ ${JSON.stringify(currentValue, null, 2)}
 }
 `;
 
-  const rawText = await generateAIContent({
-    prompt,
-    responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.7-flash',
-  });
+  try {
+    const rawText = await generateAIContent({
+      prompt,
+      responseMimeType: 'application/json',
+      preferredModel: 'gemini-3.5-flash-lite',
+    });
 
-  const parsed = safeJsonParse(rawText);
-  return parsed.proposedValue;
+    const parsed = safeJsonParse<{ proposedValue: any }>(rawText);
+    return parsed?.proposedValue ?? currentValue;
+  } catch (err) {
+    console.warn("optimizeSectionWithAI error:", err);
+    return currentValue;
+  }
 };
 
 /**
@@ -797,15 +809,23 @@ ${JSON.stringify(currentPlan, null, 2)}
 }
 `;
 
-  const rawText = await generateAIContent({
-    prompt,
-    responseMimeType: 'application/json',
-    preferredModel: 'gemini-3.7-flash',
-  });
+  try {
+    const rawText = await generateAIContent({
+      prompt,
+      responseMimeType: 'application/json',
+      preferredModel: 'gemini-3.5-flash-lite',
+    });
 
-  const parsed = safeJsonParse(rawText);
-  return {
-    updatedPlan: parsed.updatedPlan,
-    affectedSectionName: parsed.affectedSectionName || 'الجذاذة'
-  };
+    const parsed = safeJsonParse<{ updatedPlan?: StructuredLessonPlan; affectedSectionName?: string }>(rawText);
+    return {
+      updatedPlan: parsed?.updatedPlan || currentPlan,
+      affectedSectionName: parsed?.affectedSectionName || 'الجذاذة'
+    };
+  } catch (err) {
+    console.warn("executeAssistantCommand error:", err);
+    return {
+      updatedPlan: currentPlan,
+      affectedSectionName: 'الجذاذة'
+    };
+  }
 };

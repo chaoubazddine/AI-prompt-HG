@@ -145,7 +145,7 @@ ${term ? `الدورة: "${term}"` : ''}
       prompt,
       responseMimeType: "application/json",
       temperature: 0.3,
-      preferredModel: "gemini-3.7-flash",
+      preferredModel: "gemini-3.5-flash-lite",
     });
 
     if (rawResponse) {

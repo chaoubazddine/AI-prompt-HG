@@ -426,7 +426,7 @@ ${!isHighSchool ? `1. الوضعية الأولى (6 ن): مادة ${framework.s
       const responseText = await generateAIContent({
         prompt,
         responseMimeType: "application/json",
-        preferredModel: "gemini-3.7-flash",
+        preferredModel: "gemini-3.5-flash-lite",
       });
 
       if (!responseText) {
