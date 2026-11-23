@@ -31,6 +31,7 @@ import {
   LessonTextbookDetails 
 } from '../constants/textbookRegistry';
 import { getCurrentAcademicYear } from '../utils/academicYear';
+import { parseStudentActivitiesBullets } from '../utils/studentActivitiesFormatter';
 import { toast } from 'sonner';
 
 export interface JadhaStep {
@@ -796,7 +797,7 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
                     step.teacherActivities
                   )}
                 </td>
-                <td className="border border-black p-2 text-right leading-relaxed whitespace-pre-wrap">
+                <td className="border border-black p-2 text-right leading-relaxed">
                   {isEditing ? (
                     <textarea
                       value={step.studentActivities || ''}
@@ -809,7 +810,20 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
                       className="w-full border border-slate-300 rounded p-1 text-[9.5px]"
                     />
                   ) : (
-                    step.studentActivities
+                    (() => {
+                      const bullets = parseStudentActivitiesBullets(step.studentActivities);
+                      if (bullets.length === 0) return null;
+                      return (
+                        <ul className="space-y-1 text-right list-none m-0 p-0">
+                          {bullets.map((b, bIdx) => (
+                            <li key={bIdx} className="flex items-start gap-1.5">
+                              <span className="font-bold text-black shrink-0">•</span>
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()
                   )}
                 </td>
                 <td className="border border-black p-2 text-center align-middle">{step.workForm}</td>
@@ -936,7 +950,7 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
                       step.teacherActivities
                     )}
                   </td>
-                  <td className="border border-black p-2 text-right leading-relaxed whitespace-pre-wrap">
+                  <td className="border border-black p-2 text-right leading-relaxed">
                     {isEditing ? (
                       <textarea
                         value={step.studentActivities || ''}
@@ -949,7 +963,20 @@ export const TableJadha: React.FC<TableJadhaProps> = ({ data, onUpdateData }) =>
                         className="w-full border border-slate-300 rounded p-1 text-[9.5px]"
                       />
                     ) : (
-                      step.studentActivities
+                      (() => {
+                        const bullets = parseStudentActivitiesBullets(step.studentActivities);
+                        if (bullets.length === 0) return null;
+                        return (
+                          <ul className="space-y-1 text-right list-none m-0 p-0">
+                            {bullets.map((b, bIdx) => (
+                              <li key={bIdx} className="flex items-start gap-1.5">
+                                <span className="font-bold text-black shrink-0">•</span>
+                                <span>{b}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        );
+                      })()
                     )}
                   </td>
                   <td className="border border-black p-2 text-center align-middle w-24">{step.workForm}</td>

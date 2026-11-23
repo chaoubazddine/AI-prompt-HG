@@ -2,6 +2,7 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Width
 import { saveAs } from 'file-saver';
 import { JadhaData } from '../components/TableJadha';
 import { getCurrentAcademicYear } from './academicYear';
+import { parseStudentActivitiesBullets } from './studentActivitiesFormatter';
 
 export const downloadWord = async (jadhaData: JadhaData) => {
   if (!jadhaData) return;
@@ -140,9 +141,12 @@ export const downloadWord = async (jadhaData: JadhaData) => {
                 children: [
                   createCell(step.workForm || ""),
                   createCell(
-                    step.studentActivities 
-                      ? step.studentActivities.split('\n').map(line => createRtlPara(line, { size: 16 }))
-                      : [createRtlPara("")], 
+                    (() => {
+                      const bullets = parseStudentActivitiesBullets(step.studentActivities);
+                      return bullets.length > 0
+                        ? bullets.map(line => createRtlPara(`• ${line}`, { size: 16 }))
+                        : [createRtlPara("")];
+                    })(),
                     { alignment: AlignmentType.RIGHT }
                   ),
                   createCell(
@@ -204,9 +208,12 @@ export const downloadWord = async (jadhaData: JadhaData) => {
                   children: [
                     createCell(step.workForm || ""),
                     createCell(
-                      step.studentActivities 
-                        ? step.studentActivities.split('\n').map(line => createRtlPara(line, { size: 16 }))
-                        : [createRtlPara("")], 
+                      (() => {
+                        const bullets = parseStudentActivitiesBullets(step.studentActivities);
+                        return bullets.length > 0
+                          ? bullets.map(line => createRtlPara(`• ${line}`, { size: 16 }))
+                          : [createRtlPara("")];
+                      })(),
                     ),
                     createCell(
                       step.teacherActivities 

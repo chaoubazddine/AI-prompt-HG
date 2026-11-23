@@ -6,6 +6,7 @@ import { getDetailedMoroccanLessonContent } from "./knowledgeBase/data/lessonsKn
 import { getOfficialCurriculumSections } from "../constants/officialCurriculumSections";
 import { getTextbookDetails } from "../constants/textbookRegistry";
 import { getCurrentAcademicYear } from "../utils/academicYear";
+import { formatStudentActivitiesAsBulletPoints } from "../utils/studentActivitiesFormatter";
 
 /**
  * Resolves the official Moroccan educational component (التاريخ / الجغرافيا / التربية على المواطنة)
@@ -82,19 +83,31 @@ export const generateFallbackJadha = (
       ? `${textbook.textbookName} (${textbook.pagesRange}) - التوجيهات التربوية الرسمية`
       : detailedMatch.references || `${curriculum} - التوجيهات التربوية الرسمية`;
 
-    // Adapt document citations in tools to reflect the chosen textbook if available
+    // Adapt document citations in tools and enforce bullet-point studentActivities
+    const adaptedIntro = (detailedMatch.introductionSteps || []).map((st) => ({
+      ...st,
+      studentActivities: formatStudentActivitiesAsBulletPoints(st.studentActivities),
+    }));
+
     const adaptedSteps = detailedMatch.steps.map((st, sIdx) => {
-      if (st.isHeader || st.isSynthesis || st.isEvaluation) return st;
+      const normalizedStudent =
+        st.isHeader || st.isSynthesis
+          ? st.studentActivities
+          : formatStudentActivitiesAsBulletPoints(st.studentActivities);
+      if (st.isHeader || st.isSynthesis || st.isEvaluation) {
+        return { ...st, studentActivities: normalizedStudent };
+      }
       if (textbook && textbook.documents.length > 0) {
         const doc = textbook.documents[sIdx % textbook.documents.length];
         if (doc && (!st.tools || st.tools.includes('الكتاب') || st.tools.includes('السبورة'))) {
           return {
             ...st,
-            tools: `كتاب ${textbook.textbookName} (${doc.page}): ${doc.docNumber} (${doc.type}: ${doc.title})`
+            tools: `كتاب ${textbook.textbookName} (${doc.page}): ${doc.docNumber} (${doc.type}: ${doc.title})`,
+            studentActivities: normalizedStudent,
           };
         }
       }
-      return st;
+      return { ...st, studentActivities: normalizedStudent };
     });
 
     return {
@@ -118,7 +131,7 @@ export const generateFallbackJadha = (
       capabilities: detailedMatch.capabilities,
       objectives: detailedMatch.objectives,
       problematic: detailedMatch.problematic,
-      introductionSteps: detailedMatch.introductionSteps,
+      introductionSteps: adaptedIntro,
       steps: adaptedSteps,
       finalEvaluation: detailedMatch.finalEvaluation,
       isFallbackTemplate: true,
@@ -178,7 +191,7 @@ export const generateFallbackJadha = (
           subPhase: "الربط والتمهيد البيداغوجي",
           tools: "الدفاتر المدرسية، أسئلة استرجاعية تفاعلية",
           teacherActivities: "طرح أسئلة استرجاعية محددة حول مفاهيم ومعطيات الدرس السابق للربط بالدرس الجديد.",
-          studentActivities: "استحضار الحقائق والمفاهيم التاريخية السابقة بدقة وإبراز نقط التقاطع مع الموضوع الجديد.",
+          studentActivities: "• استرجاع المفاهيم والمعطيات التاريخية للدرس السابق.\n• ربط السياق العام بموضوع الدرس الجديد.",
           workForm: "عمل جماعي حواري"
         },
         {
@@ -186,7 +199,7 @@ export const generateFallbackJadha = (
           subPhase: "توطين الموضوع ديداكتيكياً",
           tools: `السبورة، الكتاب المدرسي المعتمد (${curriculum})`,
           teacherActivities: "كتابة عنوان الدرس على السبورة وتحديد موقعه ضمن البرنامج الدراسي ومكون التاريخ.",
-          studentActivities: "تدوين العنوان في دفاتر الدروس وقراءته قراءة أولية لاستكشاف دلالاته ومحدداته التاريخية.",
+          studentActivities: "• تدوين عنوان الدرس في الدفتر.\n• تحديد موقعه الزمني والمكاني ضمن المقرر.",
           workForm: "عمل موجه ومؤطر"
         },
         {
@@ -194,7 +207,7 @@ export const generateFallbackJadha = (
           subPhase: "إبراز التعاقد الديداكتيكي",
           tools: "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
           teacherActivities: "إبراز الأهداف المعرفية والمهارية والوجدانية المسطرة ومشاركتها مع جماعة الفصل.",
-          studentActivities: "قراءة الأهداف واستيعاب مسار الحصة والغايات والمهارات المستهدفة.",
+          studentActivities: "• الاطلاع على الأهداف المعرفية والمهارية للحصة.\n• استيعاب خطوات النهج التاريخي المستهدفة.",
           workForm: "عمل جماعي حواري"
         },
         {
@@ -202,7 +215,7 @@ export const generateFallbackJadha = (
           subPhase: "بناء الإشكالية وصياغة التساؤلات",
           tools: `الدعامة التمهيدية والصورة الافتتاحية من مرجع (${curriculum})`,
           teacherActivities: "سؤال موجه: اقرأ الدعامة التمهيدية وصغ التساؤلات الإشكالية الثلاثة الكبرى المؤطرة لإشكالية الدرس.",
-          studentActivities: "قراءة السند وصياغة الأسئلة الإشكالية الثلاثة بدقة وتدوين التمهيد الإشكالي في الدفاتر.",
+          studentActivities: "• استخلاص الفكرة التمهيدية العامة للسند.\n• صياغة وتدوين التساؤلات الإشكالية الثلاثة للدرس.",
           workForm: "عمل جماعي حواري"
         }
       ],
@@ -220,9 +233,7 @@ export const generateFallbackJadha = (
           teacherActivities: `• س1 (الوثيقة 1 - نص تاريخي): استخرج من النص السياق التاريخي المحدد والمفهوم المركزي للحدث.
 • س2 (الوثيقة 2 - خريطة تاريخية): حدد انطلاقاً من الخريطة المجال الجغرافي المعني ووطّن أهم المراكز والمحطات.
 • س3 (الوثيقة 3 - خط زمني): استخلص الإطار الزمني الكرونولوجي وامتداد المراحل الكبرى للحدث.`,
-          studentActivities: `• ج1: يستخرج المتعلم المفهوم والسياق التاريخي المحدد في النص بدقة بالتواريخ والمصطلحات المقررة.
-• ج2: يوطّن المتعلم المراكز الجغرافية والمواقع المحددة على الخريطة استناداً إلى معارف ومفتاح الوثيقة.
-• ج3: يرتب المتعلم المراحل الكرونولوجية ويدون السنوات والأحداث البارزة المستخلصة من الخط الزمني.`
+          studentActivities: `• المفهوم والسياق التاريخي: ضبط التحديد المفاهيمي والتاريخي انطلاقاً من النص.\n• التوطين المجالي: تحديد المراكز والمجالات الجغرافية المعنية على الخريطة.\n• الإطار الكرونولوجي: رصد المحطات والسنوات الرئيسية للحدث عبر الخط الزمني.`
         },
         {
           isHeader: false,
@@ -233,9 +244,7 @@ export const generateFallbackJadha = (
           teacherActivities: `• س1 (الجدول 4 والصورة 5): استخرج المظاهر والتجليات التاريخية البارزة للحدث وفق معطيات الجدول والصورة.
 • س2 (الوثيقة 6 - نص تحليلي): صنف هذه المظاهر والتجليات حسب طبيعتها (سياسية، عسكرية، اقتصادية).
 • س3: قارن بين مراحل تطور الحدث واستنتج التحول النوعي الذي طرأ عليه.`,
-          studentActivities: `• ج1: يستخرج المتعلم المظاهر والوقائع البارزة المدرجة في الجدول والمعالم التوثيقية بالصورة.
-• ج2: يصنف المعطيات في جدول منظم يبرز الأبعاد السياسية والعسكرية والاقتصادية المسطرة في النص.
-• ج3: يستنتج خلاصة التحول التاريخي ويدونها بصياغة علمية مركزة.`
+          studentActivities: `• أبرز المظاهر والتجليات المستخلصة من الجدول والصورة.\n• تصنيف المعطيات حسب أبعادها (السياسية، العسكرية، والاقتصادية).\n• استنتاج التحول النوعي بين المراحل وتدوينه على شكل نقط مركزة.`
         },
         {
           isSynthesis: true,
@@ -383,7 +392,7 @@ export const generateFallbackJadha = (
           subPhase: "الربط والتذكير الحقوقي",
           tools: "أسئلة حوارية، دفاتر الدروس",
           teacherActivities: "طرح أسئلة استرجاعية حول قيم وحقوق الدرس السابق وربطها بالحق/القيمة الجديدة.",
-          studentActivities: "استرجاع المفاهيم وتوضيح الصلة التكاملية بين حقوق المواطنة ومسؤولياتها.",
+          studentActivities: "• استرجاع مفاهيم وقيم الدرس السابق.\n• إبراز التكامل بين الحقوق والواجبات.",
           workForm: "عمل جماعي حواري"
         },
         {
@@ -391,7 +400,7 @@ export const generateFallbackJadha = (
           subPhase: "تأطير المفهوم وتوطينه",
           tools: `السبورة، المقرر المدرسي (${curriculum})`,
           teacherActivities: "كتابة عنوان الدرس على السبورة وتحديد مكانته وأهميته في برنامج التربية على المواطنة.",
-          studentActivities: "تسجيل العنوان في الدفاتر واستحضار دلالاته الحقوقية والمدنية وموقعه في المقرر.",
+          studentActivities: "• تدوين عنوان الدرس في الدفتر.\n• استحضار الدلالات الحقوقية والمدنية للموضوع.",
           workForm: "عمل موجه ومؤطر"
         },
         {
@@ -399,7 +408,7 @@ export const generateFallbackJadha = (
           subPhase: "إبراز التعاقد الديداكتيكي",
           tools: "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
           teacherActivities: "عرض الأهداف المعرفية والمهارية والقيمية المسطرة ومشاركتها مع جماعة القسم.",
-          studentActivities: "قراءة الأهداف واستيعاب الكفايات والمواقف المدنية المستهدفة في الحصة.",
+          studentActivities: "• تعرف الأهداف المسطرة للحصة.\n• استيعاب المهارات والمواقف المدنية المستهدفة.",
           workForm: "عمل جماعي حواري"
         },
         {
@@ -407,7 +416,7 @@ export const generateFallbackJadha = (
           subPhase: "صياغة الإشكالية الحقوقية",
           tools: `نص وضعية مشكلة أو صورة معبرة من مرجع (${curriculum})`,
           teacherActivities: "سؤال موجه: حلل السند التمهيدي وصغ التساؤلات الإشكالية الثلاثة الكبرى لموضوع الدرس.",
-          studentActivities: "تحليل الوضعية وصياغة الأسئلة المحورية وتدوين التمهيد الإشكالي في الدفاتر.",
+          studentActivities: "• رصد الإشكال الحقوقي في الوضعية التمهيدية.\n• صياغة وتدوين التساؤلات الإشكالية الثلاثة.",
           workForm: "عمل جماعي حواري"
         }
       ],
@@ -425,9 +434,7 @@ export const generateFallbackJadha = (
           teacherActivities: `• س1 (الوثيقة 1 - نص مرجعي): استخرج من النص تعريف مفهوم (${lessonTitle}) ودلالته في المنظومة الحقوقية.
 • س2 (الوثيقة 2 - خطاطة أبعاد المفهوم): صنف انطلاقاً من الخطاطة أبعاد هذا المفهوم (فردية، مجتمعية، مؤسساتية).
 • س3 (الوثيقة 3 - صور توثيقية): استخلص من الصور السلوكيات والممارسات المجسدة لهذا الحق/المفهوم.`,
-          studentActivities: `• ج1: يستخرج المتعلم تعريف (${lessonTitle}) بدقة وفق المرجعيات والنصوص القانونية والأخلاقية المسطرة.
-• ج2: يصنف المتعلم في جدول منظم أبعاد المفهوم مستنداً إلى معطيات الخطاطة ومصطلحات المقرر.
-• ج3: يحدد السلوكيات المدنية المستخلصة من الصور ويدونها في الدفتر كمعايير التزام واقعية.`
+          studentActivities: `• تعريف (${lessonTitle}) وفق المرجعيات القانونية والأخلاقية.\n• تصنيف أبعاد المفهوم: الفردية، المجتمعية، والمؤسساتية.\n• جرد السلوكيات المدنية المجسدة للقيمة في الصور.`
         },
         {
           isHeader: false,
@@ -574,7 +581,7 @@ export const generateFallbackJadha = (
         subPhase: "الربط الجغرافي والتمهيد",
         tools: "الخرائط، أسئلة حوارية شفهية",
         teacherActivities: "طرح أسئلة استرجاعية حول معطيات الدرس السابق وإبراز الروابط المجالية بالدرس الجديد.",
-        studentActivities: "استرجاع المفاهيم والمعطيات الجغرافية والإجابة بدقة مع ربطها بالموضوع الجديد.",
+        studentActivities: "• استرجاع المفاهيم الجغرافية للدرس السابق.\n• ربط المعطيات المجالية بموضوع الدرس الجديد.",
         workForm: "عمل جماعي حواري"
       },
       {
@@ -582,7 +589,7 @@ export const generateFallbackJadha = (
         subPhase: "التوطين المجالي للموضوع",
         tools: `السبورة، خريطة الحائط أو المقرر (${curriculum})`,
         teacherActivities: "كتابة عنوان الدرس وتوطين المجال المدروس على خريطة العالم/المغرب.",
-        studentActivities: "تدوين العنوان في الدفاتر وملاحظة التوطين الأولي للمجال.",
+        studentActivities: "• تدوين عنوان الدرس في الدفتر.\n• التوطين الأولي للمجال المدروس على الخريطة.",
         workForm: "عمل موجه ومؤطر"
       },
       {
@@ -590,7 +597,7 @@ export const generateFallbackJadha = (
         subPhase: "إبراز التعاقد الديداكتيكي",
         tools: "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
         teacherActivities: "إبراز الأهداف المعرفية والمهارية والقيمية المسطرة ومشاركتها مع القسم.",
-        studentActivities: "قراءة الأهداف واستيعاب الكفايات وخطوات النهج الجغرافي المستهدفة.",
+        studentActivities: "• تعرف الأهداف المعرفية والمهارية للحصة.\n• استيعاب خطوات النهج الجغرافي (الوصف، التفسير، التعميم).",
         workForm: "عمل جماعي حواري"
       },
       {
@@ -598,7 +605,7 @@ export const generateFallbackJadha = (
         subPhase: "بناء الإشكالية الجغرافية",
         tools: `نص تمهيدي وصورة جغرافية من مرجع (${curriculum})`,
         teacherActivities: "سؤال موجه: حلل السند التمهيدي وصغ التساؤلات الإشكالية الثلاثة الكبرى لموضوع الدرس.",
-        studentActivities: "قراءة السند وصياغة التساؤلات الإشكالية وتدوين التمهيد الإشكالي في الدفاتر.",
+        studentActivities: "• استخلاص الفكرة الجغرافية العامة للسند.\n• صياغة وتدوين التساؤلات الإشكالية الثلاثة للدرس.",
         workForm: "عمل جماعي حواري"
       }
     ],
@@ -616,9 +623,7 @@ export const generateFallbackJadha = (
         teacherActivities: `• س1 (الوثيقة 1 - خريطة موضوعاتية): وطّن المجال والكيانات الجغرافية لموضوع (${lessonTitle}) وحدد مناطق تركزها.
 • س2 (الوثيقة 2 - جدول إحصائي): استخرج المؤشرات الإحصائية والأرقام الدقيقة ورتبها تصاعدياً/تنازلياً.
 • س3 (الوثيقة 3 - نص جغرافي): صف الخصائص النوعية والتباينات المجالية انطلاقاً من النص.`,
-        studentActivities: `• ج1: يوطّن المتعلم الكيانات والمجالات الجغرافية على الخريطة استناداً إلى المفتاح والإحداثيات.
-• ج2: يستخرج المتعلم الأرقام والنسب المئوية المسطرة في الجدول ويحدد مراتبها بدقة.
-• ج3: يصوغ المتعلم وصفاً جغرافياً دقيقاً للخصائص والتباينات المجالية ويدونها في دفتره.`
+        studentActivities: `• توطين الكيانات والمجالات الجغرافية ومناطق تركزها على الخريطة.\n• رصد الأرقام والنسب المئوية من الجدول وترتيب مراتبها.\n• وصف الخصائص النوعية والتباينات المجالية للظاهرة في نقط مركزة.`
       },
       {
         isHeader: false,
@@ -743,11 +748,16 @@ export const enrichJadhaData = (
   let updatedSteps = data.steps ? [...data.steps] : [];
 
   // Remove any remaining diagnostic evaluation step from introduction
-  const cleanedIntro = (data.introductionSteps || []).filter(
-    (step) =>
-      !step.phase.includes("تشخيص") &&
-      !(step.subPhase && step.subPhase.includes("تشخيص"))
-  );
+  const cleanedIntro = (data.introductionSteps || [])
+    .filter(
+      (step) =>
+        !step.phase.includes("تشخيص") &&
+        !(step.subPhase && step.subPhase.includes("تشخيص"))
+    )
+    .map((step) => ({
+      ...step,
+      studentActivities: formatStudentActivitiesAsBulletPoints(step.studentActivities),
+    }));
 
   // Strictly enforce official curriculum section titles if available
   if (official && official.sections.length > 0) {
@@ -767,11 +777,19 @@ export const enrichJadhaData = (
     });
   }
 
-  const cleanedSteps = updatedSteps.filter(
-    (step) =>
-      !step.phase.includes("تشخيص") &&
-      !(step.subPhase && step.subPhase.includes("تشخيص"))
-  );
+  const cleanedSteps = updatedSteps
+    .filter(
+      (step) =>
+        !step.phase.includes("تشخيص") &&
+        !(step.subPhase && step.subPhase.includes("تشخيص"))
+    )
+    .map((step) => ({
+      ...step,
+      studentActivities:
+        step.isHeader || step.isSynthesis
+          ? step.studentActivities
+          : formatStudentActivitiesAsBulletPoints(step.studentActivities),
+    }));
 
   return {
     ...data,
@@ -816,19 +834,31 @@ export const generateJadha = async (
       ? ` (موازي بمقرر ${textbook.parallelTextbooks[0].name})`
       : '';
 
-    // Adapt document citations in tools to reflect the chosen textbook if available
+    // Adapt document citations in tools and enforce bullet-point studentActivities
+    const adaptedIntro = (detailedMatch.introductionSteps || []).map((st) => ({
+      ...st,
+      studentActivities: formatStudentActivitiesAsBulletPoints(st.studentActivities),
+    }));
+
     const adaptedSteps = detailedMatch.steps.map((st, sIdx) => {
-      if (st.isHeader || st.isSynthesis || st.isEvaluation) return st;
+      const normalizedStudent =
+        st.isHeader || st.isSynthesis
+          ? st.studentActivities
+          : formatStudentActivitiesAsBulletPoints(st.studentActivities);
+      if (st.isHeader || st.isSynthesis || st.isEvaluation) {
+        return { ...st, studentActivities: normalizedStudent };
+      }
       if (textbook && textbook.documents.length > 0) {
         const doc = textbook.documents[sIdx % textbook.documents.length];
         if (doc && (!st.tools || st.tools.includes('الكتاب') || st.tools.includes('السبورة'))) {
           return {
             ...st,
-            tools: `كتاب ${textbook.textbookName} (${doc.page}): ${doc.docNumber} (${doc.type}: ${doc.title})${parallelNote}`
+            tools: `كتاب ${textbook.textbookName} (${doc.page}): ${doc.docNumber} (${doc.type}: ${doc.title})${parallelNote}`,
+            studentActivities: normalizedStudent,
           };
         }
       }
-      return st;
+      return { ...st, studentActivities: normalizedStudent };
     });
 
     return {
@@ -854,7 +884,7 @@ export const generateJadha = async (
       capabilities: detailedMatch.capabilities,
       objectives: detailedMatch.objectives,
       problematic: detailedMatch.problematic,
-      introductionSteps: detailedMatch.introductionSteps,
+      introductionSteps: adaptedIntro,
       steps: adaptedSteps,
       finalEvaluation: detailedMatch.finalEvaluation,
       isFallbackTemplate: false,
@@ -984,9 +1014,9 @@ ${pedagogicalApproachInstructions}
      • س1 (الوثيقة 1 - نص تاريخي/جغرافي ص..): استخرج من النص...
      • س2 (الوثيقة 2 - خريطة/جدول إحصائي ص..): وطّن على الخريطة... / استخرج من الجدول المؤشرات...
      • س3 (الوثيقة 3 - مبيان/خطاطة ص..): فسر انطلاقاً من المبيان...
-2. **الارتباط الكلي بالمعارف بالكتاب المدرسي ومنع الأجوبة العامة**:
-   - في خانة "مهام المتعلم": **يُمنع منعاً باتاً كتابة أجوبة عامة أو مجرد أفعال مبهمة** (مثل: "يجيب المتعلم عن الأسئلة"، "يشارك في بناء التعلمات"، "يستخلص المعطيات").
-   - يجب أن تتضمن خانة مهام المتعلم **الإجابة المعرفية الدقيقة والمفصلة المستخرجة من تلك الوثيقة استجابة لسؤال المدرس**، متضمنة الأرقام، النسب، التواريخ، المصطلحات، الأعلام، والعوامل المسطرة في الكتاب المدرسي (${curriculum}).
+2. **صياغة مهام المتعلم حصراً كإجابات مركزة على شكل رؤوس أقلام (عوارض نقطية)**:
+   - في خانة "studentActivities" (مهام المتعلم) في جميع وضعيات الانطلاق والأنشطة، **يُمنع منعاً باتاً كتابة فقرات سردية طويلة أو أفعال عامة مبهمة** (مثل: "يجيب المتعلم عن الأسئلة"، "يشارك في بناء التعلمات"، "يستخرج المتعلم...").
+   - يجب أن تتضمن خانة مهام المتعلم **إجابات معرفية مباشرة، مركزة، ومختصرة على شكل رؤوس أقلام** (يبدأ كل رأس قلم بـ "• " في سطر مستقل) تجيب بدقة عن أسئلة المدرس متضمنة الأرقام، النسب، التواريخ، المصطلحات، الأعلام، والعوامل المسطرة في الكتاب المدرسي (${curriculum}).
 3. **الإلغاء الكلي للتقويم التشخيصي**:
    - **لا تدرج أي مرحلة باسم "التقويم التشخيصي" نهائياً**.
    - تتكون وضعيات الانطلاق الاستهلالية (introductionSteps) حصراً من 4 خطوات:
@@ -1047,7 +1077,7 @@ ${officialSectionsRule}
       "subPhase": "الربط والتمهيد للدرس الجديد",
       "tools": "أسئلة شفهية، دفاتر الدروس",
       "teacherActivities": "طرح أسئلة استرجاعية محددة حول معطيات الدرس السابق وإبراز الصلة الوثيقة بالدرس الجديد.",
-      "studentActivities": "• استرجاع المفاهيم الأساسية السابقة بدقة.\n• إبراز الامتدادات والروابط المنطقية مع موضوع الدرس الجديد.",
+      "studentActivities": "• استرجاع المفاهيم الأساسية للدرس السابق.\n• إبراز الصلة المنطقية بموضوع الدرس الجديد.",
       "workForm": "عمل جماعي حواري"
     },
     {
@@ -1055,7 +1085,7 @@ ${officialSectionsRule}
       "subPhase": "التأطير وتوطين الموضوع",
       "tools": "السبورة، المقرر المدرسي (${curriculum})",
       "teacherActivities": "كتابة عنوان الدرس على السبورة وتحديد موقعه بدقة ضمن المقرر والمجال المعرفي.",
-      "studentActivities": "• تدوين العنوان في الدفاتر واستحضار المعارف الأولية حوله وموقعه في المقرر.",
+      "studentActivities": "• تدوين العنوان في الدفتر.\n• تحديد موقع الدرس ضمن وحدات المقرر.",
       "workForm": "عمل موجه"
     },
     {
@@ -1063,7 +1093,7 @@ ${officialSectionsRule}
       "subPhase": "التعاقد الديداكتيكي",
       "tools": "الكتاب المدرسي، الخطاطة التوجيهية للدرس",
       "teacherActivities": "قراءة وتوضيح الأهداف المعرفية والمهارية والوجدانية المسطرة ومشاركتها مع المتعلمين.",
-      "studentActivities": "• استيعاب الأهداف المسطرة وإدراك الكفايات المراد اكتسابها في نهاية الدرس.",
+      "studentActivities": "• استيعاب الأهداف المعرفية والمهارية المسطرة.\n• إدراك مسار الاشتغال في الحصة.",
       "workForm": "عمل جماعي حواري"
     },
     {
@@ -1071,7 +1101,7 @@ ${officialSectionsRule}
       "subPhase": "صياغة الإشكالية والتساؤلات",
       "tools": "الدعامة التمهيدية والصورة الافتتاحية من مرجع ${curriculum}",
       "teacherActivities": "سؤال موجه: اقرأ الدعامة التمهيدية وصغ التساؤلات الإشكالية الثلاثة الكبرى المؤطرة لإشكالية الدرس.",
-      "studentActivities": "• قراءة السند واستخلاص الفكرة التمهيدية العامة.\n• صياغة الأسئلة الإشكالية الثلاثة بدقة وتدوين التمهيد الإشكالي في الدفاتر.",
+      "studentActivities": "• استخلاص الفكرة التمهيدية العامة للسند.\n• صياغة وتدوين التساؤلات الإشكالية الثلاثة للدرس.",
       "workForm": "عمل جماعي حواري"
     }
   ],
@@ -1086,7 +1116,7 @@ ${officialSectionsRule}
       "subPhase": "[عنوان النشاط الأول في المقرر المدرسي]",
       "tools": "و: 1 (نوعها) + و: 2 (نوعها) ص: .. من مقرر ${curriculum}",
       "teacherActivities": "• س1 (الوثيقة 1 - نوعها ص..): [سؤال استثمار إجرائي محدد وموجه للاشتغال على الوثيقة 1]\n• س2 (الوثيقة 2 - نوعها ص..): [سؤال استثمار إجرائي محدد وموجه للاشتغال على الوثيقة 2]\n• س3: [سؤال مقارنة أو استخلاص محدد]",
-      "studentActivities": "• ج1: [الإجابة المعرفية الدقيقة والشاملة للسؤال 1 بالتواريخ والأرقام والمفاهيم من صلب الكتاب المدرسي]\n• ج2: [الإجابة المعرفية المفصلة للسؤال 2 بالمعطيات والحقائق الواردة بالوثيقة]\n• ج3: [استنتاج معرفي دقيق ومباشر للسؤال 3]",
+      "studentActivities": "• [رأس قلم يجيب مباشرة عن س1 بالتواريخ والأرقام والمفاهيم من الكتاب المدرسي]\n• [رأس قلم يجيب مباشرة عن س2 بالمعطيات الدقيقة للوثيقة]\n• [رأس قلم يتضمن الاستنتاج المعرفي لس3]",
       "workForm": "عمل بالوثائق / مجموعات"
     },
     {
@@ -1095,7 +1125,7 @@ ${officialSectionsRule}
       "subPhase": "[عنوان النشاط الثاني في المقرر المدرسي]",
       "tools": "و: 3 (نوعها) + و: 4 (نوعها) ص: .. من مقرر ${curriculum}",
       "teacherActivities": "• س1 (الوثيقة 3 - نوعها ص..): [سؤال استثمار مباشر على الوثيقة 3]\n• س2 (الوثيقة 4 - نوعها ص..): [سؤال تحليلي أو تصنيفي على الوثيقة 4]\n• س3: [سؤال تركيبي محدد]",
-      "studentActivities": "• ج1: [الإجابة المعرفية المستخرجة من الوثيقة 3 بالحقائق والمعطيات]\n• ج2: [الإجابة المعرفية المصنفة والمفصلة للسؤال 2]\n• ج3: [خلاصة علمية مركزة ومستخلصة من الوثيقتين]",
+      "studentActivities": "• [رأس قلم إجابة مركزة ومباشرة عن س1 من الوثيقة 3]\n• [رأس قلم إجابة مصنفة ومختصرة عن س2]\n• [رأس قلم خلاصة علمية مركزة لس3]",
       "workForm": "عمل جماعي حواري"
     },
     {
@@ -1103,7 +1133,7 @@ ${officialSectionsRule}
       "phase": "وضعية تركيبية (المقطع الأول)",
       "tools": "السبورة، دفاتر الدروس",
       "teacherActivities": "[نص الملخص المعرفي التركيبي الشامل للمقطع الأول الذي يدونه التلاميذ في دفاترهم]",
-      "studentActivities": "• المشاركة في تركيب الحصيلة وتدوين المنتوج المعرفي بدفاتر الدروس.",
+      "studentActivities": "• تدوين الخلاصة التركيبية للمقطع الأول في الدفتر.",
       "workForm": "عمل موجه"
     },
     {
@@ -1111,7 +1141,7 @@ ${officialSectionsRule}
       "phase": "وضعية تقويمية مرحلية 01",
       "tools": "أسئلة شفهية/تطبيقية",
       "teacherActivities": "[أسئلة التقويم التكويني لقياس مدى استيعاب مكتسبات المقطع الأول]",
-      "studentActivities": "• تقديم إجابات فردية تثبت التمكن من المفاهيم والمعارف المنجزة.",
+      "studentActivities": "• الإجابة الفردية عن أسئلة التقويم المرحلي.\n• توظيف المفاهيم المكتسبة بدقة.",
       "workForm": "عمل فردي"
     },
     {
@@ -1124,7 +1154,7 @@ ${officialSectionsRule}
       "subPhase": "[عنوان النشاط في المقرر المدرسي]",
       "tools": "و: 5 + 6 ص: .. من مقرر ${curriculum}",
       "teacherActivities": "1. [سؤال تفسيري مباشر لاستخراج العوامل والأسباب من الوثيقة 5]\n2. [سؤال لتصنيف العوامل والأسباب]\n3. [سؤال لإبراز الترابط السببي]",
-      "studentActivities": "• [إجابة مباشرة للسؤال 1 تتضمن تفصيل العوامل والأسباب بحقائق الدرس]\n• [إجابة مباشرة للسؤال 2 تصنف العوامل تصنيفاً علمياً واضحاً]\n• [إجابة مباشرة للسؤال 3 توضح العلاقات التفسيرية]",
+      "studentActivities": "• [رأس قلم: العامل/السبب الأول بأرقام ومعطيات الدرس]\n• [رأس قلم: تصنيف العوامل والأسباب في نقط واضحة]\n• [رأس قلم: خلاصة الترابط السببي]",
       "workForm": "عمل ثنائي"
     },
     {
@@ -1133,7 +1163,7 @@ ${officialSectionsRule}
       "subPhase": "[عنوان النشاط في المقرر المدرسي]",
       "tools": "و: 7 + 8 ص: .. من مقرر ${curriculum}",
       "teacherActivities": "1. [سؤال تحليلي مباشر على الوثيقة 7]\n2. [سؤال تفسيري ومقارنة على الوثيقة 8]\n3. [سؤال تركيبي جزئي]",
-      "studentActivities": "• [إجابة مباشرة للسؤال 1 بالحقائق والأرقام والمعطيات التفسيرية]\n• [إجابة مباشرة للسؤال 2 تبرز أوجه التحليل والمقارنة]\n• [إجابة مباشرة للسؤال 3 بالاستنتاج المعرفي]",
+      "studentActivities": "• [رأس قلم: إجابة مباشرة عن س1 بالأرقام والمعطيات التفسيرية]\n• [رأس قلم: أوجه التحليل والمقارنة لس2]\n• [رأس قلم: الاستنتاج المعرفي لس3]",
       "workForm": "عمل في مجموعات صغيرة"
     },
     {
@@ -1141,7 +1171,7 @@ ${officialSectionsRule}
       "phase": "وضعية تركيبية (المقطع الثاني)",
       "tools": "السبورة، خطاطة سببية",
       "teacherActivities": "[نص الملخص المعرفي التركيبي والخطاطة التفسيرية للمقطع الثاني لكتابته على الدفتر]",
-      "studentActivities": "• رسم وتدوين الخطاطة التفسيرية والملخص في الدفاتر.",
+      "studentActivities": "• رسم وتدوين الخطاطة التفسيرية والملخص في الدفتر.",
       "workForm": "عمل موجه"
     },
     {
@@ -1149,7 +1179,7 @@ ${officialSectionsRule}
       "phase": "وضعية تقويمية مرحلية 02",
       "tools": "تمرين تعليلي موجز",
       "teacherActivities": "[سؤال تقويمي تكويني يختبر القدرة على التفسير والتحليل السببي للمقطع الثاني]",
-      "studentActivities": "• تقديم تعليلات واستنتاجات سببية سليمة.",
+      "studentActivities": "• تقديم تعليل سببي سليم في نقط محددة.",
       "workForm": "عمل فردي"
     },
     {
@@ -1162,7 +1192,7 @@ ${officialSectionsRule}
       "subPhase": "[عنوان النشاط في المقرر المدرسي]",
       "tools": "و: 9 + 10 ص: .. من مقرر ${curriculum}",
       "teacherActivities": "1. [سؤال مباشر لاستخلاص النتائج والامتدادات الكبرى من الوثيقة 9]\n2. [سؤال تركيبي شامل لحصيلة الدرس]\n3. [سؤال لإبداء الموقف أو تقييم الأثر والقيمة المكتسبة]",
-      "studentActivities": "• [إجابة مباشرة للسؤال 1 تحدد النتائج والتحولات الكبرى بأرقام ووقائع الدرس]\n• [إجابة مباشرة للسؤال 2 تلخص الحصيلة الشاملة للدرس]\n• [إجابة مباشرة للسؤال 3 تصوغ موقفاً معللاً مستنداً إلى معطيات الدرس]",
+      "studentActivities": "• [رأس قلم: النتائج والتحولات الكبرى بأرقام ووقائع الدرس]\n• [رأس قلم: الحصيلة الشاملة للدرس في نقط مركزة]\n• [رأس قلم: موقف معلل مستند إلى معطيات الدرس]",
       "workForm": "عمل جماعي حواري"
     },
     {
@@ -1170,7 +1200,7 @@ ${officialSectionsRule}
       "phase": "وضعية تركيبية عامة (خاتمة ديداكتيكية)",
       "tools": "السبورة، دفاتر الدروس",
       "teacherActivities": "[خاتمة ديداكتيكية تركيبية شاملة وموجزة للدرس تبرز أهم الخلاصات وتفتح أفقا نحو الدرس اللاحق]",
-      "studentActivities": "• تدوين الخاتمة التركيبية في الدفاتر.",
+      "studentActivities": "• تدوين الخاتمة التركيبية في الدفتر.",
       "workForm": "عمل جماعي حواري"
     }
   ],
