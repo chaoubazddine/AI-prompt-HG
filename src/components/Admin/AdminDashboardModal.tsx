@@ -359,9 +359,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 نظراً لاقتناعكم بجودة وأهمية أدوات المنصة في تيسير التحضير التربوي اليومي، يسعدنا دعوتكم للاستفادة من الباقات المتقدمة:
 
 ⭐ باقة الأستاذ المتميز (VIP السنوية - 149 درهم للموسم كاملاً):
-- توليد وتحميل غير محدود كلياً (∞) للجذاذات والامتحانات والملخصات
+- توليد وتحميل غير محدود كلياً (∞) للجذاذات والملخصات والخطاطات
 - المنظومة الكاملة للتقويم التشخيصي واستيراد نقط مسار بنقرة واحدة
-- مولد الفروض المحروسة والإشهادية بسلالم التنقيط
+- التقاطع الديداكتيكي بين كافة المقررات والكتب المدرسية المعتمدة
 - ركن إعداديات الريادة والتصدير بصيغة Word قابلة للتعديل
 
 🎯 اشتراك الدورة / الأسدس (59 درهم):
@@ -379,7 +379,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 تقديراً لثقتكم المستمرة واستعمالكم لمنصة الاجتماعيات الذكية، يسعدنا تقديم عرض حصري ومخفض لترقية حسابكم:
 
 🌟 باقة VIP السنوية الشاملة مع أولوية الدعم التقني والتربوي
-- وصول غير محدود لكافة الجذاذات والفروض المحينة (${getCurrentAcademicYear()})
+- وصول غير محدود لكافة الجذاذات والملخصات المحينة (${getCurrentAcademicYear()})
 - استيراد سريع لنقط مسار وإعداد تقارير الدعم والمعالجة
 
 للاستفادة وتفعيل الكود المباشر، يرجى التواصل معنا عبر واتساب:
@@ -551,7 +551,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 نظراً لاقتناعكم بجودة وأهمية أدوات المنصة في تيسير التخطيط والتحضير الديداكتيكي، يسعدنا مرافقتكم لمواصلة الاستفادة دون انقطاع:
 
 🌟 خيارات ترقية الحساب المتاحة:
-• باقة VIP غير المحدودة (السنوية): تحميل وتوليد غير محدود طيلة الموسم الدراسي ${getCurrentAcademicYear()} لكافة الجذاذات والفروض والروائز والملخصات.
+• باقة VIP غير المحدودة (السنوية): تحميل وتوليد غير محدود طيلة الموسم الدراسي ${getCurrentAcademicYear()} لكافة الجذاذات والروائز والملخصات.
 • باقة الدورة / الأسدس: رصيد 60 تحميلاً شاملاً لكافة الأدوات.
 
 📲 لتفعيل حسابكم واستلام كود الترقية الفوري:
@@ -567,7 +567,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
 بعد استنفادكم للرصيد المجاني في منصة الاجتماعيات الذكية، يسعدنا دعوتكم للانضمام إلى باقة VIP غير المحدودة للاستفادة من:
 - تحميلات وتوليد غير محدود بصيغة Word و PDF طيلة الموسم الدراسي ${getCurrentAcademicYear()}.
-- المنظومة الكاملة للفروض والتقويم التشخيصي واستيراد نقط مسار بنقرة واحدة.
+- المنظومة الكاملة للتقويم التشخيصي واستيراد نقط مسار بنقرة واحدة.
 - وثائق إعداديات الريادة وملخصات الدروس والخطاطات المفاهيمية.
 
 🚀 لتفعيل حسابكم واستلام كود التفعيل الفوري:
@@ -759,7 +759,6 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       'عدد التحميلات',
       'جذاذات',
       'تقويم تشخيصي',
-      'فروض وامتحانات',
       'ملخصات',
       'مدارس الريادة',
       'تاريخ التسجيل',
@@ -779,7 +778,6 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         u?.downloadCount || 0,
         tools.jadha || 0,
         tools.diagnostic || 0,
-        tools.exam || 0,
         tools.summary || 0,
         tools.rayada || 0,
         `"${formatDate(u?.createdAt)}"`,
@@ -1125,17 +1123,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               <td className="p-3">
                                 <div className="flex items-center justify-center gap-1.5 flex-wrap">
                                   <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-blue-100" title="جذاذات ديداكتيكية">
-                                    جذاذة: {tools.jadha || (totalUsage > 0 && !tools.diagnostic && !tools.exam ? totalUsage : 0)}
+                                    جذاذة: {tools.jadha || (totalUsage > 0 && !tools.diagnostic && !tools.summary ? totalUsage : 0)}
                                   </span>
                                   <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-100" title="تقويم تشخيصي ودعم">
                                     تشخيص: {tools.diagnostic || 0}
                                   </span>
-                                  <span className="bg-amber-50 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-100" title="فروض وامتحانات">
-                                    فروض: {tools.exam || 0}
+                                  <span className="bg-amber-50 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-100" title="ملخصات وخطاطات">
+                                    ملخصات: {tools.summary || 0}
                                   </span>
-                                  {(tools.summary > 0 || tools.rayada > 0) && (
-                                    <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-purple-100" title="ملخصات وريادة">
-                                      أخرى: {(tools.summary || 0) + (tools.rayada || 0)}
+                                  {tools.rayada > 0 && (
+                                    <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-md border border-purple-100" title="مدارس الريادة">
+                                      ريادة: {tools.rayada || 0}
                                     </span>
                                   )}
                                 </div>
@@ -1382,7 +1380,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">مستجد</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-700">الفروض والامتحانات المحروسة:</span>
+                      <span className="text-slate-700">ملخصات وخطاطات الدروس:</span>
                       <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">مطلوب</span>
                     </div>
                   </div>

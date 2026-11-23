@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 import html2canvas from 'html2canvas';
@@ -44,7 +44,6 @@ import {
   MapPin,
   Zap,
   Bot,
-  FileCheck2,
   ClipboardCheck,
   Menu,
   ChevronDown,
@@ -57,7 +56,6 @@ import { downloadWord } from './utils/wordExport';
 import { getTextbookDetails } from './constants/textbookRegistry';
 import { getCurrentAcademicYear, formatAcademicYear } from './utils/academicYear';
 import { LessonSummaryGenerator } from './components/LessonSummary/LessonSummaryGenerator';
-import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
 import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './components/SocialLinks';
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { PricingSection } from './components/Pricing/PricingSection';
@@ -163,7 +161,7 @@ export default function App() {
 }
 
 function JadhaApp() {
-  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary' | 'exam-generator'>('landing');
+  const [step, setStep] = useState<'landing' | 'dashboard' | 'form' | 'generate' | 'view' | 'lesson-summary'>('landing');
   const [formStep, setFormStep] = useState<1 | 2 | 3 | 4>(1);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
@@ -188,6 +186,7 @@ function JadhaApp() {
   const [dashboardTab, setDashboardTab] = useState<'overview' | 'history' | 'profile'>('profile');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const lastSyncedProfInfoRef = useRef<string | null>(null);
 
   const LOADING_TIPS = [
     'جاري تحضير الوثائق والدعامات الديداكتيكية المعتمدة...',
@@ -216,20 +215,19 @@ function JadhaApp() {
   };
 
   const DOWNLOAD_LIMIT = TIER_LIMITS[subscriptionTier];
-  const isAdmin = user?.email === 'chaoub7@gmail.com';
+  const isAdmin = Boolean(user?.email && user.email.toLowerCase() === 'chaoub7@gmail.com' && user.emailVerified);
 
   // Dynamic SEO Page Title & Meta Tags based on active view
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
     const titles: Record<string, string> = {
-      landing: 'منصة الاجتماعيات الذكية | جذاذات تربوية نموذجية، ملخصات وخطاطات وفروض الاجتماعيات بالمغرب',
+      landing: 'منصة الاجتماعيات الذكية | جذاذات تربوية نموذجية وملخصات وخطاطات الاجتماعيات بالمغرب',
       dashboard: 'لوحة التحكم والمكتبة الرقمية | منصة الاجتماعيات الذكية',
       form: 'إعداد وتوليد جذاذة تربوية بالذكاء الاصطناعي (Word & PDF) | منصة الاجتماعيات الذكية',
       generate: 'جاري توليد الجذاذة التربوية | منصة الاجتماعيات الذكية',
       view: 'معاينة وتحميل الجذاذة التربوية (DOCX / PDF) | منصة الاجتماعيات الذكية',
-      'lesson-summary': 'ملخصات وخطاطات دروس مادة الاجتماعيات (Word & PDF) | منصة الاجتماعيات الذكية',
-      'exam-generator': 'مولد الفروض والامتحانات المحروسة مع عناصر الإجابة وسلم التنقيط | منصة الاجتماعيات الذكية'
+      'lesson-summary': 'ملخصات وخطاطات دروس مادة الاجتماعيات (Word & PDF) | منصة الاجتماعيات الذكية'
     };
 
     if (titles[step]) {
@@ -244,7 +242,6 @@ function JadhaApp() {
       const tab = params.get('tab');
       if (tab) {
         if (tab === 'jadhas') setStep('form');
-        else if (tab === 'exams') setStep('exam-generator');
         else if (tab === 'summaries') setStep('lesson-summary');
         else if (tab === 'pricing') setShowPricingModal(true);
       }
@@ -266,7 +263,7 @@ function JadhaApp() {
 
   // Admin sync
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isAuthReady || !isAdmin) {
       setAdminCodes([]);
       setAdminUsers([]);
       return;
@@ -309,7 +306,7 @@ function JadhaApp() {
       unsubscribeCodes();
       unsubscribeUsers();
     };
-  }, [isAdmin]);
+  }, [isAuthReady, isAdmin]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -331,9 +328,7 @@ function JadhaApp() {
       setIsAuthReady(true);
 
       if (firebaseUser) {
-        if (step === 'landing') {
-          setStep('dashboard');
-        }
+        setStep(prev => (prev === 'landing' ? 'dashboard' : prev));
 
         // Sync user data with Firestore
         const userRef = doc(db, 'users', firebaseUser.uid);
@@ -342,7 +337,7 @@ function JadhaApp() {
           if (!userDoc.exists()) {
             await setDoc(userRef, {
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
+              displayName: firebaseUser.displayName || '',
               subscriptionTier: 'free',
               downloadCount: 0,
               createdAt: serverTimestamp()
@@ -368,28 +363,35 @@ function JadhaApp() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!isAuthReady || !user?.uid) {
       setDownloadCount(0);
       setSubscriptionTier('free');
+      lastSyncedProfInfoRef.current = null;
       return;
     }
 
     const userRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
+    const unsubscribe = onSnapshot(userRef, (snapshotDoc) => {
+      if (snapshotDoc.exists()) {
+        const data = snapshotDoc.data();
         setDownloadCount(data.downloadCount || 0);
         setSubscriptionTier(data.subscriptionTier || 'free');
+        if (data.profInfo) {
+          const serialized = JSON.stringify(data.profInfo);
+          lastSyncedProfInfoRef.current = serialized;
+          localStorage.setItem('profInfo', serialized);
+          setProfInfo(data.profInfo);
+        }
       }
     }, (err) => {
       handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [isAuthReady, user?.uid]);
 
   useEffect(() => {
-    if (!user) {
+    if (!isAuthReady || !user?.uid) {
       setHistory([]);
       return;
     }
@@ -412,7 +414,7 @@ function JadhaApp() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [isAuthReady, user?.uid]);
 
   useEffect(() => {
     const handleOpenPricingEvent = () => setShowPricingModal(true);
@@ -486,7 +488,7 @@ function JadhaApp() {
           setShowPremiumModal(false);
           setActivationCode('');
           toast.success(`تم تفعيل حسابك بنجاح! (${TIER_NAMES[tier as keyof typeof TIER_NAMES] || tier})`, {
-            description: tier === 'unlimited' ? 'استمتع بالوصول اللامحدود لكافة مزايا الجذاذات والفروض والملخصات.' : `تم زيادة رصيدك إلى ${TIER_LIMITS[tier as keyof typeof TIER_LIMITS]} تحميلاً.`,
+            description: tier === 'unlimited' ? 'استمتع بالوصول اللامحدود لكافة مزايا الجذاذات والملخصات.' : `تم زيادة رصيدك إلى ${TIER_LIMITS[tier as keyof typeof TIER_LIMITS]} تحميلاً.`,
             duration: 6000,
           });
         } else {
@@ -612,35 +614,27 @@ function JadhaApp() {
   });
 
   useEffect(() => {
-    if (user) {
-      const userRef = doc(db, 'users', user.uid);
-      const unsubscribe = onSnapshot(userRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          if (data.profInfo) {
-            setProfInfo(data.profInfo);
-          }
-        }
-      });
-      return () => unsubscribe();
-    }
-  }, [user]);
+    const serialized = JSON.stringify(profInfo);
+    localStorage.setItem('profInfo', serialized);
 
-  useEffect(() => {
+    if (!isAuthReady || !user?.uid || lastSyncedProfInfoRef.current === serialized) {
+      return;
+    }
+
     const saveProfInfo = async () => {
-      if (user) {
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          await updateDoc(userRef, { profInfo });
-        } catch (err) {
-          console.error("Failed to save profInfo:", err);
-        }
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        const sanitizedProfInfo = cleanFirestoreData(profInfo);
+        await updateDoc(userRef, { profInfo: sanitizedProfInfo });
+        lastSyncedProfInfoRef.current = serialized;
+      } catch (err) {
+        console.error("Failed to save profInfo:", err);
       }
     };
-    
+
     const timeoutId = setTimeout(saveProfInfo, 2000);
     return () => clearTimeout(timeoutId);
-  }, [profInfo, user]);
+  }, [profInfo, isAuthReady, user?.uid]);
 
   const [cycle, setCycle] = useState('prep');
   const [level, setLevel] = useState('الأولى إعدادي');
@@ -684,14 +678,22 @@ function JadhaApp() {
     } else {
       setLessonTitle('');
     }
-
-    const books = TEXTBOOKS[level] || [];
-    if (books.length > 0) {
-      setReference(books[0]);
-    } else {
-      setReference('منار الاجتماعيات');
-    }
   }, [level, component, semester]);
+
+  useEffect(() => {
+    const books = TEXTBOOKS[level] || [];
+    const saved = localStorage.getItem(`preferred_textbook_${level}`);
+    if (saved && books.includes(saved)) {
+      setReference(saved);
+    } else if (!reference || !books.includes(reference)) {
+      setReference(books[0] || 'منار الاجتماعيات');
+    }
+  }, [level]);
+
+  const handleSelectReference = (book: string) => {
+    setReference(book);
+    localStorage.setItem(`preferred_textbook_${level}`, book);
+  };
 
   const handleGenerate = async () => {
     if (!lessonTitle) {
@@ -943,18 +945,6 @@ function JadhaApp() {
               >
                 <FileText size={14} />
                 <span>ملخصات وخطاطات الدروس</span>
-              </button>
-
-              <button 
-                onClick={() => setStep('exam-generator')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 font-bold ${
-                  step === 'exam-generator' 
-                    ? 'bg-emerald-600 text-white shadow-xs' 
-                    : 'text-emerald-800 bg-emerald-50/90 hover:bg-emerald-100 border border-emerald-200/60'
-                }`}
-              >
-                <FileCheck2 size={14} />
-                <span>الامتحانات والفروض</span>
               </button>
             </nav>
           )}
@@ -1228,19 +1218,6 @@ function JadhaApp() {
                     <FileText size={16} />
                     <span>ملخصات وخطاطات الدروس 📖</span>
                   </button>
-
-                  <button 
-                    onClick={() => {
-                      setStep('exam-generator');
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      step === 'exam-generator' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 bg-emerald-50/70 hover:bg-emerald-100'
-                    }`}
-                  >
-                    <FileCheck2 size={16} />
-                    <span>توليد الامتحانات والفروض 📋</span>
-                  </button>
                 </div>
 
                 {/* Account & Settings Options */}
@@ -1377,12 +1354,12 @@ function JadhaApp() {
                 <h1 className="text-3xl sm:text-5xl font-black mb-6 leading-tight text-slate-900 max-w-4xl mx-auto">
                   كل ما يحتاجه أستاذ الاجتماعيات <br className="hidden sm:inline" />
                   <span className="text-[#4F46E5] bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-emerald-600 to-amber-600">
-                    الجذاذات، الامتحانات وعناصر الإجابة، والملخصات
+                    الجذاذات التربوية النموذجية، والملخصات والخطاطات
                   </span>
                 </h1>
 
                 <p className="text-slate-600 text-sm sm:text-base max-w-3xl mx-auto mb-8 leading-relaxed font-normal">
-                  منصة بيداغوجية ذكية تمكّن الأستاذ من توليد الجذاذات التربوية، إعداد الفروض والامتحانات المحروسة وفق الأطر المرجعية المحينة مع عناصر الإجابة والتدبير الديداكتيكي، واستخراج ملخصات الدروس المركزة والتصدير المباشر بصيغتي Word و PDF.
+                  منصة بيداغوجية ذكية تمكّن الأستاذ من توليد الجذاذات التربوية النموذجية المرتبطة بالكتب المدرسية المعتمدة، واستخراج ملخصات الدروس المركزة والخطاطات والتصدير المباشر بصيغتي Word و PDF.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
@@ -1529,40 +1506,6 @@ function JadhaApp() {
                     </div>
                   </div>
                 </div>
-
-                {/* Supporting Specialized Module: Exam & Official Answer Keys */}
-                <div className="pt-2">
-                  <div className="bg-gradient-to-r from-emerald-50/70 via-white to-emerald-50/40 p-6 rounded-3xl border border-emerald-200/90 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:shadow-md hover:border-emerald-400 transition-all group">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-200 group-hover:scale-105 transition-transform shrink-0">
-                        <FileCheck2 size={24} />
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-md border border-emerald-200">
-                          الأطر المرجعية المحينة • الوضعيات الاختبارية الثلاث
-                        </span>
-                        <h3 className="text-base font-black text-slate-900">مولّد الفروض والامتحانات المحروسة والإشهادية</h3>
-                        <p className="text-slate-600 text-xs leading-relaxed max-w-2xl">
-                          إعداد نماذج فروض كاملة مع نصوص وثائقية، أسئلة مقالية، ومفاهيم، مرفقة بعناصر الإجابة الرسمية وسلم التنقيط وتصدير Word جاهز للتعديل.
-                        </p>
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={() => {
-                        if (user) {
-                          setStep('exam-generator');
-                        } else {
-                          handleLogin();
-                        }
-                      }}
-                      className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
-                    >
-                      <Sparkles size={15} />
-                      <span>توليد فرض أو امتحان</span>
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* Core Benefits Grid */}
@@ -1573,7 +1516,7 @@ function JadhaApp() {
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-2">توفير الوقت والجهد</h3>
                   <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                    إنجاز الجذاذات والفروض والملخصات بأسلوب بيداغوجي رصين ومطابق للتوجيهات في ثوانٍ معدودة لكل مستويات السلكين الإعدادي والتأهيلي.
+                    إنجاز الجذاذات والملخصات والخطاطات بأسلوب بيداغوجي رصين ومطابق للتوجيهات في ثوانٍ معدودة لكل مستويات السلكين الإعدادي والتأهيلي.
                   </p>
                 </div>
 
@@ -1581,9 +1524,9 @@ function JadhaApp() {
                   <div className="bg-emerald-50 p-3.5 rounded-2xl text-emerald-600 mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                     <CheckCircle size={24} />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">مطابقة الأطر المرجعية</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">مطابقة التوجيهات الرسمية</h3>
                   <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                    احترام تام لمبادئ النهج التاريخي والنهج الجغرافي وقواعد التربية على المواطنة والأطر المرجعية المحينة للامتحانات.
+                    احترام تام لمبادئ النهج التاريخي والنهج الجغرافي وقواعد التربية على المواطنة والربط المباشر بوثائق الكتب المدرسية المعتمدة.
                   </p>
                 </div>
 
@@ -1612,7 +1555,7 @@ function JadhaApp() {
                     </div>
                     <h4 className="font-bold text-slate-900 text-sm">اختيار الخدمة المطلوبة</h4>
                     <p className="text-slate-500 text-xs leading-relaxed">
-                      تحديد الأداة (جذاذة درس، فرض امتحان مع عناصر الإجابة، أو ملخص درس) من فضاء الأستاذ.
+                      تحديد الأداة (جذاذة درس أو ملخص وخطاطة درس) من فضاء الأستاذ.
                     </p>
                   </div>
 
@@ -1622,7 +1565,7 @@ function JadhaApp() {
                     </div>
                     <h4 className="font-bold text-slate-900 text-sm">اختيار المادة والدرس والسلك</h4>
                     <p className="text-slate-500 text-xs leading-relaxed">
-                      تحديد المستوى الدراسي (إعدادي أو تأهيلي)، المقرر المعتمد والدرس أو الوضعيات الاختبارية.
+                      تحديد المستوى الدراسي (إعدادي أو تأهيلي)، المقرر المعتمد وعنوان الدرس الرسمي.
                     </p>
                   </div>
 
@@ -1699,7 +1642,7 @@ function JadhaApp() {
                   <span className="text-xs text-slate-500 font-medium">اختر الأداة للبدء فوراً</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Tool 1: Lesson Plan (الجذاذات) */}
                   <div className="bg-gradient-to-br from-indigo-50/90 via-white to-indigo-50/40 p-5 rounded-3xl border-2 border-indigo-200 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition-all">
                     <div className="space-y-2">
@@ -1752,32 +1695,6 @@ function JadhaApp() {
                     >
                       <Sparkles size={15} />
                       <span>إعداد ملخص درس</span>
-                    </button>
-                  </div>
-
-                  {/* Tool 3: Exam & Official Answer Keys */}
-                  <div className="bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 p-5 rounded-3xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-4 hover:border-emerald-400 transition-all">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">
-                          <FileCheck2 size={20} />
-                        </div>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                          الأطر المرجعية 📋
-                        </span>
-                      </div>
-                      <h4 className="text-base font-black text-slate-900">مولّد الامتحانات</h4>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        إعداد فروض بـ 3 وضعيات اختبارية مع عناصر الإجابة وسُلم التنقيط.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setStep('exam-generator')}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <Sparkles size={15} />
-                      <span>توليد فرض</span>
                     </button>
                   </div>
                 </div>
@@ -2207,7 +2124,7 @@ function JadhaApp() {
                         <select 
                           className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
                           value={reference}
-                          onChange={e => setReference(e.target.value)}
+                          onChange={e => handleSelectReference(e.target.value)}
                         >
                           {(TEXTBOOKS[level] || []).map((book, bIdx) => (
                             <option key={`book-${bIdx}-${book}`} value={book}>{book}</option>
@@ -2219,21 +2136,56 @@ function JadhaApp() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">عنوان الدرس الرسمـي</label>
-                      <select 
-                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
-                        value={lessonTitle}
-                        onChange={e => setLessonTitle(e.target.value)}
-                      >
-                        {getLessonsList(level, component, semester).length > 0 ? (
-                          getLessonsList(level, component, semester).map((lesson, lIdx) => (
-                            <option key={`lesson-${lIdx}-${lesson}`} value={lesson}>{lesson}</option>
-                          ))
-                        ) : (
-                          <option value="">لا توجد دروس متوفرة لهذه الدورة والمكون حالياً</option>
-                        )}
-                      </select>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">عنوان الدرس الرسمـي</label>
+                        <select 
+                          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
+                          value={lessonTitle}
+                          onChange={e => setLessonTitle(e.target.value)}
+                        >
+                          {getLessonsList(level, component, semester).length > 0 ? (
+                            getLessonsList(level, component, semester).map((lesson, lIdx) => (
+                              <option key={`lesson-${lIdx}-${lesson}`} value={lesson}>{lesson}</option>
+                            ))
+                          ) : (
+                            <option value="">لا توجد دروس متوفرة لهذه الدورة والمكون حالياً</option>
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Quick Textbook Selector Directly at Lesson Level */}
+                      <div className="p-3 bg-slate-50/90 border border-slate-200/80 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="text-[11px] font-black text-slate-700 flex items-center gap-1.5">
+                            <BookOpen size={14} className="text-indigo-600" />
+                            <span>اختيار المقرر المستعمل لهذا الدرس:</span>
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium">اضغط لاختيار الكتاب المعتمد</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(TEXTBOOKS[level] || []).map((book, bIdx) => {
+                            const isActive = reference === book;
+                            const isComparative = book.includes('توليف');
+                            return (
+                              <button
+                                key={`quick-book-${bIdx}`}
+                                type="button"
+                                onClick={() => handleSelectReference(book)}
+                                className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                                  isActive
+                                    ? isComparative
+                                      ? 'bg-purple-700 text-white border-purple-800 shadow-xs'
+                                      : 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/60'
+                                }`}
+                              >
+                                {book}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Live Textbook Grounding Preview Card */}
@@ -2263,11 +2215,17 @@ function JadhaApp() {
                               </div>
                               {bookDetails.parallelTextbooks && bookDetails.parallelTextbooks.length > 0 && (
                                 <div className="flex items-center gap-1.5 flex-wrap mt-1 text-[11px]">
-                                  <span className="font-bold text-slate-600">المقررات الموازية المتاحة للتقاطع:</span>
+                                  <span className="font-bold text-slate-600">التبديل السريع لمقرر موازٍ:</span>
                                   {bookDetails.parallelTextbooks.map((pb, pIdx) => (
-                                    <span key={pIdx} className="font-bold text-indigo-800 bg-white px-1.5 py-0.5 rounded border border-indigo-200 text-[10px]">
+                                    <button
+                                      key={pIdx}
+                                      type="button"
+                                      onClick={() => handleSelectReference(pb.name)}
+                                      className="font-bold text-indigo-800 bg-white hover:bg-indigo-600 hover:text-white px-2 py-0.5 rounded border border-indigo-200 text-[10px] transition-colors cursor-pointer"
+                                      title={`استعمال مقرر ${pb.name}`}
+                                    >
                                       {pb.name} ({pb.pages})
-                                    </span>
+                                    </button>
                                   ))}
                                 </div>
                               )}
@@ -2516,18 +2474,6 @@ function JadhaApp() {
               <LessonSummaryGenerator />
             </motion.div>
           )}
-
-          {/* EXAM GENERATOR STEP (MIDDLE SCHOOL & SECONDARY) */}
-          {step === 'exam-generator' && (
-            <motion.div
-              key="exam-generator"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <ExamGenerator />
-            </motion.div>
-          )}
         </AnimatePresence>
       </main>
 
@@ -2536,7 +2482,7 @@ function JadhaApp() {
         <div className="max-w-6xl mx-auto px-4 space-y-4">
           <p className="font-bold text-slate-600">منصة الاجتماعيات الذكية • السياق التربوي والتوجيهات الرسمية بالمغرب</p>
           <p className="text-xs text-slate-500 font-medium max-w-xl mx-auto">
-            المنظومة التربوية الرقمية المتكاملة للجذاذات، الفروض المحروسة والامتحانات، والملخصات وفق التوجيهات الرسمية بالمغرب 🇲🇦
+            المنظومة التربوية الرقمية المتكاملة للجذاذات التربوية وملخصات الدروس والخطاطات وفق التوجيهات الرسمية بالمغرب 🇲🇦
           </p>
           <FooterSocialSection />
           <p className="text-[11px] pt-2">Chaoub.az.etu@gmail.com © 2026 جميع الحقوق محفوظة</p>

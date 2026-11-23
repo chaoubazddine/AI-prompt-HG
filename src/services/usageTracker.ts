@@ -2,7 +2,7 @@ import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 
-export type ToolUsageType = 'jadha' | 'diagnostic' | 'exam' | 'summary' | 'rayada' | 'download';
+export type ToolUsageType = 'jadha' | 'diagnostic' | 'summary' | 'rayada' | 'download';
 
 export type SubscriptionTierType = 'free' | 'basic' | 'semester' | 'advanced' | 'pro' | 'unlimited';
 
@@ -30,7 +30,6 @@ export interface UserUsageInfo {
   toolsUsage: {
     jadha?: number;
     diagnostic?: number;
-    exam?: number;
     summary?: number;
     rayada?: number;
     download?: number;
@@ -42,7 +41,6 @@ export interface UserUsageInfo {
 const TOOL_NAMES: Record<ToolUsageType, string> = {
   jadha: 'توليد جذاذة ديداكتيكية',
   diagnostic: 'التقويم التشخيصي والدعم',
-  exam: 'توليد فروض وامتحانات',
   summary: 'ملخصات الدروس والخطاطات',
   rayada: 'مدارس الريادة والمساعد الذكي',
   download: 'تحميل ملف (Word / PDF)'

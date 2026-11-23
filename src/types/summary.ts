@@ -14,6 +14,8 @@ export interface LessonSummaryData {
   subject: string; // المادة: التاريخ / الجغرافيا / التربية على المواطنة
   level: string; // المستوى الدراسي
   module?: string; // المجزوءة / المكون
+  textbookName?: string; // المقرر / الكتاب المدرسي المختار
+  textbookPages?: string; // نطاق الصفحات بالكتاب المدرسي
   introduction: {
     context: string; // التمهيد الإشكالي
     questions: string[]; // الأسئلة الإشكالية الموجهة

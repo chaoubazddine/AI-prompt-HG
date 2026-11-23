@@ -211,7 +211,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-black">فضاء أستاذ الاجتماعيات</h2>
-              <p className="text-xs text-indigo-200">الولوج للمنصة وتوليد الجذاذات والفروض والملخصات</p>
+              <p className="text-xs text-indigo-200">الولوج للمنصة وتوليد الجذاذات والملخصات والخطاطات</p>
             </div>
           </div>
         </div>

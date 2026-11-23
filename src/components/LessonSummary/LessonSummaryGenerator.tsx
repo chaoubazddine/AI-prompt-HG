@@ -21,7 +21,7 @@ import { LessonSummaryData } from '../../types/summary';
 import { generateLessonSummary, generateFallbackSummary } from '../../services/summaryService';
 import { downloadSummaryWord } from '../../utils/summaryWordExport';
 import { LESSONS_DATA } from '../../constants';
-import { getTextbookDetails } from '../../constants/textbookRegistry';
+import { getTextbookDetails, getTextbooksForLevel } from '../../constants/textbookRegistry';
 import { trackUserUsage, checkAndRecordDownload } from '../../services/usageTracker';
 import { toast } from 'sonner';
 
@@ -40,6 +40,7 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
   const [level, setLevel] = useState(initialLevel);
   const [term, setTerm] = useState<'الدورة الأولى' | 'الدورة الثانية'>('الدورة الأولى');
   const [lessonTitle, setLessonTitle] = useState(initialTitle);
+  const [selectedTextbook, setSelectedTextbook] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summaryData, setSummaryData] = useState<LessonSummaryData | null>(null);
@@ -59,11 +60,27 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
 
   const levelKey = normalizeLevelKey(level);
   const currentLessons = LESSONS_DATA[levelKey]?.[subject]?.[term] || [];
+  const availableTextbooks = getTextbooksForLevel(levelKey);
 
   // Always scroll to top when mounting LessonSummaryGenerator component
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
+
+  // Sync available textbook for the selected level (remembering teacher preference per level)
+  useEffect(() => {
+    const saved = localStorage.getItem(`preferred_textbook_${levelKey}`);
+    if (saved && availableTextbooks.includes(saved)) {
+      setSelectedTextbook(saved);
+    } else if (!selectedTextbook || !availableTextbooks.includes(selectedTextbook)) {
+      setSelectedTextbook(availableTextbooks[0] || '');
+    }
+  }, [levelKey]);
+
+  const handleSelectTextbook = (book: string) => {
+    setSelectedTextbook(book);
+    localStorage.setItem(`preferred_textbook_${levelKey}`, book);
+  };
 
   // When level, subject, or term changes, auto-select first lesson if none selected or not matching
   useEffect(() => {
@@ -87,10 +104,12 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
     try {
       let data: LessonSummaryData;
       try {
-        data = await generateLessonSummary(lessonTitle, subject, level, term);
+        data = await generateLessonSummary(lessonTitle, subject, level, term, {
+          textbookName: selectedTextbook
+        });
       } catch (genErr) {
         console.warn("Summary generation fallback triggered:", genErr);
-        data = generateFallbackSummary(lessonTitle, level, subject);
+        data = generateFallbackSummary(lessonTitle, level, subject, selectedTextbook);
       }
 
       setSummaryData(data);
@@ -99,7 +118,7 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
       toast.success('تم إعداد ملخص الدرس البيداغوجي بنجاح!');
     } catch (err: any) {
       console.error("Summary generation error:", err);
-      const fallback = generateFallbackSummary(lessonTitle, level, subject);
+      const fallback = generateFallbackSummary(lessonTitle, level, subject, selectedTextbook);
       setSummaryData(fallback);
       setError(null);
       toast.success('تم إعداد ملخص الدرس وفق المنهاج الرسمي!');
@@ -112,7 +131,7 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
     if (!summaryData) return;
 
     let text = `مادة ${summaryData.subject} - ملخص درس: ${summaryData.title}\n`;
-    text += `المستوى: ${summaryData.level}\n\n`;
+    text += `المستوى: ${summaryData.level}${summaryData.textbookName ? ` • المقرر: ${summaryData.textbookName}${summaryData.textbookPages ? ` (${summaryData.textbookPages})` : ''}` : ''}\n\n`;
     text += `■ مقدمة والتمهيد الإشكالي:\n${summaryData.introduction.context}\n`;
     text += `الأسئلة الإشكالية:\n` + summaryData.introduction.questions.map(q => `• ${q}`).join('\n') + `\n\n`;
 
@@ -321,12 +340,58 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
               />
             </div>
 
+            {/* Teacher's Chosen Textbook Selector at Lesson Level */}
+            <div className="pt-3 border-t border-indigo-100 space-y-2.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                  <Book size={15} className="text-indigo-600" />
+                  <span>اختيار المقرر / الكتاب المدرسي المستعمل لهذا الدرس:</span>
+                </label>
+                <span className="text-[10px] text-indigo-700 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                  مقررات رسمية معتمدة
+                </span>
+              </div>
+
+              <select
+                value={selectedTextbook}
+                onChange={(e) => handleSelectTextbook(e.target.value)}
+                className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs"
+              >
+                {availableTextbooks.map((book, bIdx) => (
+                  <option key={bIdx} value={book}>{book}</option>
+                ))}
+              </select>
+
+              <div className="flex flex-wrap gap-1.5">
+                {availableTextbooks.map((book, bIdx) => {
+                  const isActive = selectedTextbook === book;
+                  const isComparative = book.includes('توليف');
+                  return (
+                    <button
+                      key={bIdx}
+                      type="button"
+                      onClick={() => handleSelectTextbook(book)}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all border ${
+                        isActive
+                          ? isComparative
+                            ? 'bg-purple-700 text-white border-purple-800 shadow-xs'
+                            : 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                          : 'bg-white hover:bg-indigo-100/70 text-slate-700 border-indigo-200/80'
+                      }`}
+                    >
+                      {book}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Direct Textbook Grounding Card */}
             {(() => {
-              const tb = getTextbookDetails(lessonTitle, '', levelKey, subject);
+              const tb = getTextbookDetails(lessonTitle, selectedTextbook, levelKey, subject);
               if (!tb) return null;
               return (
-                <div className="p-3 bg-white border border-indigo-200/90 rounded-xl flex items-center justify-between gap-2.5 text-xs shadow-2xs">
+                <div className="p-3 bg-white border border-indigo-200/90 rounded-xl flex items-center justify-between gap-2.5 text-xs shadow-2xs flex-wrap sm:flex-nowrap">
                   <div className="flex items-center gap-2">
                     <BookOpen size={16} className="text-indigo-600 shrink-0" />
                     <div>
@@ -335,6 +400,11 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
                       <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 mr-1.5">
                         {tb.pagesRange}
                       </span>
+                      {tb.documents && tb.documents.length > 0 && (
+                        <p className="text-[10.5px] text-slate-500 mt-0.5">
+                          مرتبط بـ <strong className="text-slate-700">{tb.documents.length} وثائق رسمية</strong> ومفاهيم الدرس المقررة.
+                        </p>
+                      )}
                     </div>
                   </div>
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md shrink-0 flex items-center gap-1">
@@ -388,7 +458,7 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
               <div>
                 <h3 className="text-sm font-black text-white">{summaryData.title}</h3>
                 <span className="text-[11px] text-slate-400">
-                  {summaryData.subject} • {summaryData.level}
+                  {summaryData.subject} • {summaryData.level}{summaryData.textbookName ? ` • ${summaryData.textbookName}` : ''}
                 </span>
               </div>
             </div>
@@ -452,9 +522,16 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
             
             {/* Header Title */}
             <div className="text-center border-b border-slate-200 pb-6 space-y-2">
-              <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full border border-indigo-100">
-                مادة {summaryData.subject} • {summaryData.level}
-              </span>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full border border-indigo-100">
+                  مادة {summaryData.subject} • {summaryData.level}
+                </span>
+                {summaryData.textbookName && (
+                  <span className="inline-block bg-emerald-50 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">
+                    المقرر: {summaryData.textbookName}{summaryData.textbookPages ? ` (${summaryData.textbookPages})` : ''}
+                  </span>
+                )}
+              </div>
               <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 ملخص درس: {summaryData.title}
               </h1>

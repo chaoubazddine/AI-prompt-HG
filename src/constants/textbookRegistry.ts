@@ -1476,6 +1476,14 @@ export function getTextbooksForLevel(level: string): string[] {
     ];
   }
   if (norm.includes('باك') || norm.includes('بكالوريا')) {
+    if (norm.includes('اولي') || norm.includes('1')) {
+      return [
+        'المنار في التاريخ والجغرافيا',
+        'في رحاب التاريخ والجغرافيا',
+        'الأطلس في الاجتماعيات',
+        'توليف رسمي بين مقررات المستوى (مقارنة متقاطعة)'
+      ];
+    }
     return [
       'المنار في التاريخ والجغرافيا',
       'في رحاب التاريخ والجغرافيا',

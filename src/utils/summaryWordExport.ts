@@ -43,7 +43,7 @@ export const downloadSummaryWord = async (summaryData: LessonSummaryData) => {
         color: "0F172A",
         spacing: { before: 60, after: 200 }
       }),
-      createRtlPara(`المستوى: ${summaryData.level}`, {
+      createRtlPara(`المستوى: ${summaryData.level}${summaryData.textbookName ? ` • المقرر: ${summaryData.textbookName}${summaryData.textbookPages ? ` (${summaryData.textbookPages})` : ''}` : ''}`, {
         alignment: AlignmentType.CENTER,
         size: 20,
         color: "64748B",

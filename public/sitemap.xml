@@ -11,7 +11,7 @@
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://www.hg-prof.ma/logo.png</image:loc>
-      <image:title>منصة الاجتماعيات الذكية HG-Prof - جذاذات وفروض وعروض مادة الاجتماعيات بالذكاء الاصطناعي</image:title>
+      <image:title>منصة الاجتماعيات الذكية HG-Prof - جذاذات وملخصات وعروض مادة الاجتماعيات بالذكاء الاصطناعي</image:title>
       <image:caption>المنصة البيداغوجية الشاملة لإعداد جذاذات التاريخ والجغرافيا والتربية على المواطنة وفق المنهاج المغربي</image:caption>
     </image:image>
   </url>
@@ -19,14 +19,6 @@
   <!-- قسم جذاذات مادة الاجتماعيات (إعدادي وتأهيلي) -->
   <url>
     <loc>https://www.hg-prof.ma/?tab=jadhas</loc>
-    <lastmod>2026-08-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-
-  <!-- مولد الفروض والامتحانات المحروسة مع عناصر الإجابة -->
-  <url>
-    <loc>https://www.hg-prof.ma/?tab=exams</loc>
     <lastmod>2026-08-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>

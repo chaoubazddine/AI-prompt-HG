@@ -1,20 +1,29 @@
 import { safeJsonParse } from "../utils/jsonCleaner";
 import { generateAIContent } from "./aiClient";
 import { LessonSummaryData, SummarySection, SummarySubsection } from "../types/summary";
+import { getTextbookDetails } from "../constants/textbookRegistry";
 
 export { type LessonSummaryData, type SummarySection, type SummarySubsection };
 
 export const generateFallbackSummary = (
   lessonTitle: string,
   level: string,
-  subject: string = "التاريخ"
+  subject: string = "التاريخ",
+  textbookName?: string,
+  textbookPages?: string
 ): LessonSummaryData => {
+  const tbDetails = getTextbookDetails(lessonTitle, textbookName, level, subject);
+  const resolvedBook = tbDetails?.textbookName || textbookName;
+  const resolvedPages = tbDetails?.pagesRange || textbookPages;
+
   return {
     title: lessonTitle,
     subject: subject || "الاجتماعيات",
     level: level,
+    ...(resolvedBook ? { textbookName: resolvedBook } : {}),
+    ...(resolvedPages ? { textbookPages: resolvedPages } : {}),
     introduction: {
-      context: `يشكل درس "${lessonTitle}" أحد المحاور الأساسية في برنامج مادة ${subject} لمستوى ${level}، حيث يسلط الضوء على سياق الظاهرة، عواملها المؤثرة، والنتائج المترتبة عنها.`,
+      context: `يشكل درس "${lessonTitle}" أحد المحاور الأساسية في برنامج مادة ${subject} لمستوى ${level}${resolvedBook ? ` وفق مقرر "${resolvedBook}"` : ''}، حيث يسلط الضوء على سياق الظاهرة، عواملها المؤثرة، والنتائج المترتبة عنها.`,
       questions: [
         "ما هو الإطار والسياق العام المؤطر لموضوع الدرس؟",
         "ما هي أهم العوامل والأسباب المفسرة للظاهرة؟",
@@ -36,7 +45,7 @@ export const generateFallbackSummary = (
           {
             subTitle: "2. أبرز المظاهر والتجليات الأساسية",
             content: [
-              "استخلاص مظاهر التحول والتطور استناداً إلى الوثائق والدعامات الديداكتيكية.",
+              `استخلاص مظاهر التحول والتطور استناداً إلى الوثائق والدعامات الديداكتيكية${resolvedBook ? ` في كتاب "${resolvedBook}"` : ''}.`,
               "مقارنة المؤشرات والخصائص النوعية والكمية المفسرة للظاهرة."
             ]
           }
@@ -75,16 +84,18 @@ export const generateFallbackSummary = (
       }
     ],
     conclusion: `نستخلص أن درس "${lessonTitle}" يجسد مرحلة هامة تفاعلت فيها مجموعة من العوامل لتفرز نتائج عميقة الأثر ساهمت في توجيه التطورات اللاحقة.`,
-    keyTerms: [
-      {
-        term: lessonTitle,
-        definition: `المفهوم المحوري لموضوع الدرس في مقرر ${subject} لمستوى ${level}.`
-      },
-      {
-        term: "النهج الديداكتيكي",
-        definition: "خطوات المعالجة الديداكتيكية المعتمدة: التعريف، التفسير، والتركيب."
-      }
-    ]
+    keyTerms: tbDetails?.keyConcepts?.length
+      ? tbDetails.keyConcepts.map(k => ({ term: k.term, definition: k.definition }))
+      : [
+          {
+            term: lessonTitle,
+            definition: `المفهوم المحوري لموضوع الدرس في مقرر ${subject} لمستوى ${level}.`
+          },
+          {
+            term: "النهج الديداكتيكي",
+            definition: "خطوات المعالجة الديداكتيكية المعتمدة: التعريف، التفسير، والتركيب."
+          }
+        ]
   };
 };
 
@@ -93,21 +104,41 @@ export const generateLessonSummary = async (
   subject: string,
   level: string,
   term?: string,
-  options?: { summaryType?: string; targetLength?: string }
+  options?: { summaryType?: string; targetLength?: string; textbookName?: string }
 ): Promise<LessonSummaryData> => {
+  const tbDetails = getTextbookDetails(lessonTitle, options?.textbookName, level, subject);
+  const chosenTextbook = tbDetails?.textbookName || options?.textbookName || '';
+  const chosenPages = tbDetails?.pagesRange || '';
+
+  const textbookContext = tbDetails
+    ? `
+المقرر المدرسي المعتمد المختار من الأستاذ: "${tbDetails.textbookName}" (${tbDetails.pagesRange})
+الوحدة / المجزوءة: ${tbDetails.unitModule}
+${tbDetails.isComparativeSynthesis ? 'ملاحظة هامة: اختار الأستاذ «توليفاً رسمياً بين مقررات المستوى»، لذا أدمج العناصر الأساسية المشتركة والمتكاملة بين المقررات الرسمية الموازية.' : ''}
+أهم الوثائق والدعامات المرجعية في هذا المقرر:
+${tbDetails.documents.slice(0, 6).map(d => `- ${d.docNumber} (${d.type} - ${d.page}): ${d.title}`).join('\n')}
+أهم المفاهيم والمصطلحات المقررة في هذا الكتاب:
+${tbDetails.keyConcepts.map(k => `- ${k.term}: ${k.definition}`).join('\n')}
+`
+    : chosenTextbook
+    ? `المقرر المدرسي المختار من طرف الأستاذ: "${chosenTextbook}"`
+    : '';
+
   const prompt = `
 أنت خبير تربوي مغربي متخصص في تدريس مادة الاجتماعيات (التاريخ، الجغرافيا، التربية على المواطنة).
 مهمتك إعداد "ملخص درس تركيبي مركز وشامل" ومعد بطريقة بيداغوجية احترافية لدرس: "${lessonTitle}" 
 المستوى: "${level}"
 المكون: "${subject}"
 ${term ? `الدورة: "${term}"` : ''}
+${textbookContext}
 
 المطلوب:
-1. مقدمة موجزة تمهد للموضوع وتطرح الأسئلة الإشكالية.
-2. محاور رئيسية (بين 2 إلى 3 محاور كبرى) تتبع النهج الديداكتيكي للمادة (التعريف، التفسير، التركيب).
-3. فقرات ونقاط ملخصة وواضحة وسلسة دون إخلال بالعمق المعرفي والمفاهيم الرسمية.
-4. خاتمة استخلاصية موجزة تفتح آفاقاً للدرس الموالي.
-5. لائحة بأهم المفاهيم والمصطلحات الأساسية للدرس وشرحها الرسمي المختصر.
+1. الالتزام الدقيق بمحتوى وتدرج المقرر المدرسي المختار أعلاه ومصطلحاته المعتمدة.
+2. مقدمة موجزة تمهد للموضوع وتطرح الأسئلة الإشكالية.
+3. محاور رئيسية (بين 2 إلى 3 محاور كبرى) تتبع النهج الديداكتيكي للمادة (التعريف، التفسير، التركيب).
+4. فقرات ونقاط ملخصة وواضحة وسلسة دون إخلال بالعمق المعرفي والمفاهيم الرسمية.
+5. خاتمة استخلاصية موجزة تفتح آفاقاً للدرس الموالي.
+6. لائحة بأهم المفاهيم والمصطلحات الأساسية للدرس وشرحها الرسمي المختصر.
 
 أخرج النتيجة حصراً بصيغة JSON وفق الهيكل التالي دون أي مقدمات نصية:
 
@@ -151,12 +182,16 @@ ${term ? `الدورة: "${term}"` : ''}
     if (rawResponse) {
       const parsed = safeJsonParse<LessonSummaryData>(rawResponse);
       if (parsed && parsed.title && parsed.sections && parsed.sections.length > 0) {
-        return parsed;
+        return {
+          ...parsed,
+          ...(chosenTextbook ? { textbookName: chosenTextbook } : {}),
+          ...(chosenPages ? { textbookPages: chosenPages } : {}),
+        };
       }
     }
   } catch (error) {
     console.warn("generateLessonSummary error, fallback triggered:", error);
   }
 
-  return generateFallbackSummary(lessonTitle, level, subject);
+  return generateFallbackSummary(lessonTitle, level, subject, chosenTextbook, chosenPages);
 };
