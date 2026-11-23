@@ -47,12 +47,15 @@ import {
   FileCheck2,
   ClipboardCheck,
   Menu,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2
 } from 'lucide-react';
 import { TableJadha, JadhaData } from './components/TableJadha';
 import { generateJadha, generateFallbackJadha } from './services/geminiService';
 import { CYCLES, DOC_TYPES, LESSONS_DATA, CYCLE_LEVELS, TEXTBOOKS } from './constants';
 import { downloadWord } from './utils/wordExport';
+import { getTextbookDetails } from './constants/textbookRegistry';
+import { getCurrentAcademicYear, formatAcademicYear } from './utils/academicYear';
 import { LessonSummaryGenerator } from './components/LessonSummary/LessonSummaryGenerator';
 import { ExamGenerator } from './components/ExamGenerator/ExamGenerator';
 import { HeaderSocialLinks, FooterSocialSection, ContactSocialBlock } from './components/SocialLinks';
@@ -65,7 +68,8 @@ import {
   db, 
   googleProvider, 
   OperationType, 
-  handleFirestoreError, 
+  handleFirestoreError,
+  cleanFirestoreData,
   FirebaseUser
 } from './firebase';
 import { 
@@ -78,6 +82,7 @@ import {
   getDoc, 
   setDoc, 
   updateDoc, 
+  writeBatch,
   onSnapshot,
   serverTimestamp,
   collection,
@@ -170,7 +175,7 @@ function JadhaApp() {
   const [showKeyHelp, setShowKeyHelp] = useState(false);
   const [manualKey, setManualKey] = useState(() => localStorage.getItem('user_gemini_key') || '');
   const [downloadCount, setDownloadCount] = useState(0);
-  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'basic' | 'semester' | 'advanced' | 'unlimited'>('free');
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'basic' | 'semester' | 'advanced' | 'pro' | 'unlimited'>('free');
   const [activationCode, setActivationCode] = useState('');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -197,15 +202,17 @@ function JadhaApp() {
     basic: 30,
     semester: 60,
     advanced: 60,
+    pro: 100,
     unlimited: Infinity
   };
 
   const TIER_NAMES: Record<string, string> = {
     free: 'دخول مجاني (5)',
-    basic: 'باقة الأستاذ (الأساسية)',
-    semester: 'اشتراك الدورة (Pass الأسدس)',
-    advanced: 'اشتراك الدورة (الأسدس)',
-    unlimited: 'الأستاذ المتميز (VIP)'
+    basic: 'باقة الأستاذ (الأساسية - 30)',
+    semester: 'اشتراك الدورة (الأسدس - 60)',
+    advanced: 'اشتراك الدورة (الأسدس - 60)',
+    pro: 'الباقة المتقدمة (Pro - 100)',
+    unlimited: 'الأستاذ المتميز (VIP غير محدود)'
   };
 
   const DOWNLOAD_LIMIT = TIER_LIMITS[subscriptionTier];
@@ -456,15 +463,30 @@ function JadhaApp() {
 
       if (codeDoc.exists()) {
         const codeData = codeDoc.data();
-        if (codeData.isValid) {
+        if (codeData.isValid && !codeData.isUsed) {
           const tier = codeData.tier || 'unlimited';
           const userRef = doc(db, 'users', user.uid);
-          await updateDoc(userRef, { subscriptionTier: tier });
-          // Mark code as used if needed, or keep valid
+
+          // Atomic consumption using Firestore writeBatch
+          const batch = writeBatch(db);
+          batch.update(codeRef, {
+            isValid: false,
+            isUsed: true,
+            usedBy: user.uid,
+            usedAt: serverTimestamp(),
+          });
+          batch.update(userRef, {
+            subscriptionTier: tier,
+            lastActivationCode: code,
+            updatedAt: serverTimestamp(),
+          });
+          await batch.commit();
+
+          setSubscriptionTier(tier as any);
           setShowPremiumModal(false);
           setActivationCode('');
-          toast.success(`تم تفعيل حسابك بنجاح! (${TIER_NAMES[tier as keyof typeof TIER_NAMES]})`, {
-            description: tier === 'unlimited' ? 'استمتع بالوصول اللامحدود لكافة مزايا الجذاذات.' : `تم زيادة رصيدك إلى ${TIER_LIMITS[tier as keyof typeof TIER_LIMITS]} تحميلاً.`,
+          toast.success(`تم تفعيل حسابك بنجاح! (${TIER_NAMES[tier as keyof typeof TIER_NAMES] || tier})`, {
+            description: tier === 'unlimited' ? 'استمتع بالوصول اللامحدود لكافة مزايا الجذاذات والفروض والملخصات.' : `تم زيادة رصيدك إلى ${TIER_LIMITS[tier as keyof typeof TIER_LIMITS]} تحميلاً.`,
             duration: 6000,
           });
         } else {
@@ -491,15 +513,17 @@ function JadhaApp() {
     if (!user) return;
 
     try {
+      const sanitizedData = cleanFirestoreData(data);
       await addDoc(collection(db, 'jadhas'), {
         userId: user.uid,
-        title: data.title,
-        data: data,
+        title: data.title || 'جذاذة تربوية',
+        data: sanitizedData,
         createdAt: serverTimestamp()
       });
       trackUserUsage('jadha', `توليد جذاذة: ${data.title}`);
       toast.success('تم حفظ الجذاذة تلقائياً في أرشيفك الشخصي.');
     } catch (err) {
+      console.warn("Failed to save jadha to Firestore history:", err);
       handleFirestoreError(err, OperationType.CREATE, 'jadhas');
     }
   };
@@ -580,10 +604,10 @@ function JadhaApp() {
     const saved = localStorage.getItem('profInfo');
     return saved ? JSON.parse(saved) : {
       name: '',
-      academy: 'جهة الدار البيضاء سطات',
-      directorate: 'سيدي البرنوصي',
+      academy: '',
+      directorate: '',
       school: '',
-      year: '2025/2026'
+      year: getCurrentAcademicYear()
     };
   });
 
@@ -694,17 +718,27 @@ function JadhaApp() {
         data = generateFallbackJadha(lessonTitle, level, reference, component, duration);
       }
 
+      const textbookInfo = getTextbookDetails(lessonTitle, reference, level, component);
+
       const finalData: JadhaData = {
         ...data,
         level: level,
-        year: profInfo.year || '2025/2026',
+        year: formatAcademicYear(profInfo.year),
         unit: component,
         duration: duration || 'ساعتان',
-        academy: profInfo.academy || 'الأكاديمية الجهوية',
+        academy: profInfo.academy || 'الأكاديمية الجهوية للتربية والتكوين',
         directorate: profInfo.directorate || 'المديرية الإقليمية',
         school: profInfo.school || 'المؤسسة التعليمية',
         teacherName: profInfo.name || 'أستاذ المادة',
-        references: reference || 'المقرر المعتمد',
+        references: `${textbookInfo?.textbookName || reference}${textbookInfo?.pagesRange ? ` (${textbookInfo.pagesRange})` : ''} - التوجيهات التربوية الرسمية`,
+        textbookName: textbookInfo?.textbookName || reference,
+        textbookPages: textbookInfo?.pagesRange,
+        parallelTextbooks: textbookInfo?.parallelTextbooks || [],
+        isComparativeSynthesis: Boolean(textbookInfo?.isComparativeSynthesis),
+        textbookDocuments: textbookInfo?.documents || data.textbookDocuments || [],
+        textbookKeyConcepts: textbookInfo?.keyConcepts || data.textbookKeyConcepts || [],
+        isFallbackTemplate: data.isFallbackTemplate || false,
+        generationMethod: data.generationMethod || 'ai',
       };
       setJadhaData(finalData);
       if (user) {
@@ -726,21 +760,34 @@ function JadhaApp() {
       }
       setStep('view');
       setError(null);
-      toast.success('تم إعداد وتوليد الجذاذة التربوية بنجاح!');
+      if (finalData.isFallbackTemplate) {
+        toast.info('تم إعداد الجذاذة وفق الإطار المرجعي والمنهاج المعتمد (ولم يتم احتسابها من حصتك).');
+      } else {
+        toast.success('تم إعداد وتوليد الجذاذة التربوية بنجاح بالذكاء الاصطناعي!');
+      }
     } catch (error: any) {
       console.error("Generation error:", error);
-      const fallbackData = generateFallbackJadha(lessonTitle, level, reference);
+      const fallbackData = generateFallbackJadha(lessonTitle, level, reference, component, duration);
+      const textbookInfo = getTextbookDetails(lessonTitle, reference, level, component);
       const finalData: JadhaData = {
         ...fallbackData,
         level: level,
-        year: profInfo.year || '2025/2026',
+        year: formatAcademicYear(profInfo.year),
         unit: component,
         duration: duration || 'ساعتان',
-        academy: profInfo.academy || 'الأكاديمية الجهوية',
+        academy: profInfo.academy || 'الأكاديمية الجهوية للتربية والتكوين',
         directorate: profInfo.directorate || 'المديرية الإقليمية',
         school: profInfo.school || 'المؤسسة التعليمية',
         teacherName: profInfo.name || 'أستاذ المادة',
-        references: reference || 'المقرر المعتمد',
+        references: `${textbookInfo?.textbookName || reference}${textbookInfo?.pagesRange ? ` (${textbookInfo.pagesRange})` : ''} - التوجيهات التربوية الرسمية`,
+        textbookName: textbookInfo?.textbookName || reference,
+        textbookPages: textbookInfo?.pagesRange,
+        parallelTextbooks: textbookInfo?.parallelTextbooks || [],
+        isComparativeSynthesis: Boolean(textbookInfo?.isComparativeSynthesis),
+        textbookDocuments: textbookInfo?.documents || [],
+        textbookKeyConcepts: textbookInfo?.keyConcepts || [],
+        isFallbackTemplate: true,
+        generationMethod: 'curriculum_template',
       };
       setJadhaData(finalData);
       if (user) {
@@ -748,7 +795,7 @@ function JadhaApp() {
       }
       setStep('view');
       setError(null);
-      toast.success('تم إعداد الجذاذة وفق الإطار المرجعي والتوجيهات الرسمية!');
+      toast.info('تم إعداد الجذاذة وفق الإطار المرجعي وقاعدة المنهاج المعتمدة نظراً لتعذر الاتصال بالذكاء الاصطناعي (ولم يتم احتسابها من حصتك).');
     } finally {
       setIsGenerating(false);
     }
@@ -756,8 +803,10 @@ function JadhaApp() {
 
   const handleDownloadWord = async () => {
     if (!jadhaData) return;
-    const allowed = await checkAndRecordDownload(`تحميل جذاذة بيداغوجية (Word): ${jadhaData.title}`);
-    if (!allowed) return;
+    if (!jadhaData.isFallbackTemplate) {
+      const allowed = await checkAndRecordDownload(`تحميل جذاذة بيداغوجية (Word): ${jadhaData.title}`);
+      if (!allowed) return;
+    }
     
     const promise = downloadWord(jadhaData);
     toast.promise(promise, {
@@ -770,8 +819,10 @@ function JadhaApp() {
   const handleDownloadPDF = async () => {
     const element = document.getElementById('jadha-content');
     if (!element) return;
-    const allowed = await checkAndRecordDownload(`تحميل جذاذة بيداغوجية (PDF): ${jadhaData?.title || 'الدرس'}`);
-    if (!allowed) return;
+    if (!jadhaData?.isFallbackTemplate) {
+      const allowed = await checkAndRecordDownload(`تحميل جذاذة بيداغوجية (PDF): ${jadhaData?.title || 'الدرس'}`);
+      if (!allowed) return;
+    }
 
     toast.loading('جاري تحضير ملف PDF عالي الجودة...', { id: 'pdf-toast' });
 
@@ -2033,7 +2084,7 @@ function JadhaApp() {
                           type="text" 
                           value={profInfo.academy}
                           onChange={(e) => setProfInfo({...profInfo, academy: e.target.value})}
-                          placeholder="جهة الدار البيضاء سطات"
+                          placeholder="الأكاديمية الجهوية (مثال: جهة فاس مكناس)"
                           className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
                         />
                       </div>
@@ -2044,7 +2095,7 @@ function JadhaApp() {
                           type="text" 
                           value={profInfo.directorate}
                           onChange={(e) => setProfInfo({...profInfo, directorate: e.target.value})}
-                          placeholder="المديرية الإقليمية"
+                          placeholder="المديرية الإقليمية (مثال: صفرو)"
                           className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
                         />
                       </div>
@@ -2055,7 +2106,7 @@ function JadhaApp() {
                           type="text" 
                           value={profInfo.year}
                           onChange={(e) => setProfInfo({...profInfo, year: e.target.value})}
-                          placeholder="2025/2026"
+                          placeholder={getCurrentAcademicYear()}
                           className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
                         />
                       </div>
@@ -2147,7 +2198,12 @@ function JadhaApp() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">الكتاب المدرسي / المرجع المعتمد</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-bold text-slate-700">الكتاب المدرسي / المرجع المعتمد</label>
+                          <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                            مقررات رسمية مصادق عليها
+                          </span>
+                        </div>
                         <select 
                           className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-indigo-500"
                           value={reference}
@@ -2157,6 +2213,9 @@ function JadhaApp() {
                             <option key={`book-${bIdx}-${book}`} value={book}>{book}</option>
                           ))}
                         </select>
+                        <p className="text-[10.5px] text-slate-500 mt-1">
+                          يمكنك اختيار المقرر المعتمد بمؤسستك أو اختيار <span className="text-indigo-700 font-bold">«توليف رسمي بين مقررات المستوى»</span> لإدراج تقاطع الوثائق الرسمية المقارنة.
+                        </p>
                       </div>
                     </div>
 
@@ -2176,6 +2235,54 @@ function JadhaApp() {
                         )}
                       </select>
                     </div>
+
+                    {/* Live Textbook Grounding Preview Card */}
+                    {(() => {
+                      const bookDetails = getTextbookDetails(lessonTitle, reference, level, component);
+                      if (!bookDetails) return null;
+                      return (
+                        <div className="p-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-indigo-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs flex-wrap sm:flex-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                              <BookOpen size={16} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-slate-900">الكتاب المدرسي المعتمد:</span>
+                                <span className="font-black text-indigo-700 bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200 text-xs shadow-xs">
+                                  {bookDetails.textbookName}
+                                </span>
+                                <span className="text-[11px] font-bold text-slate-700 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                  {bookDetails.pagesRange}
+                                </span>
+                                {bookDetails.isComparativeSynthesis && (
+                                  <span className="text-[10px] font-bold text-purple-800 bg-purple-100/90 border border-purple-300 px-2 py-0.5 rounded-md">
+                                    توليف متقاطع شامل
+                                  </span>
+                                )}
+                              </div>
+                              {bookDetails.parallelTextbooks && bookDetails.parallelTextbooks.length > 0 && (
+                                <div className="flex items-center gap-1.5 flex-wrap mt-1 text-[11px]">
+                                  <span className="font-bold text-slate-600">المقررات الموازية المتاحة للتقاطع:</span>
+                                  {bookDetails.parallelTextbooks.map((pb, pIdx) => (
+                                    <span key={pIdx} className="font-bold text-indigo-800 bg-white px-1.5 py-0.5 rounded border border-indigo-200 text-[10px]">
+                                      {pb.name} ({pb.pages})
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              <p className="text-[11px] text-slate-600 mt-1">
+                                يتضمن <strong className="text-slate-800">{bookDetails.documents.length} وثائق ودعامات رسمية</strong> (نصوص، خرائط، مبيانات) معتمدة للربط المباشر مع أنشطة الجذاذة.
+                              </p>
+                            </div>
+                          </div>
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-300 px-2.5 py-1 rounded-xl shrink-0">
+                            <CheckCircle2 size={12} />
+                            ربط مباشر بالصفحات
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -2229,9 +2336,25 @@ function JadhaApp() {
                         <span className="text-slate-500">عنوان الدرس:</span>
                         <span className="font-bold text-indigo-700">{lessonTitle}</span>
                       </div>
+                      <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                        <span className="text-slate-500">الكتاب المدرسي المعتمد:</span>
+                        {(() => {
+                          const tb = getTextbookDetails(lessonTitle, reference, level, component);
+                          return (
+                            <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                              <span className="text-indigo-700">{tb?.textbookName || reference}</span>
+                              {tb?.pagesRange && (
+                                <span className="bg-slate-200/80 text-slate-700 text-xs px-2 py-0.5 rounded">
+                                  {tb.pagesRange}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })()}
+                      </div>
                       <div className="flex justify-between py-1.5">
-                        <span className="text-slate-500">المرجع والغلاف الزمني:</span>
-                        <span className="font-bold text-slate-900">{reference} • {duration}</span>
+                        <span className="text-slate-500">الغلاف الزمني:</span>
+                        <span className="font-bold text-slate-900">{duration}</span>
                       </div>
                     </div>
                   </div>

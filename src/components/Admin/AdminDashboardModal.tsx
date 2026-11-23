@@ -40,8 +40,9 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { doc, updateDoc, deleteDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../../firebase';
 import { toast } from 'sonner';
+import { getCurrentAcademicYear } from '../../utils/academicYear';
 
 interface AdminDashboardModalProps {
   isOpen: boolean;
@@ -378,7 +379,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 تقديراً لثقتكم المستمرة واستعمالكم لمنصة الاجتماعيات الذكية، يسعدنا تقديم عرض حصري ومخفض لترقية حسابكم:
 
 🌟 باقة VIP السنوية الشاملة مع أولوية الدعم التقني والتربوي
-- وصول غير محدود لكافة الجذاذات والفروض المحينة (2025/2026)
+- وصول غير محدود لكافة الجذاذات والفروض المحينة (${getCurrentAcademicYear()})
 - استيراد سريع لنقط مسار وإعداد تقارير الدعم والمعالجة
 
 للاستفادة وتفعيل الكود المباشر، يرجى التواصل معنا عبر واتساب:
@@ -464,9 +465,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     setEmailSendStatus(null);
 
     try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch('/api/admin/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+        },
         body: JSON.stringify({
           to: emailModalUser.email,
           subject: emailSubject,
@@ -546,7 +551,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 نظراً لاقتناعكم بجودة وأهمية أدوات المنصة في تيسير التخطيط والتحضير الديداكتيكي، يسعدنا مرافقتكم لمواصلة الاستفادة دون انقطاع:
 
 🌟 خيارات ترقية الحساب المتاحة:
-• باقة VIP غير المحدودة (السنوية): تحميل وتوليد غير محدود طيلة الموسم الدراسي 2025/2026 لكافة الجذاذات والفروض والروائز والملخصات.
+• باقة VIP غير المحدودة (السنوية): تحميل وتوليد غير محدود طيلة الموسم الدراسي ${getCurrentAcademicYear()} لكافة الجذاذات والفروض والروائز والملخصات.
 • باقة الدورة / الأسدس: رصيد 60 تحميلاً شاملاً لكافة الأدوات.
 
 📲 لتفعيل حسابكم واستلام كود الترقية الفوري:
@@ -561,7 +566,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       setBulkBody(`تحية تربوية خالصة أستاذنا الفاضل / أستاذتنا الفاضلة،
 
 بعد استنفادكم للرصيد المجاني في منصة الاجتماعيات الذكية، يسعدنا دعوتكم للانضمام إلى باقة VIP غير المحدودة للاستفادة من:
-- تحميلات وتوليد غير محدود بصيغة Word و PDF طيلة الموسم الدراسي 2025/2026.
+- تحميلات وتوليد غير محدود بصيغة Word و PDF طيلة الموسم الدراسي ${getCurrentAcademicYear()}.
 - المنظومة الكاملة للفروض والتقويم التشخيصي واستيراد نقط مسار بنقرة واحدة.
 - وثائق إعداديات الريادة وملخصات الدروس والخطاطات المفاهيمية.
 
@@ -677,9 +682,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
     setIsSendingBulk(true);
     try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const response = await fetch('/api/admin/send-bulk-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+        },
         body: JSON.stringify({
           recipients: emails,
           subject: bulkSubject,

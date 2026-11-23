@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { auth } from "../firebase";
 
 interface GenerateAIOptions {
   prompt: string;
@@ -26,6 +27,16 @@ export async function generateAIContent(options: GenerateAIOptions): Promise<str
     };
     if (manualKey) {
       headers["x-gemini-key"] = manualKey;
+    }
+    if (auth.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        if (idToken) {
+          headers["Authorization"] = `Bearer ${idToken}`;
+        }
+      } catch {
+        // Continue if token retrieval fails
+      }
     }
 
     const res = await fetch("/api/ai/generate", {

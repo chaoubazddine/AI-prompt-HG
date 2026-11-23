@@ -3,37 +3,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: users
-    // Document ID: userId (Firebase Auth UID)
-    // Fields:
-    //   - displayName: string (optional)
-    //   - email: string (required, email format)
-    //   - subscriptionTier: string (required, enum: free, basic, advanced, unlimited)
-    //   - downloadCount: number (required, >= 0)
-    //   - profInfo: map (optional)
-    //   - createdAt: timestamp (required)
-    //
-    // Collection: jadhas
-    // Document ID: auto-generated
-    // Fields:
-    //   - userId: string (required, matches owner UID)
-    //   - title: string (required, min 1, max 200)
-    //   - data: map (required, the jadha content)
-    //   - createdAt: timestamp (required)
-    //
-    // Collection: activationCodes
-    // Document ID: the code string
-    // Fields:
-    //   - isValid: boolean (required)
-    //   - tier: string (required, enum: basic, advanced, unlimited)
-    //   - description: string (optional)
-    //
-    // ===============================================================
-
-    // ===============================================================
     // Helper Functions
     // ===============================================================
 
@@ -47,23 +16,31 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "chaoub7@gmail.com" && request.auth.token.email_verified == true));
+        (
+          (request.auth.token.email == "chaoub7@gmail.com" && request.auth.token.email_verified == true) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        );
     }
 
     function isValidEmail(email) {
       return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
 
+    function isValidTier(tier) {
+      return tier in ['free', 'basic', 'semester', 'advanced', 'pro', 'unlimited'];
+    }
+
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'createdAt']) &&
-             data.keys().hasOnly(['email', 'subscriptionTier', 'downloadCount', 'usageCount', 'toolsUsage', 'lastActiveAt', 'lastAction', 'createdAt', 'updatedAt', 'displayName', 'role', 'profInfo', 'isPremium']) &&
+             data.keys().hasOnly(['email', 'subscriptionTier', 'downloadCount', 'usageCount', 'toolsUsage', 'lastActiveAt', 'lastAction', 'createdAt', 'updatedAt', 'displayName', 'role', 'profInfo', 'isPremium', 'lastActivationCode']) &&
              isValidEmail(data.email) &&
-             (!('subscriptionTier' in data) || data.subscriptionTier in ['free', 'basic', 'advanced', 'unlimited']) &&
+             (!('subscriptionTier' in data) || isValidTier(data.subscriptionTier)) &&
              (!('downloadCount' in data) || (data.downloadCount is number && data.downloadCount >= 0)) &&
              (!('usageCount' in data) || (data.usageCount is number && data.usageCount >= 0)) &&
              (!('toolsUsage' in data) || data.toolsUsage is map) &&
              (!('lastAction' in data) || data.lastAction is string) &&
+             (!('lastActivationCode' in data) || data.lastActivationCode is string) &&
              data.createdAt is timestamp &&
              (!('profInfo' in data) || data.profInfo is map);
     }
@@ -83,13 +60,32 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
+
+      // Only owner can create, starting strictly at 'free' tier with 0 downloads (unless admin)
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
                       request.resource.data.keys().hasAll(['subscriptionTier', 'downloadCount']) &&
+                      (isAdmin() || (request.resource.data.subscriptionTier == 'free' && request.resource.data.downloadCount == 0)) &&
                       (!('role' in request.resource.data) || request.resource.data.role == 'user' || isAdmin());
+
+      // Owner can update profile fields. Cannot forge tier, role, or decrement downloadCount.
       allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && 
                       (request.resource.data.email == resource.data.email) &&
                       (request.resource.data.createdAt == resource.data.createdAt) &&
-                      (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin());
+                      // Role protection: non-admins cannot change role
+                      (!('role' in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin()) &&
+                      // Quota protection: downloadCount cannot be decremented or reset by non-admins
+                      (isAdmin() || !('downloadCount' in request.resource.data) || request.resource.data.downloadCount >= resource.data.downloadCount) &&
+                      // Subscription protection: tier can only change if admin OR if consuming an activation code for this user
+                      (isAdmin() || 
+                       !('subscriptionTier' in request.resource.data) ||
+                       request.resource.data.subscriptionTier == resource.data.subscriptionTier ||
+                       (
+                         'lastActivationCode' in request.resource.data &&
+                         exists(/databases/$(database)/documents/activationCodes/$(request.resource.data.lastActivationCode)) &&
+                         getAfter(/databases/$(database)/documents/activationCodes/$(request.resource.data.lastActivationCode)).data.usedBy == request.auth.uid &&
+                         getAfter(/databases/$(database)/documents/activationCodes/$(request.resource.data.lastActivationCode)).data.tier == request.resource.data.subscriptionTier
+                       )
+                      );
     }
 
     match /jadhas/{jadhaId} {
@@ -100,8 +96,22 @@ service cloud.firestore {
     }
 
     match /activationCodes/{code} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      // Disallow public listing/scraping: only admins can list all codes
+      allow list: if isAdmin();
+      // Authenticated users can check a specific code by ID to redeem it
+      allow get: if isAuthenticated();
+      // Admins have full management
+      allow create, delete: if isAdmin();
+      // Redemption: code can be updated by an authenticated user only if marking it used by themselves atomically
+      allow update: if isAdmin() || (
+        isAuthenticated() &&
+        resource.data.isValid == true &&
+        (!('isUsed' in resource.data) || resource.data.isUsed == false) &&
+        request.resource.data.isValid == false &&
+        request.resource.data.isUsed == true &&
+        request.resource.data.usedBy == request.auth.uid &&
+        request.resource.data.tier == resource.data.tier
+      );
     }
 
     // Default deny

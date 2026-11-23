@@ -74,5 +74,34 @@ export async function testConnection() {
 
 testConnection();
 
+/**
+ * Recursively strips undefined fields from an object so Firestore addDoc/updateDoc/setDoc does not fail.
+ */
+export function cleanFirestoreData<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return null as any;
+  }
+  if (Array.isArray(obj)) {
+    return obj
+      .filter(item => item !== undefined)
+      .map(item => cleanFirestoreData(item)) as any;
+  }
+  if (typeof obj === 'object') {
+    // Keep Date, Timestamp, FieldValue or special Firestore instances intact
+    if (obj instanceof Date || (obj as any)._methodName || (obj as any).toMillis) {
+      return obj;
+    }
+    const cleaned: Record<string, any> = {};
+    for (const [key, val] of Object.entries(obj)) {
+      if (val !== undefined) {
+        cleaned[key] = cleanFirestoreData(val);
+      }
+    }
+    return cleaned as any;
+  }
+  return obj;
+}
+
 export type { FirebaseUser };
 export { Timestamp };
+

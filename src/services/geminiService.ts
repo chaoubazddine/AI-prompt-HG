@@ -4,6 +4,62 @@ import { generateAIContent } from "./aiClient";
 import { CurriculumService } from "./knowledgeBase/curriculumService";
 import { getDetailedMoroccanLessonContent } from "./knowledgeBase/data/lessonsKnowledgeBase";
 import { getOfficialCurriculumSections } from "../constants/officialCurriculumSections";
+import { getTextbookDetails } from "../constants/textbookRegistry";
+import { getCurrentAcademicYear } from "../utils/academicYear";
+
+/**
+ * Resolves the official Moroccan educational component (التاريخ / الجغرافيا / التربية على المواطنة)
+ * using the curriculum registry and database first to avoid ambiguous keyword guessing.
+ */
+export function resolveLessonComponent(lessonTitle: string, componentInput?: string, level?: string): string {
+  if (componentInput && ["التاريخ", "الجغرافيا", "التربية على المواطنة"].includes(componentInput)) {
+    return componentInput;
+  }
+  // 1. Query official curriculum registry
+  const officialSecs = getOfficialCurriculumSections(lessonTitle, level);
+  if (officialSecs && officialSecs.component) {
+    return officialSecs.component;
+  }
+  // 2. Query detailed Moroccan lessons knowledge base
+  const detailedMatch = getDetailedMoroccanLessonContent(lessonTitle);
+  if (detailedMatch && detailedMatch.component) {
+    return detailedMatch.component;
+  }
+  // 3. Fallback to specific, unambiguous terms
+  const title = lessonTitle.toLowerCase();
+  if (
+    title.includes("تاريخ") ||
+    title.includes("رأسمال") ||
+    title.includes("إمبريال") ||
+    title.includes("نهضة") ||
+    title.includes("حرب عالم") ||
+    title.includes("خلافة") ||
+    title.includes("مريني") ||
+    title.includes("سعدي") ||
+    title.includes("علوي") ||
+    title.includes("عصر وسيط") ||
+    title.includes("كشوفات جغرافية") ||
+    title.includes("ثورة فلاحية") ||
+    title.includes("ثورة صناعية")
+  ) {
+    return "التاريخ";
+  }
+  if (
+    title.includes("مواطن") ||
+    title.includes("دستور") ||
+    title.includes("ديمقراط") ||
+    title.includes("تسامح") ||
+    title.includes("تراث") ||
+    title.includes("حقوق الإنسان") ||
+    title.includes("الحريات العامة") ||
+    title.includes("السلط السياسية") ||
+    title.includes("مرفق عمومي") ||
+    title.includes("التعايش بين الأديان")
+  ) {
+    return "التربية على المواطنة";
+  }
+  return "الجغرافيا";
+}
 
 /**
  * Generates an extensive, highly grounded Moroccan pedagogical lesson plan (جذاذة تربوية نموذجية)
@@ -16,40 +72,61 @@ export const generateFallbackJadha = (
   componentInput?: string,
   durationInput?: string
 ): JadhaData => {
+  // Query textbook details from the official Moroccan textbooks registry
+  const textbook = getTextbookDetails(lessonTitle, curriculum, level, componentInput);
+
   // Check rich authentic Moroccan curriculum database first
   const detailedMatch = getDetailedMoroccanLessonContent(lessonTitle);
   if (detailedMatch) {
+    const textbookRef = textbook
+      ? `${textbook.textbookName} (${textbook.pagesRange}) - التوجيهات التربوية الرسمية`
+      : detailedMatch.references || `${curriculum} - التوجيهات التربوية الرسمية`;
+
+    // Adapt document citations in tools to reflect the chosen textbook if available
+    const adaptedSteps = detailedMatch.steps.map((st, sIdx) => {
+      if (st.isHeader || st.isSynthesis || st.isEvaluation) return st;
+      if (textbook && textbook.documents.length > 0) {
+        const doc = textbook.documents[sIdx % textbook.documents.length];
+        if (doc && (!st.tools || st.tools.includes('الكتاب') || st.tools.includes('السبورة'))) {
+          return {
+            ...st,
+            tools: `كتاب ${textbook.textbookName} (${doc.page}): ${doc.docNumber} (${doc.type}: ${doc.title})`
+          };
+        }
+      }
+      return st;
+    });
+
     return {
       title: detailedMatch.title || lessonTitle,
       level: level || detailedMatch.level,
-      year: "2025/2026",
+      year: getCurrentAcademicYear(),
       duration: durationInput || detailedMatch.duration || "ساعتان (2س)",
       unit: detailedMatch.component,
       lessonNumber: detailedMatch.lessonNumber || "الدرس 01",
       module: detailedMatch.module || "المجزوءة الأولى",
-      academy: detailedMatch.academy || "جهة الدار البيضاء سطات",
-      directorate: detailedMatch.directorate || "سيدي البرنوصي",
+      academy: detailedMatch.academy || "الأكاديمية الجهوية للتربية والتكوين",
+      directorate: detailedMatch.directorate || "المديرية الإقليمية",
       school: detailedMatch.school || "المؤسسة التعليمية",
       teacherName: detailedMatch.teacherName || "أستاذ المادة",
-      references: detailedMatch.references || `${curriculum} - التوجيهات التربوية الرسمية`,
+      references: textbookRef,
+      textbookName: textbook?.textbookName || curriculum,
+      textbookPages: textbook?.pagesRange,
+      textbookDocuments: textbook?.documents,
+      textbookKeyConcepts: textbook?.keyConcepts,
       competencies: detailedMatch.competencies,
       capabilities: detailedMatch.capabilities,
       objectives: detailedMatch.objectives,
       problematic: detailedMatch.problematic,
       introductionSteps: detailedMatch.introductionSteps,
-      steps: detailedMatch.steps,
-      finalEvaluation: detailedMatch.finalEvaluation
+      steps: adaptedSteps,
+      finalEvaluation: detailedMatch.finalEvaluation,
+      isFallbackTemplate: true,
+      generationMethod: 'curriculum_template',
     };
   }
 
-  const isHistory = componentInput === "التاريخ" || 
-    (!componentInput && (lessonTitle.includes("تاريخ") || lessonTitle.includes("حرب") || lessonTitle.includes("ثورة") || lessonTitle.includes("دولة") || lessonTitle.includes("عصر") || lessonTitle.includes("حضارة") || lessonTitle.includes("مغرب") || lessonTitle.includes("إسلام") || lessonTitle.includes("استعمار") || lessonTitle.includes("إمبريالية") || lessonTitle.includes("نهضة") || lessonTitle.includes("أزمة") || lessonTitle.includes("نظام") || lessonTitle.includes("خلافة")));
-
-  
-  const isCivics = componentInput === "التربية على المواطنة" || 
-    (!componentInput && (lessonTitle.includes("مواطنة") || lessonTitle.includes("حق") || lessonTitle.includes("واجب") || lessonTitle.includes("دستور") || lessonTitle.includes("ديمقراطية") || lessonTitle.includes("قانون") || lessonTitle.includes("تضامن") || lessonTitle.includes("تسامح") || lessonTitle.includes("تراث") || lessonTitle.includes("بيئة") || lessonTitle.includes("حوار") || lessonTitle.includes("سلم") || lessonTitle.includes("عدل") || lessonTitle.includes("حرية") || lessonTitle.includes("كرامة") || lessonTitle.includes("مرفق")));
-  
-  const unit = componentInput || (isHistory ? "التاريخ" : isCivics ? "التربية على المواطنة" : "الجغرافيا");
+  const unit = resolveLessonComponent(lessonTitle, componentInput, level);
   const duration = durationInput || "ساعتان";
   const officialSecs = getOfficialCurriculumSections(lessonTitle, level, unit);
 
@@ -60,11 +137,13 @@ export const generateFallbackJadha = (
     return {
       title: lessonTitle,
       level: level,
-      year: "2025/2026",
+      year: getCurrentAcademicYear(),
       duration: duration,
       unit: "التاريخ",
       lessonNumber: "درس بيداغوجي رقم 1",
       module: "المجزوءة الأولى",
+      isFallbackTemplate: true,
+      generationMethod: 'curriculum_template',
       references: `${curriculum} - التوجيهات التربوية الرسمية لتدريس التاريخ بالسلك الإعدادي والتأهيلي`,
       competencies: [
         `إعمال خطوات النهج التاريخي (التعريف والتفسير والتركيب) في دراسة موضوع (${lessonTitle}).`,
@@ -263,11 +342,13 @@ export const generateFallbackJadha = (
     return {
       title: lessonTitle,
       level: level,
-      year: "2025/2026",
+      year: getCurrentAcademicYear(),
       duration: duration,
       unit: "التربية على المواطنة",
       lessonNumber: "درس بيداغوجي رقم 1",
       module: "المجزوءة الأولى",
+      isFallbackTemplate: true,
+      generationMethod: 'curriculum_template',
       references: `${curriculum} - التوجيهات التربوية الرسمية لمادة الاجتماعيات (التربية على المواطنة)`,
       competencies: [
         `إعمال خطوات النهج الحقوقي والقيمي (الاكتشاف، رد الفعل والمناقشة، والفعل والممارسة) في معالجة موضوع (${lessonTitle}).`,
@@ -452,11 +533,13 @@ export const generateFallbackJadha = (
   return {
     title: lessonTitle,
     level: level,
-    year: "2025/2026",
+    year: getCurrentAcademicYear(),
     duration: duration,
     unit: "الجغرافيا",
     lessonNumber: "درس بيداغوجي رقم 1",
     module: "المجزوءة الأولى",
+    isFallbackTemplate: true,
+    generationMethod: 'curriculum_template',
     references: `${curriculum} - التوجيهات التربوية الرسمية لتدريس مادة الجغرافيا بالسلكين الإعدادي والتأهيلي`,
     competencies: [
       `تطبيق خطوات النهج الجغرافي (الوصف والتفسير والتعميم) في معالجة الظاهرة الجغرافية بموضوع (${lessonTitle}).`,
@@ -696,7 +779,7 @@ export const enrichJadhaData = (
     references: data.references || `${curriculum} - التوجيهات التربوية الرسمية`,
     teacherName: data.teacherName || 'أستاذ(ة) المادة',
     school: data.school || 'المؤسسة التعليمية',
-    year: data.year || '2025/2026',
+    year: data.year || getCurrentAcademicYear(),
     duration: data.duration || 'ساعتان (2س)',
     introductionSteps: cleanedIntro,
     steps: cleanedSteps,
@@ -715,44 +798,93 @@ export const generateJadha = async (
   cycleInput?: string,
   semesterInput?: string
 ): Promise<JadhaData> => {
-  // 1. Determine Component (المكون)
-  const isHistory = componentInput === "التاريخ" || 
-    (!componentInput && (lessonTitle.includes("تاريخ") || lessonTitle.includes("حرب") || lessonTitle.includes("ثورة") || lessonTitle.includes("دولة") || lessonTitle.includes("عصر") || lessonTitle.includes("حضارة") || lessonTitle.includes("مغرب") || lessonTitle.includes("إسلام") || lessonTitle.includes("استعمار") || lessonTitle.includes("إمبريالية") || lessonTitle.includes("نهضة") || lessonTitle.includes("أزمة") || lessonTitle.includes("نظام") || lessonTitle.includes("خلافة")));
-  
-  const isCivics = componentInput === "التربية على المواطنة" || 
-    (!componentInput && (lessonTitle.includes("مواطنة") || lessonTitle.includes("حق") || lessonTitle.includes("واجب") || lessonTitle.includes("دستور") || lessonTitle.includes("ديمقراطية") || lessonTitle.includes("قانون") || lessonTitle.includes("تضامن") || lessonTitle.includes("تسامح") || lessonTitle.includes("تراث") || lessonTitle.includes("بيئة") || lessonTitle.includes("حوار") || lessonTitle.includes("سلم") || lessonTitle.includes("عدل") || lessonTitle.includes("حرية") || lessonTitle.includes("كرامة") || lessonTitle.includes("مرفق")));
-  
-  const component = componentInput || (isHistory ? "التاريخ" : isCivics ? "التربية على المواطنة" : "الجغرافيا");
+  // 1. Determine Component (المكون) cleanly via curriculum database & registry
+  const component = resolveLessonComponent(lessonTitle, componentInput, level);
   const duration = durationInput || "ساعتان";
+
+  // 2. Fetch Grounded Curriculum Context & Textbook Documents
+  const textbook = getTextbookDetails(lessonTitle, curriculum, level, component);
 
   // Check rich authentic Moroccan curriculum database first
   const detailedMatch = getDetailedMoroccanLessonContent(lessonTitle);
   if (detailedMatch && detailedMatch.steps && detailedMatch.steps.length >= 4) {
+    const textbookRef = textbook
+      ? `${textbook.textbookName} (${textbook.pagesRange})${textbook.parallelTextbooks?.length ? ` | المقررات الموازية: ${textbook.parallelTextbooks.map(p => p.name).join('، ')}` : ''} - التوجيهات التربوية الرسمية`
+      : detailedMatch.references || `${curriculum} - التوجيهات التربوية الرسمية`;
+
+    const parallelNote = textbook?.parallelTextbooks && textbook.parallelTextbooks[0]
+      ? ` (موازي بمقرر ${textbook.parallelTextbooks[0].name})`
+      : '';
+
+    // Adapt document citations in tools to reflect the chosen textbook if available
+    const adaptedSteps = detailedMatch.steps.map((st, sIdx) => {
+      if (st.isHeader || st.isSynthesis || st.isEvaluation) return st;
+      if (textbook && textbook.documents.length > 0) {
+        const doc = textbook.documents[sIdx % textbook.documents.length];
+        if (doc && (!st.tools || st.tools.includes('الكتاب') || st.tools.includes('السبورة'))) {
+          return {
+            ...st,
+            tools: `كتاب ${textbook.textbookName} (${doc.page}): ${doc.docNumber} (${doc.type}: ${doc.title})${parallelNote}`
+          };
+        }
+      }
+      return st;
+    });
+
     return {
       title: detailedMatch.title || lessonTitle,
       level: level || detailedMatch.level,
-      year: "2025/2026",
+      year: getCurrentAcademicYear(),
       duration: durationInput || detailedMatch.duration || "ساعتان (2س)",
       unit: detailedMatch.component || component,
       lessonNumber: detailedMatch.lessonNumber || "الدرس 01",
       module: detailedMatch.module || "المجزوءة الأولى",
-      academy: detailedMatch.academy || "جهة الدار البيضاء سطات",
-      directorate: detailedMatch.directorate || "سيدي البرنوصي",
+      academy: detailedMatch.academy || "الأكاديمية الجهوية للتربية والتكوين",
+      directorate: detailedMatch.directorate || "المديرية الإقليمية",
       school: detailedMatch.school || "المؤسسة التعليمية",
       teacherName: detailedMatch.teacherName || "أستاذ المادة",
-      references: detailedMatch.references || `${curriculum} - التوجيهات التربوية الرسمية`,
+      references: textbookRef,
+      textbookName: textbook?.textbookName || curriculum,
+      textbookPages: textbook?.pagesRange,
+      parallelTextbooks: textbook?.parallelTextbooks || [],
+      isComparativeSynthesis: Boolean(textbook?.isComparativeSynthesis),
+      textbookDocuments: textbook?.documents || [],
+      textbookKeyConcepts: textbook?.keyConcepts || [],
       competencies: detailedMatch.competencies,
       capabilities: detailedMatch.capabilities,
       objectives: detailedMatch.objectives,
       problematic: detailedMatch.problematic,
       introductionSteps: detailedMatch.introductionSteps,
-      steps: detailedMatch.steps,
-      finalEvaluation: detailedMatch.finalEvaluation
+      steps: adaptedSteps,
+      finalEvaluation: detailedMatch.finalEvaluation,
+      isFallbackTemplate: false,
+      generationMethod: 'curriculum_template',
     };
   }
 
   // 2. Fetch Grounded Curriculum Context if available
   let officialRefContext = "";
+
+  if (textbook) {
+    officialRefContext += `
+معطيات ووثائق الكتاب المدرسي المعتمد (${textbook.textbookName}) - ملزمة ديداكتيكياً:
+- أرقام صفحات الدرس المقررة: ${textbook.pagesRange}
+- الوحدة / المجزوءة: ${textbook.unitModule}
+- الوثائق والدعامات الديداكتيكية الرسمية بالكتاب المدرسي:
+${textbook.documents.map(d => `  * ${d.docNumber} (${d.type}): "${d.title}" (الصفحة: ${d.page}) - الهدف الديداكتيكي: ${d.didacticObjective}`).join('\n')}
+- المفاهيم والمصطلحات المقررة في فقرة "أميّز مفاهيمي" بالكتاب:
+${textbook.keyConcepts.map(k => `  * ${k.term}: ${k.definition} (${k.page || ''})`).join('\n')}
+- توجيه ملزم: في عمود "الدعامات الديداكتيكية" (tools) وفي أسئلة مهام المدرس، يجب الاستناد المباشر والصريح إلى وثائق كتاب "${textbook.textbookName}" وصفحاته المحددة أعلاه.
+`;
+
+    if (textbook.parallelTextbooks && textbook.parallelTextbooks.length > 0) {
+      officialRefContext += `
+- المقررات الموازية المعتمدة رسمياً لهذا المستوى المتاحة للتقاطع والمقارنة الديداكتيكية:
+${textbook.parallelTextbooks.map(p => `  * مقرر "${p.name}" (${p.pages}): ${p.summary || ''}`).join('\n')}
+- توجيه ديداكتيكي إضافي: في خانة الدعامات الديداكتيكية (tools) يمكنك الإحالة المقارنة للوثيقة المقابلة في المقرر الموازي بين قوسين لدعم التقاطع البيداغوجي.
+`;
+    }
+  }
 
   if (detailedMatch) {
     officialRefContext = `
@@ -864,13 +996,17 @@ ${pedagogicalApproachInstructions}
      د. التمهيد الإشكالي وصياغة التساؤلات الإشكالية الثلاثة الكبرى.
 ${officialSectionsRule}
 
+4. **التوثيق الديداكتيكي الدقيق لوثائق الكتاب المدرسي**:
+   - إذا كانت وثائق الكتاب المدرسي وأرقام الصفحات محددة في المعطيات المرفقة، فوظف رقم الوثيقة وصفحتها بدقة.
+   - إذا لم تكن أرقام الصفحات محددة في المعطيات المرفقة، فاكتب نوع الدعامة وموضوعها الديداكتيكي (مثل: "خريطة تاريخية موضوعاتية"، "نص جغرافي") دون اختلاق أو تخمين أي رقم صفحة غير مؤكد.
+
 تنسيق الإخراج:
 أخرج النتيجة بتنسيق JSON حصرياً وصالح تماماً وفق هذا المخطط:
 
 {
   "title": "${lessonTitle}",
   "level": "${level}",
-  "year": "2025/2026",
+  "year": "${getCurrentAcademicYear()}",
   "duration": "${duration}",
   "unit": "${component}",
   "lessonNumber": "01",
@@ -1077,6 +1213,8 @@ ${officialSectionsRule}
       if (retries === 0) {
         console.info("Using grounded Moroccan curriculum fallback generation for:", lessonTitle);
         const fallback = generateFallbackJadha(lessonTitle, level, curriculum, component, duration);
+        fallback.isFallbackTemplate = true;
+        fallback.generationMethod = 'curriculum_template';
         return enrichJadhaData(fallback, component, lessonTitle, curriculum, level);
       }
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -1084,6 +1222,8 @@ ${officialSectionsRule}
   }
 
   const fallback = generateFallbackJadha(lessonTitle, level, curriculum, component, duration);
+  fallback.isFallbackTemplate = true;
+  fallback.generationMethod = 'curriculum_template';
   return enrichJadhaData(fallback, component, lessonTitle, curriculum, level);
 };
 

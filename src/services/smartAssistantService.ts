@@ -17,6 +17,7 @@ import { KnowledgeRetrievalService } from './knowledgeBase/retrievalService';
 import { LessonPlanQualityEvaluator } from './knowledgeBase/qualityEvaluator';
 import { safeJsonParse } from '../utils/jsonCleaner';
 import { generateAIContent } from './aiClient';
+import { getCurrentAcademicYear } from '../utils/academicYear';
 
 
 
@@ -421,7 +422,7 @@ ${JSON.stringify(concept, null, 2)}
 - المؤسسة: ${profInfo.school || 'المؤسسة التعليمية'}
 - المديرية: ${profInfo.directorate || 'المديرية الإقليمية'}
 - الأكاديمية: ${profInfo.academy || 'الأكاديمية الجهوية'}
-- الموسم الدراسي: ${profInfo.year || '2025/2026'}
+- الموسم الدراسي: ${profInfo.year || getCurrentAcademicYear()}
 
 [OUTPUT SCHEMA - JSON ONLY]
 أرجع كائن JSON حصرياً مطابق للهيكل التالي دون أي اختصار:
@@ -433,7 +434,7 @@ ${JSON.stringify(concept, null, 2)}
   "cycle": "middle",
   "component": "${concept.component}",
   "unit": "${setupData.unit || 'الوحدة الدراسية'}",
-  "year": "${profInfo.year || '2025/2026'}",
+  "year": "${profInfo.year || getCurrentAcademicYear()}",
   "duration": "${concept.duration || '55 دقيقة'}",
   "academy": "${profInfo.academy || ''}",
   "directorate": "${profInfo.directorate || ''}",
@@ -593,7 +594,7 @@ ${JSON.stringify(concept, null, 2)}
     school: profInfo.school || "المؤسسة التعليمية",
     directorate: profInfo.directorate || "المديرية الإقليمية",
     academy: profInfo.academy || "الأكاديمية الجهوية",
-    year: profInfo.year || "2025/2026",
+    year: profInfo.year || getCurrentAcademicYear(),
     competencies: [
       `التمكن من خطوات النهج الديداكتيكي لمكون ${setupData.component}`,
       'استثمار الوثائق والدعامات الديداكتيكية في بناء التعلمات',

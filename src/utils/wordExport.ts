@@ -1,6 +1,7 @@
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, VerticalAlign } from 'docx';
 import { saveAs } from 'file-saver';
 import { JadhaData } from '../components/TableJadha';
+import { getCurrentAcademicYear } from './academicYear';
 
 export const downloadWord = async (jadhaData: JadhaData) => {
   if (!jadhaData) return;
@@ -50,7 +51,7 @@ export const downloadWord = async (jadhaData: JadhaData) => {
                 children: [
                   // Left Box
                   createCell([
-                    createRtlPara(`الموسم الدراسي: ${jadhaData.year || "2025/2026"}`, { size: 16 }),
+                    createRtlPara(`الموسم الدراسي: ${jadhaData.year || getCurrentAcademicYear()}`, { size: 16 }),
                     createRtlPara(`إعداد: ${jadhaData.teacherName || "أستاذ المادة"}`, { size: 16 }),
                     createRtlPara(`الغلاف الزمني: ${jadhaData.duration || "ساعتان (2س)"}`, { size: 16 }),
                     createRtlPara(`المستوى: ${jadhaData.level || "الثالثة إعدادي"}`, { size: 16 }),
@@ -63,10 +64,14 @@ export const downloadWord = async (jadhaData: JadhaData) => {
                   ], { width: { size: 40, type: WidthType.PERCENTAGE } }),
                   // Right Box
                   createCell([
-                    createRtlPara(`الأكاديمية: ${jadhaData.academy || "جهة الدار البيضاء سطات"}`, { size: 16 }),
-                    createRtlPara(`المديرية الإقليمية: ${jadhaData.directorate || "سيدي البرنوصي"}`, { size: 16 }),
+                    createRtlPara(`الأكاديمية: ${jadhaData.academy || "الأكاديمية الجهوية للتربية والتكوين"}`, { size: 16 }),
+                    createRtlPara(`المديرية الإقليمية: ${jadhaData.directorate || "المديرية الإقليمية"}`, { size: 16 }),
                     createRtlPara(`المادة: ${jadhaData.unit || "الاجتماعيات"}`, { size: 16 }),
-                    createRtlPara(`المراجع: ${jadhaData.references || "المقرر المدرسي المعتمد - التوجيهات الرسمية"}`, { size: 16 }),
+                    createRtlPara(`الكتاب المدرسي: ${jadhaData.textbookName || "المقرر المعتمد"}${jadhaData.textbookPages ? ` (${jadhaData.textbookPages})` : ''}`, { size: 16 }),
+                    ...(jadhaData.parallelTextbooks && jadhaData.parallelTextbooks.length > 0 ? [
+                      createRtlPara(`المقرر الموازي للتقاطع: ${jadhaData.parallelTextbooks.map(p => `${p.name} (${p.pages})`).join(' | ')}`, { size: 15, color: "1E40AF" })
+                    ] : []),
+                    createRtlPara(`المراجع: ${jadhaData.references || "المقرر المدرسي المعتمد - التوجيهات الرسمية"}`, { size: 15 }),
                   ], { width: { size: 30, type: WidthType.PERCENTAGE } }),
                 ],
               }),

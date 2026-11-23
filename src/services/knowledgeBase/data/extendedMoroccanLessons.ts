@@ -542,8 +542,8 @@ export const EXTENDED_MOROCCAN_LESSONS: Record<string, LessonDetailedContent> = 
     lessonNumber: 'الدرس 4',
     unitNumber: '4',
     module: 'المجزوءة الأولى: العالم المتوسطي في القرنين 15 و16م: التحولات العامة وإرهاصات الحداثة',
-    academy: 'جهة الدار البيضاء سطات',
-    directorate: 'سيدي البرنوصي',
+    academy: 'الأكاديمية الجهوية للتربية والتكوين',
+    directorate: 'المديرية الإقليمية',
     references: 'المنار في الاجتماعيات',
     competencies: [
       'كفاية إدراك مفهوم الحداثة وتجلياتها الفكرية والفنية خلال العصر الحديث',

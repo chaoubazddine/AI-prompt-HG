@@ -7,7 +7,7 @@
       "properties": {
         "displayName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "subscriptionTier": { "type": "string", "enum": ["free", "basic", "advanced", "unlimited"] },
+        "subscriptionTier": { "type": "string", "enum": ["free", "basic", "semester", "advanced", "pro", "unlimited"] },
         "downloadCount": { "type": "number" },
         "usageCount": { "type": "number" },
         "toolsUsage": { "type": "object" },
@@ -15,6 +15,8 @@
         "lastAction": { "type": "string" },
         "role": { "type": "string" },
         "profInfo": { "type": "object" },
+        "isPremium": { "type": "boolean" },
+        "lastActivationCode": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -38,8 +40,12 @@
       "type": "object",
       "properties": {
         "isValid": { "type": "boolean" },
-        "tier": { "type": "string", "enum": ["basic", "advanced", "unlimited"] },
-        "description": { "type": "string" }
+        "tier": { "type": "string", "enum": ["basic", "semester", "advanced", "pro", "unlimited"] },
+        "description": { "type": "string" },
+        "isUsed": { "type": "boolean" },
+        "usedBy": { "type": "string" },
+        "usedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["isValid", "tier"]
     }

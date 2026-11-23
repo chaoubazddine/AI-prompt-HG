@@ -14,12 +14,14 @@ import {
   Info,
   HelpCircle,
   Book,
-  Calendar
+  Calendar,
+  CheckCircle2
 } from 'lucide-react';
 import { LessonSummaryData } from '../../types/summary';
 import { generateLessonSummary, generateFallbackSummary } from '../../services/summaryService';
 import { downloadSummaryWord } from '../../utils/summaryWordExport';
 import { LESSONS_DATA } from '../../constants';
+import { getTextbookDetails } from '../../constants/textbookRegistry';
 import { trackUserUsage, checkAndRecordDownload } from '../../services/usageTracker';
 import { toast } from 'sonner';
 
@@ -318,6 +320,30 @@ export const LessonSummaryGenerator: React.FC<LessonSummaryGeneratorProps> = ({
                 className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
+
+            {/* Direct Textbook Grounding Card */}
+            {(() => {
+              const tb = getTextbookDetails(lessonTitle, '', levelKey, subject);
+              if (!tb) return null;
+              return (
+                <div className="p-3 bg-white border border-indigo-200/90 rounded-xl flex items-center justify-between gap-2.5 text-xs shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={16} className="text-indigo-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-slate-800">الكتاب المدرسي المعتمد: </span>
+                      <span className="font-black text-indigo-700">{tb.textbookName}</span>
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 mr-1.5">
+                        {tb.pagesRange}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md shrink-0 flex items-center gap-1">
+                    <CheckCircle2 size={11} />
+                    ربط مباشر بالصفحات
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Submit Button */}
